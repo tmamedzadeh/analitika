@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OsintRouteImport } from './routes/osint'
+import { Route as SenedlerRouteImport } from './routes/senedler'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OsintRoute = OsintRouteImport.update({
+  id: '/osint',
+  path: '/osint',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SenedlerRoute = SenedlerRouteImport.update({
+  id: '/senedler',
+  path: '/senedler',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/osint': typeof OsintRoute
+  '/senedler': typeof SenedlerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/osint': typeof OsintRoute
+  '/senedler': typeof SenedlerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/osint': typeof OsintRoute
+  '/senedler': typeof SenedlerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/osint' | '/senedler'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/osint' | '/senedler'
+  id: '__root__' | '/' | '/osint' | '/senedler'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  OsintRoute: typeof OsintRoute
+  SenedlerRoute: typeof SenedlerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/osint': {
+      id: '/osint'
+      path: '/osint'
+      fullPath: '/osint'
+      preLoaderRoute: typeof OsintRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/senedler': {
+      id: '/senedler'
+      path: '/senedler'
+      fullPath: '/senedler'
+      preLoaderRoute: typeof SenedlerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  OsintRoute: OsintRoute,
+  SenedlerRoute: SenedlerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
