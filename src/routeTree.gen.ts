@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AyarlarRouteImport } from './routes/ayarlar'
 import { Route as OsintRouteImport } from './routes/osint'
 import { Route as SenedlerRouteImport } from './routes/senedler'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AyarlarRoute = AyarlarRouteImport.update({
+  id: '/ayarlar',
+  path: '/ayarlar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OsintRoute = OsintRouteImport.update({
@@ -31,30 +37,34 @@ const SenedlerRoute = SenedlerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/osint' | '/senedler'
+  fullPaths: '/' | '/ayarlar' | '/osint' | '/senedler'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/osint' | '/senedler'
-  id: '__root__' | '/' | '/osint' | '/senedler'
+  to: '/' | '/ayarlar' | '/osint' | '/senedler'
+  id: '__root__' | '/' | '/ayarlar' | '/osint' | '/senedler'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AyarlarRoute: typeof AyarlarRoute
   OsintRoute: typeof OsintRoute
   SenedlerRoute: typeof SenedlerRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ayarlar': {
+      id: '/ayarlar'
+      path: '/ayarlar'
+      fullPath: '/ayarlar'
+      preLoaderRoute: typeof AyarlarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/osint': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AyarlarRoute: AyarlarRoute,
   OsintRoute: OsintRoute,
   SenedlerRoute: SenedlerRoute,
 }
