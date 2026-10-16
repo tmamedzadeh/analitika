@@ -1,6 +1,30 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Globe, FileText, SlidersHorizontal } from "lucide-react";
-import type { ReactNode } from "react";
+import { Search, Globe, FileText, SlidersHorizontal, Sun, Moon } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+
+function ThemeToggle() {
+  const [light, setLight] = useState(false);
+  useEffect(() => {
+    setLight(localStorage.getItem("theme") === "light");
+  }, []);
+  useEffect(() => {
+    document.documentElement.classList.toggle("light", light);
+  }, [light]);
+  return (
+    <button
+      type="button"
+      aria-label={light ? "Tünd tema" : "Açıq tema"}
+      onClick={() => {
+        const next = !light;
+        localStorage.setItem("theme", next ? "light" : "dark");
+        setLight(next);
+      }}
+      className="grid h-[52px] w-[52px] place-items-center rounded-xl border border-border text-muted-foreground transition-colors hover:text-foreground md:mt-auto"
+    >
+      {light ? <Moon size={20} /> : <Sun size={20} />}
+    </button>
+  );
+}
 
 const nav = [
   { to: "/", icon: Search, label: "Analitika" },
@@ -39,6 +63,7 @@ export function Shell({
           <span className="grid h-[52px] w-[52px] place-items-center text-muted-foreground">
             <SlidersHorizontal size={20} />
           </span>
+          <ThemeToggle />
         </nav>
       </aside>
       <main className="flex-1 px-4 py-6 md:px-9 md:py-8">
