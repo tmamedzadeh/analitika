@@ -30,6 +30,7 @@ const nav = [
   { to: "/", icon: Search, label: "Analitika" },
   { to: "/osint", icon: Globe, label: "OSINT" },
   { to: "/senedler", icon: FileText, label: "Sənədlər" },
+  { to: "/ayarlar", icon: SlidersHorizontal, label: "Ayarlar" },
 ] as const;
 
 export function Shell({
@@ -60,9 +61,6 @@ export function Shell({
               <Icon size={20} />
             </Link>
           ))}
-          <span className="grid h-[52px] w-[52px] place-items-center text-muted-foreground">
-            <SlidersHorizontal size={20} />
-          </span>
           <ThemeToggle />
         </nav>
       </aside>
