@@ -20,8 +20,8 @@ function AddDoc() {
         <form onSubmit={(e) => e.preventDefault()} className="panel space-y-5 p-6">
           <label className="block"><span className="mb-2 block text-sm font-semibold">Başlıq</span><input className="field" placeholder="[Sənəd başlığı]" /></label>
           <label className="block"><span className="mb-2 block text-sm font-semibold">Mətn</span><textarea rows={7} className="field" placeholder="Mətni bura yapışdırın. Bölmələr üçün #, cədvəllər üçün | işarəsi." /></label>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[["Tarix", "[gün.ay.il]"], ["Müəllif", "[ad]"], ["Teqlər", "[teq1, teq2]"]].map(([l, p]) => (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[["Tarix", "[gün.ay.il]"], ["Teqlər", "[teq1, teq2]"]].map(([l, p]) => (
               <label key={l} className="block"><span className="mb-2 block text-sm font-semibold">{l}</span><input className="field" placeholder={p} /></label>
             ))}
           </div>
