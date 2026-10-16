@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Shell } from "@/components/Shell";
+
+const levels = ["Məxfi", "Tam məxfi", "Xüsusi əhəmiyyətli"] as const;
 
 export const Route = createFileRoute("/senedler")({
   head: () => ({
@@ -14,6 +17,7 @@ export const Route = createFileRoute("/senedler")({
 });
 
 function AddDoc() {
+  const [level, setLevel] = useState<string>("Məxfi");
   return (
     <Shell crumb="Sənədlər" title="Sənəd əlavə et" badges={["Sistem aktivdir", "İndeksləmə: fonda"]}>
       <div className="grid gap-6 lg:grid-cols-[1fr_352px]">
@@ -25,6 +29,17 @@ function AddDoc() {
               <label key={l} className="block"><span className="mb-2 block text-sm font-semibold">{l}</span><input className="field" placeholder={p} /></label>
             ))}
           </div>
+          <fieldset className="grid gap-2 border-0 p-0">
+            <legend className="mb-2 p-0 text-sm font-semibold">Məxfilik səviyyəsi</legend>
+            <div className="flex flex-wrap gap-2">
+              {levels.map((l) => (
+                <label key={l} className="cursor-pointer">
+                  <input type="radio" name="level" value={l} checked={level === l} onChange={() => setLevel(l)} className="sr-only" />
+                  <span className={level === l ? "pill pill-active" : "pill"}>{l}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <label className="block cursor-pointer rounded-xl border border-dashed border-primary/30 bg-accent/20 p-7 text-center">
             <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" />
             <p className="text-sm">Şəkilləri bura atın · JPG, PNG, WebP · 10 MB-a qədər · 10 ədəd</p>
