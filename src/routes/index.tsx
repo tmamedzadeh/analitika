@@ -14,7 +14,7 @@ export const Route = createFileRoute("/")({
   component: Analytics,
 });
 
-const filters = ["Dövr: son 12 ay", "Müəllif", "Teqlər", "Sənəd"];
+const filters = ["Dövr: son 12 ay", "İdarə", "Teqlər"];
 const sources = [
   { meta: "[Bölmə] · [Tarix] · [Müəllif]", quote: "«[Fraqmentdən qısa sitat]»", btn: "Sənədi aç · 2 şəkil" },
   { meta: "[Cədvəl] · [Tarix] · [Müəllif]", quote: "«[Cədvəldən sətir]»", btn: "Sənədi aç" },
