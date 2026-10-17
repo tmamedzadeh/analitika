@@ -19,8 +19,8 @@ export const Route = createFileRoute("/senedler")({
 
 function AddDoc() {
   const [level, setLevel] = useState<string>("Məxfi");
-  const [src, setSrc] = useState<string>(sourceReliability[0]);
-  const [info, setInfo] = useState<string>(infoReliability[infoReliability.length - 1]);
+  const [src, setSrc] = useState<string>(sourceReliability[0] as string);
+  const [info, setInfo] = useState<string>(infoReliability[infoReliability.length - 1] as string);
   return (
     <Shell crumb="Sənədlər" title="Sənəd əlavə et" badges={["Sistem aktivdir", "İndeksləmə: fonda"]}>
       <div className="grid gap-6 lg:grid-cols-[1fr_352px]">
