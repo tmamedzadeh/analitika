@@ -37,3 +37,11 @@
 - Server əvvəl SSE ilə mənbələri göndərir, sonra yalnız həmin fraqmentlərlə cavabı axınla yaradır. Yekunda olmayan [n] istinadlar silinir və cavab natamam kimi işarələnir. Aşağı qiymətli mənbə cavabda istinad edilərsə Azərbaycan dilində xəbərdarlıq əlavə olunur.
 - Analitik cavab Gemini 3/4 modellərində `thinkingLevel: low` ilə yaradılır: bu qısa, mənbəyə bağlı sintez üçün gecikməni azaltmağa yönəlib. Gemini 2.5 modeli seçilərsə bu parametr ötürülmür.
 - Demo korpusu yalnız sintetik, Azərbaycan dilində altı sənəddən ibarətdir və `demo-synthetic` teqi ilə seçilir. `bun run db:seed:demo -- --clean` yalnız bu sabit demo sənədlərini və onların fraqmentlərini silir.
+
+## 2026-10-17 — Mərhələ 3: məlumat sorğuları
+
+- `info_requests` və `request_attachments` cədvəlləri mərhələ 0-da tək `0000_stage_0.sql` miqrasiyasına daxil edildiyi üçün bu mərhələdə yeni miqrasiya yaradılmır.
+- Sorğu əlavələri sənəd əlavələrindən ayrı `request_attachments` cədvəlində və ayrıca `requests/{requestId}/...` Storage açarları altında saxlanılır; analitika indeksinə daxil edilmir.
+- Brauzer PDF, DOCX və şəkilləri birbaşa özəl Storage-a imzalı PUT URL ilə yükləyir. Sorğu qəbul edilməzdən əvvəl server `HeadObject` ilə fayl ölçüsünü və MIME tipini yoxlayır; tələb yarımçıq qalsa, qaralama və yüklənən obyektlər təmizlənir.
+- İdarə siyahısı istifadəçidən faktiki dəyərlər gələnədək `src/lib/departments.ts` daxilində `[İdarə 1…5]` müvəqqəti seçimlərindən ibarətdir.
+- Cavab sənədi kimi yalnız indekslənməsi bitmiş (`ready`) sənədlər seçilə bilər. Sənəd seçildikdə sorğunun statusu avtomatik `answered` olur; cavab sənədi silindikdə, həmin status `in_progress`-ə qaytarılır.

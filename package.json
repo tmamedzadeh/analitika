@@ -15,6 +15,7 @@
     "stage0:verify": "bun run scripts/verify-stage-0.ts",
     "stage1:verify": "bun run scripts/verify-stage-1.ts",
     "stage2:verify": "bun run scripts/verify-stage-2.ts",
+    "stage3:verify": "bun run scripts/verify-stage-3.ts",
     "db:seed:demo": "bun run scripts/seed-demo.ts",
     "db:migrate": "drizzle-kit migrate"
   },
