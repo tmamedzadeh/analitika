@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -47,6 +48,33 @@ export class S3Storage implements StorageProvider {
       }),
       { expiresIn },
     );
+  }
+
+  async getSignedUploadUrl(
+    key: string,
+    contentType: string,
+    expiresInSeconds = 300,
+  ): Promise<string> {
+    const expiresIn = Math.min(Math.max(Math.floor(expiresInSeconds), 1), 900);
+    return presignUrl(
+      this.client,
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: contentType,
+      }),
+      { expiresIn },
+    );
+  }
+
+  async getMetadata(key: string) {
+    const result = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
+    if (result.ContentLength === undefined)
+      throw new Error("Storage obyektinin ölçüsü qaytarılmadı.");
+    return {
+      size: result.ContentLength,
+      ...(result.ContentType ? { contentType: result.ContentType } : {}),
+    };
   }
 
   async delete(key: string): Promise<void> {

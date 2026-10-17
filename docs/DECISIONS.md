@@ -19,3 +19,11 @@
 - `src/server/inngest/` yalnız nazik Inngest adapterlərini saxlayır; adapterlər işi başladan funksiyaları çağırır, tapşırıq məntiqini özündə daşımır.
 - Inngest hadisələrində yalnız identifikatorlar (`documentId`, `runId`) ötürülür. Sənəd mətni, sorğu mətni və cavablar hadisə payload-ına daxil edilmir.
 - Lokal kontura keçid zamanı tapşırıq məntiqinə toxunmadan Inngest-i Postgres növbəsi və ya self-hosted Inngest ilə əvəzləmək mümkün olmalıdır.
+
+## 2026-10-17 — Sənədlərin yüklənməsi və indekslənməsi
+
+- Sənəd emalının `step` və `progress` göstəriciləri `documents` cədvəlində saxlanılır; beləliklə siyahı yenilənəndə proses server yaddaşından asılı olmur.
+- Fotoşəkillər üçün server 5 dəqiqəlik, yalnız həmin obyektə və MIME tipinə bağlı S3 PUT imzalı URL yaradır. Brauzer faylı birbaşa özəl Storage-a yükləyir; server yükləmədən sonra S3 `HeadObject` ilə ölçü və MIME tipini yoxlayır. Bu, 10 MB-a qədər faylları Vercel server funksiyasının sorğu gövdəsindən keçirmir.
+- Markdown fraqmentləri təxminən 450 tokenə (1800 simvola) qədər bölünür, 12% simvol örtüşməsi ilə; cədvəllər ayrıca qalır və bölünəndə başlıq sətrləri təkrarlanır. Fraqmentin mətn diapazonu orijinal sənədin simvol indeksləri ilə saxlanılır.
+- Sənəd indeksi Inngest-də `document/indexing.requested` hadisəsi ilə işə düşür. Hadisədə yalnız `documentId` olur; bir sənəd üçün paralellik bir işlə məhdudlaşdırılır.
+- Vercel-də `/api/inngest` serverless funksiyasının işləmə müddəti Nitro `vercel.functionRules` vasitəsilə 300 saniyə ilə məhdudlaşdırılıb.
