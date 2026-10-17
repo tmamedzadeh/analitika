@@ -143,6 +143,8 @@ function DocumentPage() {
       badges={[
         az.documents.status[document.status],
         az.documents.step[document.step as keyof typeof az.documents.step] ?? document.step,
+        az.reliability.sourceBadge + " " + document.sourceReliability,
+        az.reliability.informationBadge + " " + document.infoCredibility,
       ]}
     >
       <div className="mb-5 flex flex-wrap items-center gap-3">

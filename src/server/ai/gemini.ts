@@ -1,9 +1,15 @@
 import { google, type GoogleEmbeddingModelOptions } from "@ai-sdk/google";
-import { embed, embedMany, generateText } from "ai";
+import { embed, embedMany, generateText, streamText as streamTextResponse } from "ai";
 
 import { getAppConfig } from "../config";
 import { requireServerEnv } from "../env";
 import type { EmbeddingProvider, LLMProvider, TextGenerationInput } from "./types";
+
+function providerOptionsFor(input: TextGenerationInput, model: string) {
+  const isGemini3Or4 = model.startsWith("gemini-3.") || model.startsWith("gemini-4-");
+  if (!input.thinkingLevel || !isGemini3Or4) return undefined;
+  return { google: { thinkingConfig: { thinkingLevel: input.thinkingLevel } } };
+}
 
 export class GeminiLLMProvider implements LLMProvider {
   constructor(readonly model: string) {}
@@ -15,8 +21,25 @@ export class GeminiLLMProvider implements LLMProvider {
       ...(input.system ? { system: input.system } : {}),
       prompt: input.prompt,
       ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+      ...(providerOptionsFor(input, this.model)
+        ? { providerOptions: providerOptionsFor(input, this.model) }
+        : {}),
     });
     return result.text;
+  }
+
+  async streamText(input: TextGenerationInput): Promise<AsyncIterable<string>> {
+    requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
+    const result = streamTextResponse({
+      model: google(this.model),
+      ...(input.system ? { system: input.system } : {}),
+      prompt: input.prompt,
+      ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+      ...(providerOptionsFor(input, this.model)
+        ? { providerOptions: providerOptionsFor(input, this.model) }
+        : {}),
+    });
+    return result.textStream;
   }
 }
 

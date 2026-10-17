@@ -16,6 +16,7 @@ import { Route as SenedlerRouteImport } from './routes/senedler'
 import { Route as SorguRouteImport } from './routes/sorgu'
 import { Route as ApiInngestRouteImport } from './routes/api.inngest'
 import { Route as SenedlerIdRouteImport } from './routes/senedler.$id'
+import { Route as ApiAnalyticsSearchRouteImport } from './routes/api.analytics.search'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +53,11 @@ const SenedlerIdRoute = SenedlerIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => SenedlerRoute,
 } as any)
+const ApiAnalyticsSearchRoute = ApiAnalyticsSearchRouteImport.update({
+  id: '/api/analytics/search',
+  path: '/api/analytics/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/sorgu': typeof SorguRoute
   '/api/inngest': typeof ApiInngestRoute
   '/senedler/$id': typeof SenedlerIdRoute
+  '/api/analytics/search': typeof ApiAnalyticsSearchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/sorgu': typeof SorguRoute
   '/api/inngest': typeof ApiInngestRoute
   '/senedler/$id': typeof SenedlerIdRoute
+  '/api/analytics/search': typeof ApiAnalyticsSearchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/sorgu': typeof SorguRoute
   '/api/inngest': typeof ApiInngestRoute
   '/senedler/$id': typeof SenedlerIdRoute
+  '/api/analytics/search': typeof ApiAnalyticsSearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/sorgu'
     | '/api/inngest'
     | '/senedler/$id'
+    | '/api/analytics/search'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/sorgu'
     | '/api/inngest'
     | '/senedler/$id'
+    | '/api/analytics/search'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/sorgu'
     | '/api/inngest'
     | '/senedler/$id'
+    | '/api/analytics/search'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   SenedlerRoute: typeof SenedlerRouteWithChildren
   SorguRoute: typeof SorguRoute
   ApiInngestRoute: typeof ApiInngestRoute
+  ApiAnalyticsSearchRoute: typeof ApiAnalyticsSearchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SenedlerIdRouteImport
       parentRoute: typeof SenedlerRoute
     }
+    '/api/analytics/search': {
+      id: '/api/analytics/search'
+      path: '/api/analytics/search'
+      fullPath: '/api/analytics/search'
+      preLoaderRoute: typeof ApiAnalyticsSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -193,6 +213,7 @@ const rootRouteChildren: RootRouteChildren = {
   SenedlerRoute: SenedlerRouteWithChildren,
   SorguRoute: SorguRoute,
   ApiInngestRoute: ApiInngestRoute,
+  ApiAnalyticsSearchRoute: ApiAnalyticsSearchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
