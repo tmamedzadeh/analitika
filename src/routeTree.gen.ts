@@ -16,6 +16,7 @@ import { Route as SenedlerRouteImport } from './routes/senedler'
 import { Route as SorguRouteImport } from './routes/sorgu'
 import { Route as ApiInngestRouteImport } from './routes/api.inngest'
 import { Route as SenedlerIdRouteImport } from './routes/senedler.$id'
+import { Route as SorguIdRouteImport } from './routes/sorgu.$id'
 import { Route as ApiAnalyticsSearchRouteImport } from './routes/api.analytics.search'
 
 const IndexRoute = IndexRouteImport.update({
@@ -53,6 +54,11 @@ const SenedlerIdRoute = SenedlerIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => SenedlerRoute,
 } as any)
+const SorguIdRoute = SorguIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => SorguRoute,
+} as any)
 const ApiAnalyticsSearchRoute = ApiAnalyticsSearchRouteImport.update({
   id: '/api/analytics/search',
   path: '/api/analytics/search',
@@ -64,9 +70,10 @@ export interface FileRoutesByFullPath {
   '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRouteWithChildren
-  '/sorgu': typeof SorguRoute
+  '/sorgu': typeof SorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
   '/senedler/$id': typeof SenedlerIdRoute
+  '/sorgu/$id': typeof SorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
 }
 export interface FileRoutesByTo {
@@ -74,9 +81,10 @@ export interface FileRoutesByTo {
   '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRouteWithChildren
-  '/sorgu': typeof SorguRoute
+  '/sorgu': typeof SorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
   '/senedler/$id': typeof SenedlerIdRoute
+  '/sorgu/$id': typeof SorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
 }
 export interface FileRoutesById {
@@ -85,9 +93,10 @@ export interface FileRoutesById {
   '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRouteWithChildren
-  '/sorgu': typeof SorguRoute
+  '/sorgu': typeof SorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
   '/senedler/$id': typeof SenedlerIdRoute
+  '/sorgu/$id': typeof SorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/sorgu'
     | '/api/inngest'
     | '/senedler/$id'
+    | '/sorgu/$id'
     | '/api/analytics/search'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/sorgu'
     | '/api/inngest'
     | '/senedler/$id'
+    | '/sorgu/$id'
     | '/api/analytics/search'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/sorgu'
     | '/api/inngest'
     | '/senedler/$id'
+    | '/sorgu/$id'
     | '/api/analytics/search'
   fileRoutesById: FileRoutesById
 }
@@ -128,7 +140,7 @@ export interface RootRouteChildren {
   AyarlarRoute: typeof AyarlarRoute
   OsintRoute: typeof OsintRoute
   SenedlerRoute: typeof SenedlerRouteWithChildren
-  SorguRoute: typeof SorguRoute
+  SorguRoute: typeof SorguRouteWithChildren
   ApiInngestRoute: typeof ApiInngestRoute
   ApiAnalyticsSearchRoute: typeof ApiAnalyticsSearchRoute
 }
@@ -184,6 +196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SenedlerIdRouteImport
       parentRoute: typeof SenedlerRoute
     }
+    '/sorgu/$id': {
+      id: '/sorgu/$id'
+      path: '/$id'
+      fullPath: '/sorgu/$id'
+      preLoaderRoute: typeof SorguIdRouteImport
+      parentRoute: typeof SorguRoute
+    }
     '/api/analytics/search': {
       id: '/api/analytics/search'
       path: '/api/analytics/search'
@@ -206,12 +225,22 @@ const SenedlerRouteWithChildren = SenedlerRoute._addFileChildren(
   SenedlerRouteChildren,
 )
 
+interface SorguRouteChildren {
+  SorguIdRoute: typeof SorguIdRoute
+}
+
+const SorguRouteChildren: SorguRouteChildren = {
+  SorguIdRoute: SorguIdRoute,
+}
+
+const SorguRouteWithChildren = SorguRoute._addFileChildren(SorguRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AyarlarRoute: AyarlarRoute,
   OsintRoute: OsintRoute,
   SenedlerRoute: SenedlerRouteWithChildren,
-  SorguRoute: SorguRoute,
+  SorguRoute: SorguRouteWithChildren,
   ApiInngestRoute: ApiInngestRoute,
   ApiAnalyticsSearchRoute: ApiAnalyticsSearchRoute,
 }
