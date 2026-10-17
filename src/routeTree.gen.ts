@@ -14,6 +14,7 @@ import { Route as AyarlarRouteImport } from './routes/ayarlar'
 import { Route as OsintRouteImport } from './routes/osint'
 import { Route as SenedlerRouteImport } from './routes/senedler'
 import { Route as SorguRouteImport } from './routes/sorgu'
+import { Route as ApiInngestRouteImport } from './routes/api.inngest'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const SorguRoute = SorguRouteImport.update({
   path: '/sorgu',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInngestRoute = ApiInngestRouteImport.update({
+  id: '/api/inngest',
+  path: '/api/inngest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRoute
   '/sorgu': typeof SorguRoute
+  '/api/inngest': typeof ApiInngestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRoute
   '/sorgu': typeof SorguRoute
+  '/api/inngest': typeof ApiInngestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,22 @@ export interface FileRoutesById {
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRoute
   '/sorgu': typeof SorguRoute
+  '/api/inngest': typeof ApiInngestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/ayarlar' | '/osint' | '/senedler' | '/sorgu'
+  fullPaths:
+    '/' | '/ayarlar' | '/osint' | '/senedler' | '/sorgu' | '/api/inngest'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ayarlar' | '/osint' | '/senedler' | '/sorgu'
-  id: '__root__' | '/' | '/ayarlar' | '/osint' | '/senedler' | '/sorgu'
+  to: '/' | '/ayarlar' | '/osint' | '/senedler' | '/sorgu' | '/api/inngest'
+  id:
+    | '__root__'
+    | '/'
+    | '/ayarlar'
+    | '/osint'
+    | '/senedler'
+    | '/sorgu'
+    | '/api/inngest'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +94,7 @@ export interface RootRouteChildren {
   OsintRoute: typeof OsintRoute
   SenedlerRoute: typeof SenedlerRoute
   SorguRoute: typeof SorguRoute
+  ApiInngestRoute: typeof ApiInngestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +134,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SorguRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/inngest': {
+      id: '/api/inngest'
+      path: '/api/inngest'
+      fullPath: '/api/inngest'
+      preLoaderRoute: typeof ApiInngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +150,7 @@ const rootRouteChildren: RootRouteChildren = {
   OsintRoute: OsintRoute,
   SenedlerRoute: SenedlerRoute,
   SorguRoute: SorguRoute,
+  ApiInngestRoute: ApiInngestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
