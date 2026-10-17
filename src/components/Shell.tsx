@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Globe, FileText, SlidersHorizontal, Sun, Moon } from "lucide-react";
+import { Search, Globe, MessageSquareText, FileText, SlidersHorizontal, Sun, Moon } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 function ThemeToggle() {
