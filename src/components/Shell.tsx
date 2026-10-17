@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Globe, FileText, SlidersHorizontal, Sun, Moon } from "lucide-react";
+import { Search, Globe, MessageSquareText, FileText, SlidersHorizontal, Sun, Moon } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 function ThemeToggle() {
@@ -29,6 +29,7 @@ function ThemeToggle() {
 const nav = [
   { to: "/", icon: Search, label: "Analitika" },
   { to: "/osint", icon: Globe, label: "OSINT" },
+  { to: "/sorgu", icon: MessageSquareText, label: "Məlumat sorğusu" },
   { to: "/senedler", icon: FileText, label: "Sənədlər" },
   { to: "/ayarlar", icon: SlidersHorizontal, label: "Ayarlar" },
 ] as const;
