@@ -4,6 +4,7 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { Shell } from "@/components/Shell";
+import { departmentLabel } from "@/lib/departments";
 import { az } from "@/lib/i18n/az";
 import { infoCredibilityLabels, sourceReliabilityLabels } from "@/lib/reliability";
 import {
@@ -156,7 +157,10 @@ function InfoRequestPage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_352px]">
         <section className="panel space-y-5 p-6">
-          <Detail label={az.requests.department} value={request.department} />
+          <Detail
+            label={az.requests.department}
+            value={departmentLabel(request.department) ?? request.department}
+          />
           <Detail label={az.requests.date} value={displayDate(request.requestDate)} />
           <Detail
             label={az.requests.urgencyLabel}

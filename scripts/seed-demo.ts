@@ -9,6 +9,7 @@ const demoTag = "demo-synthetic";
 const demoDocuments = [
   {
     id: "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd0001",
+    department: "d1",
     title: "Sınaq sənədi: Bakı parklarının saxlanması",
     body: "## Pilot nəticəsi\nBu sənəd yalnız demo və test üçündür. Şərti Bakı pilotunda parkların suvarma qrafiki səhər saatlarına keçirildikdən sonra bitkilərin sağlamlıq göstəricisi yaxşılaşıb. Nümunə ölçmədə su sərfi əvvəlki həftə ilə müqayisədə 12 faiz azalıb.",
     tags: ["demo-synthetic", "parklar", "su"],
@@ -17,6 +18,7 @@ const demoDocuments = [
   },
   {
     id: "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd0002",
+    department: "d2",
     title: "Sınaq sənədi: məhəllələrdə su təchizatı",
     body: "## Pilot müşahidəsi\nBu sənəd yalnız demo və test üçündür. Şərti üç məhəllədə su təchizatı ilə bağlı müraciətlərin çoxu axşam təzyiqinin azalması barədə olub. İki həftəlik sınaqda boru təzyiqinin ölçülməsi nasazlıq nöqtələrinin tapılmasına kömək edib.",
     tags: ["demo-synthetic", "su", "infrastruktur"],
@@ -25,6 +27,7 @@ const demoDocuments = [
   },
   {
     id: "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd0003",
+    department: "d3",
     title: "Sınaq sənədi: şərti suvarma layihəsi iddiası",
     body: "## Yoxlanılmamış iddia\nBu sənəd yalnız demo və test üçün uydurulub. Anonim məktubda yeni suvarma layihəsinin kənd təsərrüfatı məhsuldarlığını iki dəfə artırdığı iddia edilir. Məktubun müəllifi və ölçmə üsulu məlum deyil; iddia başqa mənbə ilə təsdiqlənməyib.",
     tags: ["demo-synthetic", "kənd təsərrüfatı", "su"],
@@ -33,6 +36,7 @@ const demoDocuments = [
   },
   {
     id: "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd0004",
+    department: "d4",
     title: "Sınaq sənədi: avtobus marşrutunun sınağı",
     body: "## Nəqliyyat\nBu sənəd yalnız demo və test üçündür. Şərti mərkəz marşrutunda pik saatlarda əlavə avtobusun qoşulması gözləmə müddətini 18 dəqiqədən 11 dəqiqəyə endirib. Müşahidə yalnız beş iş günü aparılıb.",
     tags: ["demo-synthetic", "nəqliyyat"],
@@ -41,6 +45,7 @@ const demoDocuments = [
   },
   {
     id: "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd0005",
+    department: "d1",
     title: "Sınaq sənədi: kənd təsərrüfatında suya qənaət",
     body: "## Sahə qeydi\nBu sənəd yalnız demo və test üçündür. Şərti təsərrüfatda damcı suvarma üsulu suyun birbaşa bitki kökünə çatdırılması üçün tətbiq olunub. Nümunə sahəsində su sərfi azalıb, lakin məhsul artımı barədə ölçmə aparılmayıb.",
     tags: ["demo-synthetic", "kənd təsərrüfatı", "su"],
@@ -49,6 +54,7 @@ const demoDocuments = [
   },
   {
     id: "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd0006",
+    department: "d2",
     title: "Sınaq sənədi: kitabxana xidmətləri",
     body: "## Rəqəmsal xidmət\nBu sənəd yalnız demo və test üçündür. Şərti rayon kitabxanası elektron kataloq və onlayn sifariş formasını sınaqdan keçirib. Bir ay ərzində 40 istifadəçi kataloqa baxıb, 9 nəfər kitab sifariş edib.",
     tags: ["demo-synthetic", "kitabxana", "rəqəmsal xidmət"],
@@ -90,6 +96,7 @@ async function seedDemo(): Promise<void> {
         id: document.id,
         title: document.title,
         body: document.body,
+        department: document.department,
         docDate: today,
         tags: [...document.tags],
         sourceReliability: document.sourceReliability,

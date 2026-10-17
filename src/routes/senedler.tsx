@@ -11,6 +11,7 @@ import {
   type InfoCredibility,
   type SourceReliability,
 } from "@/lib/reliability";
+import { departments } from "@/lib/departments";
 import { az } from "@/lib/i18n/az";
 import {
   completeDocumentUploads,
@@ -110,6 +111,7 @@ function AddDoc() {
         data: {
           title: String(formData.get("title") ?? ""),
           body,
+          department: String(formData.get("department") ?? ""),
           docDate: String(formData.get("docDate") ?? "") || null,
           tags: String(formData.get("tags") ?? "")
             .split(",")
@@ -207,6 +209,21 @@ function AddDoc() {
             />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold">
+                {az.documents.form.department}
+              </span>
+              <select name="department" className="field" defaultValue="" required>
+                <option value="" disabled>
+                  {az.documents.form.departmentPlaceholder}
+                </option>
+                {departments.map(({ id, label }) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="block">
               <span className="mb-2 block text-sm font-semibold">{az.documents.form.date}</span>
               <input name="docDate" type="date" className="field" />

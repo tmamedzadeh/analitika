@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 
 import { Shell } from "@/components/Shell";
+import { departmentLabel } from "@/lib/departments";
 import { az } from "@/lib/i18n/az";
 import {
   deleteDocument,
@@ -143,6 +144,7 @@ function DocumentPage() {
       badges={[
         az.documents.status[document.status],
         az.documents.step[document.step as keyof typeof az.documents.step] ?? document.step,
+        ...(departmentLabel(document.department) ? [departmentLabel(document.department)!] : []),
         az.reliability.sourceBadge + " " + document.sourceReliability,
         az.reliability.informationBadge + " " + document.infoCredibility,
       ]}

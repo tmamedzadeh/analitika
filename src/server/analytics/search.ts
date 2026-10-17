@@ -1,56 +1,16 @@
-import {
-  and,
-  arrayContains,
-  asc,
-  count,
-  desc,
-  eq,
-  gte,
-  inArray,
-  isNotNull,
-  lt,
-  lte,
-  sql,
-  type SQL,
-} from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, lt, sql, type SQL } from "drizzle-orm";
 
 import type { AnalyticsFilters, AnalyticsSource } from "@/lib/analytics";
 import { createGeminiProviders } from "@/server/ai/gemini";
 import { getDb } from "@/server/db";
 import { accessFilter } from "@/server/db/access";
 import { attachments, chunks, documents } from "@/server/db/schema";
+import { documentConditions } from "./filters";
 import { reciprocalRankFusion } from "./ranking";
 
 const CANDIDATE_LIMIT = 50;
 const RESULT_LIMIT = 10;
 const MAX_VECTOR_DISTANCE = 0.4;
-const RELIABILITY_GRADES = ["A", "B", "C", "D", "E", "F"] as const;
-
-function minimumDocDate(period: AnalyticsFilters["period"]): string | null {
-  if (period === "all") return null;
-  const date = new Date();
-  if (period === "30d") date.setUTCDate(date.getUTCDate() - 30);
-  else date.setUTCMonth(date.getUTCMonth() - 12);
-  return date.toISOString().slice(0, 10);
-}
-
-function documentConditions(filters: AnalyticsFilters) {
-  const conditions = [eq(documents.status, "ready"), accessFilter()];
-  const fromDate = minimumDocDate(filters.period);
-  if (fromDate) conditions.push(gte(documents.docDate, fromDate));
-  if (filters.tag) conditions.push(arrayContains(documents.tags, [filters.tag]));
-  if (filters.documentId) conditions.push(eq(documents.id, filters.documentId));
-
-  if (filters.minSourceReliability !== "all") {
-    const index = RELIABILITY_GRADES.indexOf(filters.minSourceReliability);
-    conditions.push(inArray(documents.sourceReliability, RELIABILITY_GRADES.slice(0, index + 1)));
-  }
-  if (filters.minInfoCredibility !== "all") {
-    conditions.push(lte(documents.infoCredibility, Number(filters.minInfoCredibility)));
-  }
-
-  return conditions;
-}
 
 function sourceProjection() {
   return {
@@ -59,6 +19,7 @@ function sourceProjection() {
     documentId: documents.id,
     title: documents.title,
     docDate: documents.docDate,
+    department: documents.department,
     sectionTitle: chunks.sectionTitle,
     text: chunks.text,
     charStart: chunks.charStart,
@@ -159,6 +120,7 @@ export async function searchDocumentChunks(
       documentId: item.documentId,
       title: item.title,
       docDate: item.docDate,
+      department: item.department,
       sectionTitle: item.sectionTitle,
       text: item.text,
       quote: quote.length > 360 ? quote.slice(0, 357) + "…" : quote,
@@ -173,16 +135,10 @@ export async function searchDocumentChunks(
   });
 }
 
-export async function getAnalyticsOptions(): Promise<{
-  tags: string[];
-  documents: Array<{ id: string; title: string; docDate: string | null }>;
-}> {
+export async function getAnalyticsOptions(): Promise<{ tags: string[] }> {
   const db = getDb();
   const rows = await db
     .select({
-      id: documents.id,
-      title: documents.title,
-      docDate: documents.docDate,
       tags: documents.tags,
     })
     .from(documents)
@@ -195,6 +151,5 @@ export async function getAnalyticsOptions(): Promise<{
     .sort((left, right) => left.localeCompare(right, "az"));
   return {
     tags,
-    documents: rows.map(({ id, title, docDate }) => ({ id, title, docDate })),
   };
 }

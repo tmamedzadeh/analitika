@@ -5,13 +5,14 @@ import { useState, type FormEvent } from "react";
 import { Shell } from "@/components/Shell";
 import type { AnalyticsFilters, AnalyticsSourcePreview } from "@/lib/analytics";
 import { getAnalyticsOptions } from "@/lib/analytics.functions";
+import { departments, departmentIds, departmentLabel } from "@/lib/departments";
 import { az } from "@/lib/i18n/az";
 import { infoCredibilityValues, sourceReliabilityValues } from "@/lib/reliability";
 
 const initialFilters: AnalyticsFilters = {
   period: "12m",
   tag: "",
-  documentId: "",
+  departmentIds: [...departmentIds],
   minSourceReliability: "all",
   minInfoCredibility: "all",
 };
@@ -210,7 +211,7 @@ function Analytics() {
         </button>
       </form>
 
-      <section className="panel mt-4 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5">
+      <section className="panel mt-4 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="flex flex-col gap-1.5 text-sm">
           <span>{az.analytics.periodLabel}</span>
           <select
@@ -247,66 +248,92 @@ function Analytics() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span>{az.analytics.documentLabel}</span>
-          <select
-            className="field"
-            value={filters.documentId}
-            onChange={(event) => {
-              const value = event.currentTarget.value;
-              setFilters((current) => ({ ...current, documentId: value }));
-            }}
-          >
-            <option value="">{az.analytics.all}</option>
-            {(optionsQuery.data?.documents ?? []).map((document) => (
-              <option key={document.id} value={document.id}>
-                {document.title}
-              </option>
+        <fieldset className="min-w-0 border-0 p-0 text-sm">
+          <legend className="mb-1.5 font-medium">{az.analytics.departmentFilter}</legend>
+          <div className="flex flex-wrap gap-x-3 gap-y-2">
+            <label className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={filters.departmentIds.length === departments.length}
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
+                  setFilters((current) => ({
+                    ...current,
+                    departmentIds: checked ? [...departmentIds] : [departmentIds[0]],
+                  }));
+                }}
+              />
+              {az.analytics.all}
+            </label>
+            {departments.map(({ id, label }) => (
+              <label key={id} className="flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={filters.departmentIds.includes(id)}
+                  onChange={(event) => {
+                    const checked = event.currentTarget.checked;
+                    setFilters((current) => {
+                      const selected = checked
+                        ? [...current.departmentIds, id]
+                        : current.departmentIds.filter((departmentId) => departmentId !== id);
+                      return {
+                        ...current,
+                        departmentIds: selected.length > 0 ? selected : current.departmentIds,
+                      };
+                    });
+                  }}
+                />
+                {label}
+              </label>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span>{az.analytics.sourceReliabilityFilter}</span>
-          <select
-            className="field"
-            value={filters.minSourceReliability}
-            onChange={(event) => {
-              const value = event.currentTarget.value as AnalyticsFilters["minSourceReliability"];
-              setFilters((current) => ({
-                ...current,
-                minSourceReliability: value,
-              }));
-            }}
-          >
-            <option value="all">{az.analytics.all}</option>
-            {sourceReliabilityValues.map((value) => (
-              <option key={value} value={value}>
-                {value} · {az.reliability.source[value]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span>{az.analytics.infoReliabilityFilter}</span>
-          <select
-            className="field"
-            value={filters.minInfoCredibility}
-            onChange={(event) => {
-              const value = event.currentTarget.value as AnalyticsFilters["minInfoCredibility"];
-              setFilters((current) => ({
-                ...current,
-                minInfoCredibility: value,
-              }));
-            }}
-          >
-            <option value="all">{az.analytics.all}</option>
-            {infoCredibilityValues.map((value) => (
-              <option key={value} value={value}>
-                {value} · {az.reliability.information[value]}
-              </option>
-            ))}
-          </select>
-        </label>
+          </div>
+        </fieldset>
+        <fieldset className="min-w-0 border-0 p-0 text-sm">
+          <legend className="mb-1.5 font-medium">{az.analytics.reliabilityLabel}</legend>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className="text-xs text-muted-foreground">
+                {az.analytics.sourceReliabilityFilter}
+              </span>
+              <select
+                className="field"
+                value={filters.minSourceReliability}
+                onChange={(event) => {
+                  const value = event.currentTarget
+                    .value as AnalyticsFilters["minSourceReliability"];
+                  setFilters((current) => ({ ...current, minSourceReliability: value }));
+                }}
+              >
+                <option value="all">{az.analytics.all}</option>
+                {sourceReliabilityValues.map((value) => (
+                  <option key={value} value={value}>
+                    {value} · {az.reliability.source[value]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className="text-xs text-muted-foreground">
+                {az.analytics.infoReliabilityFilter}
+              </span>
+              <select
+                className="field"
+                value={filters.minInfoCredibility}
+                onChange={(event) => {
+                  const value = event.currentTarget.value as AnalyticsFilters["minInfoCredibility"];
+                  setFilters((current) => ({ ...current, minInfoCredibility: value }));
+                }}
+              >
+                <option value="all">{az.analytics.all}</option>
+                {infoCredibilityValues.map((value) => (
+                  <option key={value} value={value}>
+                    {value} · {az.reliability.information[value]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </fieldset>
       </section>
 
       {pageError && (
@@ -394,7 +421,11 @@ function Analytics() {
                   <ReliabilityBadges source={source} />
                 </div>
                 <p className="label-mono mt-2">
-                  {[source.sectionTitle || az.analytics.sectionUnknown, source.docDate]
+                  {[
+                    departmentLabel(source.department),
+                    source.sectionTitle || az.analytics.sectionUnknown,
+                    source.docDate,
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                   {source.isTable ? " · " + az.analytics.table : ""}

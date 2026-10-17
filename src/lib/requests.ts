@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { departments } from "./departments";
+import { departmentIds } from "./departments";
 import { az } from "./i18n/az";
 
 export const requestUrgencies = ["normal", "urgent", "critical"] as const;
@@ -52,7 +52,7 @@ export const requestAttachmentInputSchema = z
   });
 
 export const infoRequestInputSchema = z.object({
-  department: z.enum(departments, { message: az.requests.validation.department }),
+  department: z.enum(departmentIds, { message: az.requests.validation.department }),
   requestDate: requestDateSchema,
   urgency: z.enum(requestUrgencies, { message: az.requests.validation.urgency }),
   purpose: z

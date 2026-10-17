@@ -1,3 +1,18 @@
-export const departments = ["İdarə 1", "İdarə 2", "İdarə 3", "İdarə 4", "İdarə 5"] as const;
+import { z } from "zod";
 
-export type Department = (typeof departments)[number];
+export const departments = [
+  { id: "d1", label: "İdarə 1" },
+  { id: "d2", label: "İdarə 2" },
+  { id: "d3", label: "İdarə 3" },
+  { id: "d4", label: "İdarə 4" },
+  { id: "d5", label: "İdarə 5" },
+] as const;
+
+export type DepartmentId = (typeof departments)[number]["id"];
+
+export const departmentIds = departments.map(({ id }) => id) as [DepartmentId, ...DepartmentId[]];
+export const departmentIdSchema = z.enum(departmentIds);
+
+export function departmentLabel(value: string | null | undefined): string | null {
+  return departments.find(({ id }) => id === value)?.label ?? null;
+}

@@ -9,7 +9,7 @@ import {
 } from "./requests";
 
 const validRequest = {
-  department: departments[0],
+  department: departments[0].id,
   requestDate: "2026-10-17",
   urgency: "normal",
   purpose: "Məlumatın hazırlanması üçün",

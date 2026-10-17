@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+import { departmentIdSchema } from "./departments";
 import { az } from "./i18n/az";
 import { documentIndexingRequested } from "../server/inngest/events";
 import { inngest } from "../server/inngest/client";
@@ -30,7 +31,7 @@ const imageInputSchema = z.object({
   size: z.number().int().min(1).max(MAX_IMAGE_SIZE),
 });
 
-const createDocumentSchema = z.object({
+export const createDocumentSchema = z.object({
   title: z.string().trim().min(1).max(300),
   body: z
     .string()
@@ -39,6 +40,7 @@ const createDocumentSchema = z.object({
     .refine((value) => value.trim().length > 0),
   docDate: documentDateSchema.nullable().optional(),
   tags: z.array(z.string().trim().min(1).max(64)).max(30),
+  department: departmentIdSchema,
   classification: z.enum(["open", "secret", "top_secret", "special"]),
   sourceReliability: z.enum(["A", "B", "C", "D", "E", "F"]),
   infoCredibility: z.number().int().min(1).max(6),
@@ -133,6 +135,7 @@ export const createDocumentDraft = createServerFn({ method: "POST" })
         body: data.body,
         docDate: data.docDate || null,
         tags: [...new Set(data.tags.map((tag) => tag.trim()).filter(Boolean))],
+        department: data.department,
         classification: data.classification,
         sourceReliability: data.sourceReliability,
         infoCredibility: data.infoCredibility,

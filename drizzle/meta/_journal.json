@@ -15,6 +15,13 @@
       "when": 1792246626709,
       "tag": "0001_stage_1_document_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792276586141,
+      "tag": "0002_idare_departments",
+      "breakpoints": true
     }
   ]
 }

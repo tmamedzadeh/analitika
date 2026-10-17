@@ -47,6 +47,7 @@ export const documents = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     title: text("title").notNull(),
     body: text("body").notNull(),
+    department: text("department"),
     docDate: date("doc_date"),
     tags: text("tags").array().notNull().default(emptyTextArray),
     language: text("language").notNull().default("az"),
@@ -64,6 +65,11 @@ export const documents = pgTable(
   (table) => [
     index("documents_status_created_idx").on(table.status, table.createdAt),
     index("documents_doc_date_idx").on(table.docDate),
+    index("documents_department_idx").on(table.department),
+    check(
+      "documents_department_check",
+      sql.raw("department IS NULL OR department IN ('d1', 'd2', 'd3', 'd4', 'd5')"),
+    ),
     check(
       "documents_classification_check",
       sql.raw("classification IN ('open', 'secret', 'top_secret', 'special')"),
@@ -161,6 +167,10 @@ export const infoRequests = pgTable(
     check(
       "info_requests_status_check",
       sql.raw("status IN ('new', 'in_progress', 'answered', 'rejected')"),
+    ),
+    check(
+      "info_requests_department_check",
+      sql.raw("department IN ('d1', 'd2', 'd3', 'd4', 'd5')"),
     ),
   ],
 );

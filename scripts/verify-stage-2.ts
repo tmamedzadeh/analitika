@@ -1,6 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 
 import type { AnalyticsFilters } from "../src/lib/analytics";
+import { departmentIds } from "../src/lib/departments";
 import { isLowReliability } from "../src/lib/reliability";
 import { handleAnalyticsSearchRequest } from "../src/server/analytics/endpoint";
 import { closeDb, getDb } from "../src/server/db";
@@ -12,6 +13,7 @@ type SearchEvent = {
     n: number;
     chunkId: string;
     documentId: string;
+    department: string | null;
     tags: string[];
     sourceReliability: "A" | "B" | "C" | "D" | "E" | "F";
     infoCredibility: 1 | 2 | 3 | 4 | 5 | 6;
@@ -26,13 +28,13 @@ type SearchEvent = {
 const filteredDemoFilters: AnalyticsFilters = {
   period: "30d",
   tag: "demo-synthetic",
-  documentId: "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd0002",
+  departmentIds: ["d2"],
   minSourceReliability: "all",
   minInfoCredibility: "all",
 };
 const answerDemoFilters: AnalyticsFilters = {
   ...filteredDemoFilters,
-  documentId: "",
+  departmentIds: [...departmentIds],
   minSourceReliability: "all",
   minInfoCredibility: "all",
 };
@@ -123,7 +125,7 @@ async function verifyStage2(): Promise<void> {
       filteredSources.some(
         (source) =>
           !source.tags.includes("demo-synthetic") ||
-          source.documentId !== filteredDemoFilters.documentId ||
+          source.department !== "d2" ||
           !["A", "B"].includes(source.sourceReliability) ||
           source.infoCredibility > 4,
       )

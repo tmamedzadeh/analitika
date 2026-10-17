@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
 
 import { Shell } from "@/components/Shell";
-import { departments } from "@/lib/departments";
+import { departments, departmentLabel } from "@/lib/departments";
 import { az } from "@/lib/i18n/az";
 import {
   infoCredibilityLabels,
@@ -238,9 +238,9 @@ function Sorgu() {
                   <option value="" disabled>
                     {az.requests.form.departmentPlaceholder}
                   </option>
-                  {departments.map((department) => (
-                    <option key={department} value={department}>
-                      {department}
+                  {departments.map(({ id, label }) => (
+                    <option key={id} value={id}>
+                      {label}
                     </option>
                   ))}
                 </select>
@@ -434,7 +434,7 @@ function Sorgu() {
                   </Link>
                   <p className="label-mono mt-2">
                     {[
-                      request.department,
+                      departmentLabel(request.department) ?? request.department,
                       displayDate(request.requestDate),
                       az.requests.urgency[request.urgency as keyof typeof az.requests.urgency],
                     ]

@@ -33,7 +33,7 @@ async function verifyStage3(): Promise<void> {
   const storage = getStorage();
   try {
     const input = infoRequestInputSchema.safeParse({
-      department: departments[0],
+      department: departments[0].id,
       requestDate: new Date().toISOString().slice(0, 10),
       urgency: "urgent",
       purpose: "Mərhələ 3 sintetik yoxlaması",

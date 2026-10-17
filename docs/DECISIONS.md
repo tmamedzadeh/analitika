@@ -45,3 +45,10 @@
 - Brauzer PDF, DOCX və şəkilləri birbaşa özəl Storage-a imzalı PUT URL ilə yükləyir. Sorğu qəbul edilməzdən əvvəl server `HeadObject` ilə fayl ölçüsünü və MIME tipini yoxlayır; tələb yarımçıq qalsa, qaralama və yüklənən obyektlər təmizlənir.
 - İdarə siyahısı istifadəçidən faktiki dəyərlər gələnədək `src/lib/departments.ts` daxilində `[İdarə 1…5]` müvəqqəti seçimlərindən ibarətdir.
 - Cavab sənədi kimi yalnız indekslənməsi bitmiş (`ready`) sənədlər seçilə bilər. Sənəd seçildikdə sorğunun statusu avtomatik `answered` olur; cavab sənədi silindikdə, həmin status `in_progress`-ə qaytarılır.
+
+## 2026-10-18 — İdarə bölmələri
+
+- `src/lib/departments.ts` idarələrin ID və görünən adları üçün yeganə mənbədir. Sənəd və məlumat sorğusu formaları DB-də yalnız `d1`–`d5` saxlayır; `info_requests.department` üçün əvvəlki görünən adlar `0002_idare_departments.sql` miqrasiyasında ID-lərə çevrilir.
+- `0000_stage_0.sql` və mövcud `0001_stage_1_document_progress.sql` dəyişdirilmir. Mövcud `0001` artıq miqrasiya tarixçəsində olduğuna görə yeni dəyişiklik `0002_idare_departments.sql` kimi əlavə edilir. Mövcud sənədlərin və əvvəlki demo sənədlərinin `department` dəyəri `NULL` qalır; demo seed yenidən qurulduqda altı sintetik sənəd dörd idarə arasında bölüşdürülür.
+- Axtarışda idarə seçimi bir və ya bir neçə ID ilə məhdudlaşır və şərt vektor, full-text və trigram namizədlərinin hər SQL sorğusuna, `accessFilter()` ilə birlikdə, RRF birləşməsindən əvvəl tətbiq edilir. Bütün idarələr seçildikdə idarə şərti əlavə edilmir ki, `NULL` bölməli köhnə sənədlər də axtarıla bilsin.
+- Axtarış UI-sində sənəd üzrə ayrıca filtr çıxarılır; istifadəçi `Dövr`, `Teqlər`, `İdarə` və birləşdirilmiş `Etibarlılıq` nəzarətlərindən istifadə edir.
