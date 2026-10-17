@@ -11,7 +11,10 @@ const optionalValue = z.preprocess(
 );
 const optionalBasicAuth = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-  z.string().regex(/^[^:]+:.+$/).optional(),
+  z
+    .string()
+    .regex(/^[^:]+:.+$/)
+    .optional(),
 );
 
 export const serverEnvSchema = z.object({
@@ -45,9 +48,7 @@ export function readServerEnv(): ServerEnv {
   return result.data;
 }
 
-export function requireServerEnv<K extends keyof ServerEnv>(
-  key: K,
-): NonNullable<ServerEnv[K]> {
+export function requireServerEnv<K extends keyof ServerEnv>(key: K): NonNullable<ServerEnv[K]> {
   const value = readServerEnv()[key];
   if (value === undefined || value === "") {
     throw new Error("Missing required environment variable: " + key);

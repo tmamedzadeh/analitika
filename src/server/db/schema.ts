@@ -33,12 +33,7 @@ export const documentStatus = pgEnum("document_status", [
   "ready",
   "failed",
 ]);
-export const osintRunStatus = pgEnum("osint_run_status", [
-  "queued",
-  "running",
-  "done",
-  "failed",
-]);
+export const osintRunStatus = pgEnum("osint_run_status", ["queued", "running", "done", "failed"]);
 export const osintSourceType = pgEnum("osint_source_type", [
   "media",
   "official",
@@ -103,18 +98,13 @@ export const chunks = pgTable(
     charStart: integer("char_start").notNull(),
     charEnd: integer("char_end").notNull(),
     isTable: boolean("is_table").notNull().default(false),
-    tsv: tsvectorColumn("tsv").generatedAlwaysAs(
-      sql.raw("to_tsvector('simple'::regconfig, text)"),
-    ),
+    tsv: tsvectorColumn("tsv").generatedAlwaysAs(sql.raw("to_tsvector('simple'::regconfig, text)")),
     embedding: vector("embedding", { dimensions: 768 }),
     embeddingModel: text("embedding_model").notNull(),
   },
   (table) => [
     unique("chunks_document_ord_unique").on(table.documentId, table.ord),
-    index("chunks_embedding_hnsw_idx").using(
-      "hnsw",
-      table.embedding.op("vector_cosine_ops"),
-    ),
+    index("chunks_embedding_hnsw_idx").using("hnsw", table.embedding.op("vector_cosine_ops")),
     index("chunks_tsv_gin_idx").using("gin", table.tsv),
     index("chunks_text_trgm_gin_idx").using("gin", table.text.op("gin_trgm_ops")),
     index("chunks_document_idx").on(table.documentId),

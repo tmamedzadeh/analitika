@@ -12,3 +12,10 @@
 - Əlavə brif mərhələləri yenidən nömrələyir: Məlumat sorğusu — mərhələ 3, OSINT — mərhələ 4, yekun — mərhələ 5. Şöbələrin faktiki siyahısı verilməyənədək mərhələ 3-də müvəqqəti dəyərlər istifadə olunacaq.
 - Vercel build üçün Nitro vercel preset-i sabit seçilir.
 - Mərhələ 0 yalnız provider interfeyslərini və adapterləri yaradır; xarici xidmətlərə qoşulma açarları istifadəçi konfiqurasiyasından sonra yoxlanacaq.
+
+## 2026-10-17 — Fon tapşırıqlarının quruluşu
+
+- İndeksləmə və OSINT kimi fon tapşırıqlarının məntiqi Inngest-dən asılı olmayan adi funksiyalar kimi `src/server/jobs/*.ts` daxilində yazılır. Hər iş aydın addımlara bölünür və gedişat DB-də saxlanılır.
+- `src/server/inngest/` yalnız nazik Inngest adapterlərini saxlayır; adapterlər işi başladan funksiyaları çağırır, tapşırıq məntiqini özündə daşımır.
+- Inngest hadisələrində yalnız identifikatorlar (`documentId`, `runId`) ötürülür. Sənəd mətni, sorğu mətni və cavablar hadisə payload-ına daxil edilmir.
+- Lokal kontura keçid zamanı tapşırıq məntiqinə toxunmadan Inngest-i Postgres növbəsi və ya self-hosted Inngest ilə əvəzləmək mümkün olmalıdır.

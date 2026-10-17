@@ -26,10 +26,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
     private readonly dimensions = 768,
   ) {}
 
-  private prepareValue(
-    value: string,
-    taskType: "RETRIEVAL_DOCUMENT" | "RETRIEVAL_QUERY",
-  ): string {
+  private prepareValue(value: string, taskType: "RETRIEVAL_DOCUMENT" | "RETRIEVAL_QUERY"): string {
     if (this.model !== "gemini-embedding-2") return value;
     if (taskType === "RETRIEVAL_QUERY") return "task: search query | query: " + value;
     return "task: search document | text: " + value;
@@ -80,9 +77,6 @@ export function createGeminiProviders() {
     analytics: new GeminiLLMProvider(config.analyticsModel),
     osint: new GeminiLLMProvider(config.osintModel),
     light: new GeminiLLMProvider(config.lightModel),
-    embeddings: new GeminiEmbeddingProvider(
-      config.embeddingModel,
-      config.embeddingDimensions,
-    ),
+    embeddings: new GeminiEmbeddingProvider(config.embeddingModel, config.embeddingDimensions),
   };
 }
