@@ -1,5 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { Search, Globe, MessageSquareText, FileText, SlidersHorizontal, Sun, Moon } from "lucide-react";
+import {
+  Search,
+  Globe,
+  MessageSquareText,
+  FileText,
+  SlidersHorizontal,
+  Sun,
+  Moon,
+} from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 function ThemeToggle() {
@@ -56,7 +64,9 @@ export function Shell({
               to={to}
               aria-label={label}
               className="grid h-[52px] w-[52px] place-items-center rounded-xl border border-transparent text-muted-foreground transition-colors hover:text-foreground"
-              activeProps={{ className: "panel-glow !border-primary/40 bg-accent/40 !text-primary" }}
+              activeProps={{
+                className: "panel-glow !border-primary/40 bg-accent/40 !text-primary",
+              }}
               activeOptions={{ exact: true }}
             >
               <Icon size={20} />
@@ -73,7 +83,10 @@ export function Shell({
           </div>
           <div className="flex flex-wrap gap-2">
             {badges.map((b, i) => (
-              <span key={b} className="label-mono flex items-center gap-2 rounded-full border border-border px-3 py-1.5">
+              <span
+                key={b}
+                className="label-mono flex items-center gap-2 rounded-full border border-border px-3 py-1.5"
+              >
                 {i === 0 && <span className="h-2 w-2 rounded-full bg-primary glow" />}
                 {b}
               </span>

@@ -1,0 +1,57 @@
+import process from "node:process";
+import { config as loadDotEnv } from "dotenv";
+import { z } from "zod";
+
+loadDotEnv({ path: ".env.local" });
+loadDotEnv({ path: ".env" });
+
+const optionalValue = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().trim().min(1).optional(),
+);
+const optionalBasicAuth = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z
+    .string()
+    .regex(/^[^:]+:.+$/)
+    .optional(),
+);
+
+export const serverEnvSchema = z.object({
+  DATABASE_URL: optionalValue,
+  GOOGLE_GENERATIVE_AI_API_KEY: optionalValue,
+  GEMINI_CHAT_MODEL: optionalValue,
+  GEMINI_LIGHT_MODEL: optionalValue,
+  GEMINI_EMBED_MODEL: optionalValue,
+  S3_ENDPOINT: optionalValue,
+  S3_REGION: optionalValue,
+  S3_ACCESS_KEY_ID: optionalValue,
+  S3_SECRET_ACCESS_KEY: optionalValue,
+  S3_BUCKET: optionalValue,
+  INNGEST_EVENT_KEY: optionalValue,
+  INNGEST_SIGNING_KEY: optionalValue,
+  DEMO_BASIC_AUTH: optionalBasicAuth,
+  ENABLE_RERANK: z.enum(["true", "false"]).default("false"),
+});
+
+export type ServerEnv = z.infer<typeof serverEnvSchema>;
+
+export function readServerEnv(): ServerEnv {
+  const result = serverEnvSchema.safeParse(process.env);
+  if (!result.success) {
+    const fields = result.error.issues
+      .map((issue) => issue.path.join("."))
+      .filter(Boolean)
+      .join(", ");
+    throw new Error("Invalid server environment configuration: " + fields);
+  }
+  return result.data;
+}
+
+export function requireServerEnv<K extends keyof ServerEnv>(key: K): NonNullable<ServerEnv[K]> {
+  const value = readServerEnv()[key];
+  if (value === undefined || value === "") {
+    throw new Error("Missing required environment variable: " + key);
+  }
+  return value as NonNullable<ServerEnv[K]>;
+}

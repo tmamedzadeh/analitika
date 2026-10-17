@@ -7,9 +7,15 @@ export const Route = createFileRoute("/ayarlar")({
   head: () => ({
     meta: [
       { title: "Ayarlar · İstifadəçilər" },
-      { name: "description", content: "İstifadəçiləri və onların buraxılış səviyyələrini idarə edin." },
+      {
+        name: "description",
+        content: "İstifadəçiləri və onların buraxılış səviyyələrini idarə edin.",
+      },
       { property: "og:title", content: "Ayarlar · İstifadəçilər" },
-      { property: "og:description", content: "İstifadəçiləri və onların buraxılış səviyyələrini idarə edin." },
+      {
+        property: "og:description",
+        content: "İstifadəçiləri və onların buraxılış səviyyələrini idarə edin.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -27,9 +33,14 @@ function Settings() {
         <p className="label-mono mb-3">Buraxılış səviyyəsi</p>
         <ul className="divide-y divide-border">
           {users.map((u, i) => (
-            <li key={i} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <li
+              key={i}
+              className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
+            >
               <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-accent/40 font-semibold text-primary">{i + 1}</span>
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-accent/40 font-semibold text-primary">
+                  {i + 1}
+                </span>
                 <span className="font-semibold">{u.name}</span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -37,7 +48,9 @@ function Settings() {
                   <button
                     key={l}
                     type="button"
-                    onClick={() => setUsers(users.map((x, j) => (j === i ? { ...x, level: l } : x)))}
+                    onClick={() =>
+                      setUsers(users.map((x, j) => (j === i ? { ...x, level: l } : x)))
+                    }
                     className={u.level === l ? "pill pill-active" : "pill"}
                   >
                     {l}
@@ -49,7 +62,9 @@ function Settings() {
         </ul>
         <button
           type="button"
-          onClick={() => setUsers([...users, { name: `İstifadəçi ${users.length + 1}`, level: "Məxfi" }])}
+          onClick={() =>
+            setUsers([...users, { name: `İstifadəçi ${users.length + 1}`, level: "Məxfi" }])
+          }
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 py-3 font-semibold text-primary"
         >
           <UserPlus size={18} /> İstifadəçi əlavə et
