@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Shell } from "@/components/Shell";
+import { sourceReliability, infoReliability } from "@/lib/reliability";
 
 export const Route = createFileRoute("/sorgu")({
   head: () => ({
