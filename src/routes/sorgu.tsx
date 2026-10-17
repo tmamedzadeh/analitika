@@ -33,8 +33,8 @@ const infoReliability = [
 ];
 
 const myRequests = [
-  { topic: "[Sorğu mövzusu]", meta: "[İdarə] · [Tarix] · Çox təcili", status: "Gözləyir", tone: "warning" },
-  { topic: "[Sorğu mövzusu]", meta: "[İdarə] · [Tarix] · Təcili", status: "İcradadır", tone: "primary" },
+  { topic: "[Sorğu mövzusu]", meta: "[İdarə] · [Tarix] · Çox təcili", status: "Gözləyir", tone: "warning", open: false },
+  { topic: "[Sorğu mövzusu]", meta: "[İdarə] · [Tarix] · Təcili", status: "İcradadır", tone: "primary", open: false },
   { topic: "[Sorğu mövzusu]", meta: "[İdarə] · [Tarix] · Adi", status: "Cavablandırılıb", tone: "success", open: true },
 ] as const;
 
