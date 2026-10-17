@@ -8,6 +8,13 @@
       "when": 1792195200000,
       "tag": "0000_stage_0",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792246626709,
+      "tag": "0001_stage_1_document_progress",
+      "breakpoints": true
     }
   ]
 }

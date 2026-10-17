@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "stage0:verify": "bun run scripts/verify-stage-0.ts",
+    "stage1:verify": "bun run scripts/verify-stage-1.ts",
     "db:migrate": "drizzle-kit migrate"
   },
   "overrides": {

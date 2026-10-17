@@ -55,6 +55,8 @@ export const documents = pgTable(
     infoCredibility: smallint("info_credibility").notNull().default(6),
     ownerId: text("owner_id").notNull().default("admin"),
     status: documentStatus("status").notNull().default("queued"),
+    step: text("step").notNull().default("queued"),
+    progress: jsonb("progress").notNull().default(emptyJsonObject),
     error: text("error"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

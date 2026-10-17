@@ -4,8 +4,15 @@ export type StorageObject = {
   contentType: string;
 };
 
+export type StoredObjectMetadata = {
+  size: number;
+  contentType?: string;
+};
+
 export interface StorageProvider {
   put(object: StorageObject): Promise<void>;
   getSignedUrl(key: string, expiresInSeconds?: number): Promise<string>;
+  getSignedUploadUrl(key: string, contentType: string, expiresInSeconds?: number): Promise<string>;
+  getMetadata(key: string): Promise<StoredObjectMetadata>;
   delete(key: string): Promise<void>;
 }
