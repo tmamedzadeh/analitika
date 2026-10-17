@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Shell } from "@/components/Shell";
+import { sourceReliability, infoReliability } from "@/lib/reliability";
 
 const levels = ["Məxfi", "Tam məxfi", "Xüsusi əhəmiyyətli"] as const;
 
@@ -18,6 +19,8 @@ export const Route = createFileRoute("/senedler")({
 
 function AddDoc() {
   const [level, setLevel] = useState<string>("Məxfi");
+  const [src, setSrc] = useState<string>(sourceReliability[0]);
+  const [info, setInfo] = useState<string>(infoReliability[infoReliability.length - 1]);
   return (
     <Shell crumb="Sənədlər" title="Sənəd əlavə et" badges={["Sistem aktivdir", "İndeksləmə: fonda"]}>
       <div className="grid gap-6 lg:grid-cols-[1fr_352px]">
@@ -39,6 +42,30 @@ function AddDoc() {
                 </label>
               ))}
             </div>
+          </fieldset>
+          <fieldset className="grid gap-2 border-0 p-0">
+            <legend className="mb-2 p-0 text-sm font-semibold">Mənbənin etibarlılıq dərəcəsi</legend>
+            <div className="flex flex-wrap gap-2">
+              {sourceReliability.map((s) => (
+                <label key={s} className="cursor-pointer">
+                  <input type="radio" name="src" value={s} checked={src === s} onChange={() => setSrc(s)} className="sr-only" />
+                  <span className={src === s ? "pill pill-active" : "pill"}>{s}</span>
+                </label>
+              ))}
+            </div>
+            <p className="label-mono mt-1">İstəyə bağlı. Mənbənin əvvəlki etibarlılığı barədə fikriniz.</p>
+          </fieldset>
+          <fieldset className="grid gap-2 border-0 p-0">
+            <legend className="mb-2 p-0 text-sm font-semibold">Məlumatın etibarlılıq dərəcəsi</legend>
+            <div className="flex flex-wrap gap-2">
+              {infoReliability.map((s) => (
+                <label key={s} className="cursor-pointer">
+                  <input type="radio" name="info" value={s} checked={info === s} onChange={() => setInfo(s)} className="sr-only" />
+                  <span className={info === s ? "pill pill-active" : "pill"}>{s}</span>
+                </label>
+              ))}
+            </div>
+            <p className="label-mono mt-1">İstəyə bağlı. Məlumatın dəqiqliyi barədə fikriniz.</p>
           </fieldset>
           <label className="block cursor-pointer rounded-xl border border-dashed border-primary/30 bg-accent/20 p-7 text-center">
             <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" />
