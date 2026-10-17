@@ -27,3 +27,13 @@
 - Markdown fraqmentləri təxminən 450 tokenə (1800 simvola) qədər bölünür, 12% simvol örtüşməsi ilə; cədvəllər ayrıca qalır və bölünəndə başlıq sətrləri təkrarlanır. Fraqmentin mətn diapazonu orijinal sənədin simvol indeksləri ilə saxlanılır.
 - Sənəd indeksi Inngest-də `document/indexing.requested` hadisəsi ilə işə düşür. Hadisədə yalnız `documentId` olur; bir sənəd üçün paralellik bir işlə məhdudlaşdırılır.
 - Vercel-də `/api/inngest` serverless funksiyasının işləmə müddəti Nitro `vercel.functionRules` vasitəsilə 300 saniyə ilə məhdudlaşdırılıb.
+
+## 2026-10-17 — Mərhələ 2: analitik axtarış
+
+- Axtarış vektor, PostgreSQL full-text və pg_trgm nəticələrini paralel alır, hər siyahıdan ən çox 50 fraqment götürür, RRF (k=60) ilə birləşdirir və ilk 10 fraqmenti cavaba verir. Etibarlılıq qiymətləri sıralamaya təsir etmir.
+- Vektor namizədlərinə kosinus məsafəsi 0.4-dən kiçik həddi tətbiq olunur; demo korpusunda uyğun və korpusdan kənar sualları ayıran sınaq bunu seçdi. Tam mətn və trigram uyğunluğu ayrıca namizəd verə bilər.
+- Dövr, teq, sənəd və etibarlılıq filtrləri hər namizəd SQL sorğusuna birləşmədən əvvəl tətbiq olunur; sorğular `accessFilter()`-dən keçir. Etibarlılıq hədləri A/E kimi seçildikdə həmin qiymətdən daha yaxşı və ya bərabər qiymətlər daxil edilir; məlumat şkalasında 1-dən seçilmiş qiymətədək olanlar daxil edilir. “Hamısı” əlavə şərt yaratmır.
+- Sənədlər sxemində idarə/şöbə sütunu yoxdur. Buna görə maketdəki “İdarə” filtri əlavə edilməyib; reallaşdırılan filtrlər brief-dəki dövr, teq və sənəd, həmçinin əlavə brief-dəki iki etibarlılıq həddidir.
+- Server əvvəl SSE ilə mənbələri göndərir, sonra yalnız həmin fraqmentlərlə cavabı axınla yaradır. Yekunda olmayan [n] istinadlar silinir və cavab natamam kimi işarələnir. Aşağı qiymətli mənbə cavabda istinad edilərsə Azərbaycan dilində xəbərdarlıq əlavə olunur.
+- Analitik cavab Gemini 3/4 modellərində `thinkingLevel: low` ilə yaradılır: bu qısa, mənbəyə bağlı sintez üçün gecikməni azaltmağa yönəlib. Gemini 2.5 modeli seçilərsə bu parametr ötürülmür.
+- Demo korpusu yalnız sintetik, Azərbaycan dilində altı sənəddən ibarətdir və `demo-synthetic` teqi ilə seçilir. `bun run db:seed:demo -- --clean` yalnız bu sabit demo sənədlərini və onların fraqmentlərini silir.
