@@ -18,6 +18,7 @@
     "stage3:verify": "bun run scripts/verify-stage-3.ts",
     "db:verify-idare": "bun run scripts/verify-idare-migration.ts",
     "db:seed:demo": "bun run scripts/seed-demo.ts",
+    "db:eval:rerank": "bun run scripts/eval-rerank.ts",
     "db:migrate": "drizzle-kit migrate"
   },
   "overrides": {

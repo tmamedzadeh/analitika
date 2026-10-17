@@ -2,8 +2,6 @@ import { analyticsSearchRequestSchema } from "@/lib/analytics";
 import type { AnalyticsSource, AnalyticsSourcePreview } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
 import { createGeminiProviders } from "@/server/ai/gemini";
-import { getDb } from "@/server/db";
-import { queryLogs } from "@/server/db/schema";
 import { validateCitations } from "./citations";
 import { consumeAnalyticsRateLimit, getAnalyticsClientKey } from "./rate-limit";
 import { searchDocumentChunks } from "./search";
@@ -58,24 +56,6 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
       const send = (event: Record<string, unknown>) => {
         controller.enqueue(encoder.encode("data: " + JSON.stringify(event) + "\n\n"));
       };
-      const saveQueryLog = async (answer: string) => {
-        try {
-          await getDb()
-            .insert(queryLogs)
-            .values({
-              module: "analytics",
-              query,
-              filters: { ...filters, mode },
-              chunkIds: sources.map((source) => source.chunkId),
-              answer,
-              model,
-              latencyMs: Date.now() - startedAt,
-            });
-        } catch {
-          console.error("Analytics query log persistence failed.");
-        }
-      };
-
       const sourcePreviews: AnalyticsSourcePreview[] = sources.map(
         ({ text: _text, charStart: _charStart, charEnd: _charEnd, ...source }) => source,
       );
@@ -83,7 +63,6 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
       void (async () => {
         if (sources.length === 0) {
           const answer = az.analytics.noSources;
-          await saveQueryLog(answer);
           send({
             type: "final",
             answer,
@@ -96,7 +75,6 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
         }
 
         if (mode === "sources") {
-          await saveQueryLog("");
           send({
             type: "final",
             answer: "",
@@ -119,7 +97,6 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
           }
 
           const validated = validateCitations(generated, sources, prompt.lowReliabilityWarning);
-          await saveQueryLog(validated.answer);
           send({
             type: "final",
             answer: validated.answer,
@@ -128,7 +105,6 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
             model,
           });
         } catch {
-          await saveQueryLog(generated);
           send({ type: "error", message: az.analytics.answerFailed });
         } finally {
           controller.close();

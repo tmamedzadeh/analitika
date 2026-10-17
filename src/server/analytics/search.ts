@@ -1,6 +1,12 @@
 import { and, asc, count, desc, eq, inArray, isNotNull, lt, sql, type SQL } from "drizzle-orm";
 
 import type { AnalyticsFilters, AnalyticsSource } from "@/lib/analytics";
+import { getAppConfig } from "@/server/config";
+import {
+  GeminiRerankProvider,
+  rerankOrderOrOriginal,
+  type RerankProvider,
+} from "@/server/ai/rerank";
 import { createGeminiProviders } from "@/server/ai/gemini";
 import { getDb } from "@/server/db";
 import { accessFilter } from "@/server/db/access";
@@ -10,7 +16,15 @@ import { reciprocalRankFusion } from "./ranking";
 
 const CANDIDATE_LIMIT = 50;
 const RESULT_LIMIT = 10;
+const RERANK_CANDIDATE_LIMIT = 30;
 const MAX_VECTOR_DISTANCE = 0.4;
+
+export type SearchDocumentChunksOptions = {
+  embedding?: number[];
+  enableRerank?: boolean;
+  maxEmbeddingAttempts?: 1 | 2 | 3;
+  rerankProvider?: RerankProvider;
+};
 
 function sourceProjection() {
   return {
@@ -34,9 +48,18 @@ function sourceProjection() {
 export async function searchDocumentChunks(
   query: string,
   filters: AnalyticsFilters,
+  options: SearchDocumentChunksOptions = {},
 ): Promise<AnalyticsSource[]> {
   const db = getDb();
-  const embedding = await createGeminiProviders().embeddings.embedQuery(query);
+  const providers = createGeminiProviders();
+  const embedding =
+    options.embedding ??
+    (await providers.embeddings.embedQuery(
+      query,
+      options.maxEmbeddingAttempts === undefined
+        ? {}
+        : { maxAttempts: options.maxEmbeddingAttempts },
+    ));
   if (embedding.length !== 768 || embedding.some((value) => !Number.isFinite(value))) {
     throw new Error("Query embedding must contain 768 finite dimensions.");
   }
@@ -97,11 +120,24 @@ export async function searchDocumentChunks(
       .limit(CANDIDATE_LIMIT),
   ]);
 
-  const fused = reciprocalRankFusion([vectorRows, fullTextRows, trigramRows], 60).slice(
+  const candidates = reciprocalRankFusion([vectorRows, fullTextRows, trigramRows], 60).slice(
     0,
-    RESULT_LIMIT,
+    RERANK_CANDIDATE_LIMIT,
   );
-  if (fused.length === 0) return [];
+  if (candidates.length === 0) return [];
+
+  const rerankProvider = options.rerankProvider ?? new GeminiRerankProvider(providers.light);
+  const rerankedIds = await rerankOrderOrOriginal(
+    query,
+    candidates.map(({ item }) => ({ id: item.chunkId, excerpt: item.text.slice(0, 500) })),
+    rerankProvider,
+    options.enableRerank ?? getAppConfig().enableRerank,
+  );
+  const candidateById = new Map(candidates.map((candidate) => [candidate.item.chunkId, candidate]));
+  const fused = rerankedIds
+    .map((id) => candidateById.get(id))
+    .filter((candidate): candidate is (typeof candidates)[number] => candidate !== undefined)
+    .slice(0, RESULT_LIMIT);
 
   const documentIds = [...new Set(fused.map(({ item }) => item.documentId))];
   const counts = await db
@@ -129,8 +165,8 @@ export async function searchDocumentChunks(
       isTable: item.isTable,
       attachmentCount: countByDocument.get(item.documentId) ?? 0,
       tags: item.tags,
-      sourceReliability: item.sourceReliability,
-      infoCredibility: item.infoCredibility,
+      sourceReliability: item.sourceReliability as AnalyticsSource["sourceReliability"],
+      infoCredibility: item.infoCredibility as AnalyticsSource["infoCredibility"],
     };
   });
 }

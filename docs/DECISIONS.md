@@ -46,6 +46,14 @@
 - İdarə siyahısı istifadəçidən faktiki dəyərlər gələnədək `src/lib/departments.ts` daxilində `[İdarə 1…5]` müvəqqəti seçimlərindən ibarətdir.
 - Cavab sənədi kimi yalnız indekslənməsi bitmiş (`ready`) sənədlər seçilə bilər. Sənəd seçildikdə sorğunun statusu avtomatik `answered` olur; cavab sənədi silindikdə, həmin status `in_progress`-ə qaytarılır.
 
+## 2026-10-18 — Axtarışda seçmə rerank
+
+- Rerank `RerankProvider` interfeysi ilə ayrıca saxlanılır; Gemini LIGHT implementasiyası RRF-dən sonrakı ən çox 30 fraqmentin hər birindən yalnız 500 simvoladək çıxarış alır və schema ilə məhdudlaşdırılmış JSON ID siyahısı qaytarır. Nəticədə ilk 10 fraqment istifadə olunur.
+- `ENABLE_RERANK` standart olaraq `false` qalır. Aktiv rerank bir axtarışda ən çox bir Gemini çağırışı edir, ümumi Gemini limitterindən keçir, 4 saniyədə dayandırılır və xətada/429-da ilkin RRF sırasına qayıdır. Sorğuların, cavabların və sənəd mətnlərinin axtarış loguna yazılması deaktivdir.
+- `db:eval:rerank` üzrə 20 sintetik azərbaycandilli sual (2 cədvəl fraqmenti daxil olmaqla): həm RRF, həm də LIGHT rerank üçün hit@3/hit@5/hit@10 100%, MRR 1.000; orta axtarış gecikməsi 1.564 s və 2.627 s; əlavə LLM çağırışı 20/20 sual, orta əlavə gecikmə 1.063 s.
+- Gemini LIGHT structured-JSON provider üçün ayrıca sintetik yoxlama uğurla keçib; modeldən gələn JSON cavabları prompt və çıxış mətnini göstərmədən təsdiqlənib.
+- Top-5 artımı 0 faiz-bəndidir, yəni aktivləşdirmə üçün tələb olunan ən az 10 faiz-bənd şərti ödənmir. Buna görə production konfiqurasiyasında flag söndürülmüş qalır. Demo korpusu cəmi altı sintetik sənəddən ibarət olduğuna görə ölçmələr orientirdir; aktivləşdirmə üzrə yekun qərar istifadəçinindir.
+
 ## 2026-10-18 — İdarə bölmələri
 
 - `src/lib/departments.ts` idarələrin ID və görünən adları üçün yeganə mənbədir. Sənəd və məlumat sorğusu formaları DB-də yalnız `d1`–`d5` saxlayır; `info_requests.department` üçün əvvəlki görünən adlar `0002_idare_departments.sql` miqrasiyasında ID-lərə çevrilir.

@@ -38,7 +38,7 @@ const demoDocuments = [
     id: "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd0004",
     department: "d4",
     title: "Sınaq sənədi: avtobus marşrutunun sınağı",
-    body: "## Nəqliyyat\nBu sənəd yalnız demo və test üçündür. Şərti mərkəz marşrutunda pik saatlarda əlavə avtobusun qoşulması gözləmə müddətini 18 dəqiqədən 11 dəqiqəyə endirib. Müşahidə yalnız beş iş günü aparılıb.",
+    body: "## Nəqliyyat\nBu sənəd yalnız demo və test üçündür. Şərti mərkəz marşrutunda pik saatlarda əlavə avtobusun qoşulması gözləmə müddətini 18 dəqiqədən 11 dəqiqəyə endirib. Müşahidə yalnız beş iş günü aparılıb.\n\n## Cədvəl: marşrut göstəriciləri\n| Göstərici | Dəyər |\n|---|---|\n| Pik saat gözləmə — əvvəl | 18 dəqiqə |\n| Pik saat gözləmə — sınaq zamanı | 11 dəqiqə |\n| Müşahidə müddəti | 5 iş günü |",
     tags: ["demo-synthetic", "nəqliyyat"],
     sourceReliability: "C" as const,
     infoCredibility: 3 as const,
@@ -56,7 +56,7 @@ const demoDocuments = [
     id: "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd0006",
     department: "d2",
     title: "Sınaq sənədi: kitabxana xidmətləri",
-    body: "## Rəqəmsal xidmət\nBu sənəd yalnız demo və test üçündür. Şərti rayon kitabxanası elektron kataloq və onlayn sifariş formasını sınaqdan keçirib. Bir ay ərzində 40 istifadəçi kataloqa baxıb, 9 nəfər kitab sifariş edib.",
+    body: "## Rəqəmsal xidmət\nBu sənəd yalnız demo və test üçündür. Şərti rayon kitabxanası elektron kataloq və onlayn sifariş formasını sınaqdan keçirib. Bir ay ərzində 40 istifadəçi kataloqa baxıb, 9 nəfər kitab sifariş edib.\n\n## Cədvəl: ilk ayın göstəriciləri\n| Göstərici | Say |\n|---|---:|\n| Kataloqa baxan istifadəçilər | 40 |\n| Kitab sifarişi verənlər | 9 |",
     tags: ["demo-synthetic", "kitabxana", "rəqəmsal xidmət"],
     sourceReliability: "F" as const,
     infoCredibility: 6 as const,
@@ -77,6 +77,7 @@ async function seedDemo(): Promise<void> {
   );
   const vectors = await createGeminiProviders().embeddings.embedDocuments(
     sourceChunks.map(({ chunk }) => chunk.embeddingText),
+    { maxAttempts: 1 },
   );
   const embeddingModel = createGeminiProviders().embeddings.model;
   if (
