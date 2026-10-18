@@ -16,9 +16,12 @@ import { Route as OsintRouteImport } from './routes/osint'
 import { Route as SenedlerRouteImport } from './routes/senedler'
 import { Route as SorguRouteImport } from './routes/sorgu'
 import { Route as ApiInngestRouteImport } from './routes/api.inngest'
+import { Route as BriflerIdRouteImport } from './routes/brifler.$id'
+import { Route as BriflerYeniRouteImport } from './routes/brifler.yeni'
 import { Route as SenedlerIdRouteImport } from './routes/senedler.$id'
 import { Route as SorguIdRouteImport } from './routes/sorgu.$id'
 import { Route as ApiAnalyticsSearchRouteImport } from './routes/api.analytics.search'
+import { Route as BriflerIdRedakteRouteImport } from './routes/brifler.$id_.redakte'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -55,6 +58,16 @@ const ApiInngestRoute = ApiInngestRouteImport.update({
   path: '/api/inngest',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BriflerIdRoute = BriflerIdRouteImport.update({
+  id: '/brifler/$id',
+  path: '/brifler/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BriflerYeniRoute = BriflerYeniRouteImport.update({
+  id: '/brifler/yeni',
+  path: '/brifler/yeni',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SenedlerIdRoute = SenedlerIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -70,6 +83,11 @@ const ApiAnalyticsSearchRoute = ApiAnalyticsSearchRouteImport.update({
   path: '/api/analytics/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BriflerIdRedakteRoute = BriflerIdRedakteRouteImport.update({
+  id: '/brifler/$id_/redakte',
+  path: '/brifler/$id/redakte',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -79,9 +97,12 @@ export interface FileRoutesByFullPath {
   '/senedler': typeof SenedlerRouteWithChildren
   '/sorgu': typeof SorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
+  '/brifler/$id': typeof BriflerIdRoute
+  '/brifler/yeni': typeof BriflerYeniRoute
   '/senedler/$id': typeof SenedlerIdRoute
   '/sorgu/$id': typeof SorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
+  '/brifler/$id/redakte': typeof BriflerIdRedakteRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,9 +112,12 @@ export interface FileRoutesByTo {
   '/senedler': typeof SenedlerRouteWithChildren
   '/sorgu': typeof SorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
+  '/brifler/$id': typeof BriflerIdRoute
+  '/brifler/yeni': typeof BriflerYeniRoute
   '/senedler/$id': typeof SenedlerIdRoute
   '/sorgu/$id': typeof SorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
+  '/brifler/$id/redakte': typeof BriflerIdRedakteRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,9 +128,12 @@ export interface FileRoutesById {
   '/senedler': typeof SenedlerRouteWithChildren
   '/sorgu': typeof SorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
+  '/brifler/$id': typeof BriflerIdRoute
+  '/brifler/yeni': typeof BriflerYeniRoute
   '/senedler/$id': typeof SenedlerIdRoute
   '/sorgu/$id': typeof SorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
+  '/brifler/$id_/redakte': typeof BriflerIdRedakteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -118,9 +145,12 @@ export interface FileRouteTypes {
     | '/senedler'
     | '/sorgu'
     | '/api/inngest'
+    | '/brifler/$id'
+    | '/brifler/yeni'
     | '/senedler/$id'
     | '/sorgu/$id'
     | '/api/analytics/search'
+    | '/brifler/$id/redakte'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -130,9 +160,12 @@ export interface FileRouteTypes {
     | '/senedler'
     | '/sorgu'
     | '/api/inngest'
+    | '/brifler/$id'
+    | '/brifler/yeni'
     | '/senedler/$id'
     | '/sorgu/$id'
     | '/api/analytics/search'
+    | '/brifler/$id/redakte'
   id:
     | '__root__'
     | '/'
@@ -142,9 +175,12 @@ export interface FileRouteTypes {
     | '/senedler'
     | '/sorgu'
     | '/api/inngest'
+    | '/brifler/$id'
+    | '/brifler/yeni'
     | '/senedler/$id'
     | '/sorgu/$id'
     | '/api/analytics/search'
+    | '/brifler/$id_/redakte'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -155,7 +191,10 @@ export interface RootRouteChildren {
   SenedlerRoute: typeof SenedlerRouteWithChildren
   SorguRoute: typeof SorguRouteWithChildren
   ApiInngestRoute: typeof ApiInngestRoute
+  BriflerIdRoute: typeof BriflerIdRoute
+  BriflerYeniRoute: typeof BriflerYeniRoute
   ApiAnalyticsSearchRoute: typeof ApiAnalyticsSearchRoute
+  BriflerIdRedakteRoute: typeof BriflerIdRedakteRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -209,6 +248,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInngestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/brifler/$id': {
+      id: '/brifler/$id'
+      path: '/brifler/$id'
+      fullPath: '/brifler/$id'
+      preLoaderRoute: typeof BriflerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/brifler/yeni': {
+      id: '/brifler/yeni'
+      path: '/brifler/yeni'
+      fullPath: '/brifler/yeni'
+      preLoaderRoute: typeof BriflerYeniRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/senedler/$id': {
       id: '/senedler/$id'
       path: '/$id'
@@ -228,6 +281,13 @@ declare module '@tanstack/react-router' {
       path: '/api/analytics/search'
       fullPath: '/api/analytics/search'
       preLoaderRoute: typeof ApiAnalyticsSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/brifler/$id_/redakte': {
+      id: '/brifler/$id_/redakte'
+      path: '/brifler/$id/redakte'
+      fullPath: '/brifler/$id/redakte'
+      preLoaderRoute: typeof BriflerIdRedakteRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -263,7 +323,10 @@ const rootRouteChildren: RootRouteChildren = {
   SenedlerRoute: SenedlerRouteWithChildren,
   SorguRoute: SorguRouteWithChildren,
   ApiInngestRoute: ApiInngestRoute,
+  BriflerIdRoute: BriflerIdRoute,
+  BriflerYeniRoute: BriflerYeniRoute,
   ApiAnalyticsSearchRoute: ApiAnalyticsSearchRoute,
+  BriflerIdRedakteRoute: BriflerIdRedakteRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
