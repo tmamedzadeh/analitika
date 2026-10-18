@@ -130,7 +130,6 @@ export function ShellLayout({ children }: { children: ReactNode }) {
               PLATFORMA
             </span>
           </Link>
-          tracking-widest
         </div>
 
         <nav
