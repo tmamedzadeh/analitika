@@ -242,9 +242,7 @@ function Osint() {
                   })}
                 </p>
                 {progress?.partial ? (
-                  <p className="mt-3 text-sm text-amber-700 dark:text-amber-300">
-                    {az.osint.partialNotice}
-                  </p>
+                  <p className="mt-3 text-sm text-amber-700">{az.osint.partialNotice}</p>
                 ) : null}
                 {run.error ? (
                   <p role="alert" className="mt-3 text-sm text-destructive">
@@ -301,8 +299,7 @@ function Osint() {
                     </p>
                     {source.publishedAt ? (
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {az.osint.published}:{" "}
-                        {new Date(source.publishedAt).toLocaleDateString("az-AZ")}
+                        {az.osint.date}: {new Date(source.publishedAt).toLocaleDateString("az-AZ")}
                       </p>
                     ) : null}
                     <a

@@ -14,10 +14,6 @@ export function BriefCard({
   preview?: boolean;
 }) {
   const date = briefDate(brief.date);
-  const statusClass =
-    brief.status === "draft"
-      ? "border-warning/25 bg-warning/10 text-warning"
-      : "border-success/25 bg-success/10 text-success";
   const content = (
     <>
       <div
@@ -46,19 +42,12 @@ export function BriefCard({
           </p>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${statusClass}`}
-            >
-              {az.briefs.status[brief.status]}
-            </span>
-            {!featured && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Images size={14} aria-hidden="true" />
-                {az.briefs.photoCount.replace("{count}", String(brief.photoCount))}
-              </span>
-            )}
-          </div>
+          {!featured && (
+            <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Images size={14} aria-hidden="true" />
+              {az.briefs.photoCount.replace("{count}", String(brief.photoCount))}
+            </div>
+          )}
           <h2
             className={
               featured

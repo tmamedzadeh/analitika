@@ -112,8 +112,8 @@ const briefTemplates = [
     photoCount: 0,
   },
   {
-    title: "Demo qaralama: həftəlik müşahidələr",
-    body: "## Qaralama\nBu sintetik qaralama axtarış indeksinə daxil edilməməlidir. Mətn yekun redaktədən sonra dərc olunacaq.",
+    title: "Demo: həftəlik müşahidələr",
+    body: "## Həftəlik müşahidələr\nBu sintetik qeyd axtarış indeksinə daxil edilməməlidir. Mətn yekun redaktədən sonra dərc olunacaq.",
     status: "draft" as const,
     photoCount: 1,
   },

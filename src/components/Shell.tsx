@@ -5,12 +5,10 @@ import {
   MessageSquareText,
   FileText,
   SlidersHorizontal,
-  Sun,
-  Moon,
   PanelsTopLeft,
   LogOut,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import {
   Dialog,
@@ -24,45 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { az } from "@/lib/i18n/az";
-
-function ThemeToggle() {
-  const [light, setLight] = useState(true);
-
-  useEffect(() => {
-    try {
-      setLight(localStorage.getItem("theme") !== "dark");
-    } catch {
-      setLight(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("light", light);
-    document.documentElement.classList.toggle("dark", !light);
-  }, [light]);
-
-  return (
-    <button
-      type="button"
-      aria-label={light ? az.actions.darkTheme : az.actions.lightTheme}
-      onClick={() => {
-        const next = !light;
-        setLight(next);
-        try {
-          localStorage.setItem("theme", next ? "light" : "dark");
-        } catch {
-          // The theme still changes for this page when storage is unavailable.
-        }
-      }}
-      className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:h-11 md:w-full md:justify-start md:gap-3 md:px-3"
-    >
-      {light ? <Moon size={18} /> : <Sun size={18} />}
-      <span className="hidden text-sm font-medium md:inline">
-        {light ? az.actions.darkTheme : az.actions.lightTheme}
-      </span>
-    </button>
-  );
-}
 
 const nav = [
   { to: "/", icon: PanelsTopLeft, label: az.navigation.dailyBriefs },
@@ -124,7 +83,7 @@ export function Shell({
             <img
               src="/logo.png"
               alt="ZİRVƏ"
-              className="block w-19.5 shrink-0 rounded-md bg-white object-contain md:w-35"
+              className="block w-19.5 shrink-0 rounded-md bg-white object-contain md:w-30"
             />
             <span className="text-[10px] font-semibold leading-[1.45] tracking-[0.14em] text-muted-foreground md:text-center md:text-[11px]">
               VAHİD ANALİTİK
@@ -132,14 +91,11 @@ export function Shell({
               PLATFORMA
             </span>
           </Link>
-          <div className="md:hidden">
-            <ThemeToggle />
-          </div>
         </div>
 
         <nav
           aria-label={az.navigation.primary}
-          className="mt-4 flex gap-1 overflow-x-auto pb-1 md:mt-9 md:block md:space-y-1.5 md:overflow-visible md:pb-0"
+          className="mt-4 flex gap-1 overflow-x-auto pb-1 md:mt-7 md:block md:space-y-1.5 md:overflow-visible md:pb-0"
         >
           {nav.map(({ to, icon: Icon, label }) => (
             <Link
@@ -157,8 +113,7 @@ export function Shell({
           ))}
         </nav>
 
-        <div className="mt-3 hidden md:block">
-          <ThemeToggle />
+        <div className="mt-auto hidden md:block">
           <div className="mt-5 flex items-center gap-3 border-t border-border pt-5">
             <span className="min-w-0">
               <span className="block truncate text-xs font-semibold">{az.actions.user}</span>

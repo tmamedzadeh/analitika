@@ -179,10 +179,6 @@ function BriefDetail() {
               <dd>{brief.date.split("-").reverse().join(".")}</dd>
             </div>
             <div className="flex justify-between gap-3 border-t border-border py-3">
-              <dt className="label-mono !tracking-normal">{az.briefs.statusLabel}</dt>
-              <dd>{az.briefs.status[brief.status]}</dd>
-            </div>
-            <div className="flex justify-between gap-3 border-t border-border py-3">
               <dt className="label-mono !tracking-normal">{az.briefs.photos}</dt>
               <dd>{az.briefs.photoCount.replace("{count}", String(brief.photos.length))}</dd>
             </div>
