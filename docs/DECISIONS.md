@@ -96,3 +96,10 @@
 - Brif indeksləməsi `src/server/jobs/index-brief.ts` daxilində adi funksiya, DB-də saxlanan addım/progress və Gemini embedding-lərdən ibarətdir. Inngest wrapper-i yalnız `briefId` olan hadisəni qəbul edir və işi çağırır. `draft` keçidi və silmə brif fraqmentlərini təmizləyir; yayımlama və redaktə yenidən indeksləmə yaradır.
 - Brif mətnləri və imzalı Storage URL-ləri tətbiq loglarına yazılmır. Route xətası üçün ümumi error boundary yalnız sabit, payload-siz mesaj yazır; DB parametrli xəta obyektlərini loglamır.
 - `bun run db:seed:demo` altı sintetik brif yaradır (son altı Bakı tarixi, bir qaralama, süni fotoşəkillər də daxil). `bun run db:seed:demo --clean` həmin demo brifləri, şəkilləri, sənədləri və fraqmentlərini silir.
+
+## 2026-10-18 — V1 kod auditi
+
+- V1 tək `admin` istifadəçisi ilə işləyir: `getCurrentUser()` sabit identifikator qaytarır, `accessFilter()` hazırda əlavə SQL məhdudiyyəti yaratmır. `DEMO_BASIC_AUTH` sayt səviyyəsində giriş qapısıdır, fərdi istifadəçi kimliyi və ACL deyil. Bu model yalnız sintetik demo üçün uyğundur; real və ya məxfi məlumatdan əvvəl autentifikasiya, sətir səviyyəli giriş qaydaları və təsnifat tətbiq olunmalıdır.
+- Analitika rate limiter-i proses yaddaşındakı `Map`-də IP üzrə 60 saniyəlik pəncərədə 20 sorğu saxlayır. Vercel instansiyaları arasında paylaşılmadığı üçün bunu qlobal büdcə zəmanəti saymaq olmaz; daha böyük istifadə və ya real məlumatdan əvvəl paylaşılan Postgres/Redis limitinə keçirilməlidir.
+- Server və sənəd yükləmə xətalarının loglaması mesaj, stack, səbəb zənciri və obyekt məzmununu çıxarmır; yalnız xəta sinfi və varsa HTTP statusu saxlanılır. Bu, provayder xətalarına açar və göndərilmiş mətnin əlavə olunması riskini azaldır.
+- Yoxlamalar: `bun run lint` 0 xəta ilə keçdi (6 mövcud Fast Refresh xəbərdarlığı UI primitivlərindədir), `bun run test` 16 fayl/66 test keçdi, `bunx tsc --noEmit --pretty false` və `bun run build` uğurlu oldu.

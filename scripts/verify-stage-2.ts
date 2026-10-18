@@ -224,8 +224,10 @@ async function verifyStage2(): Promise<void> {
 
 try {
   await verifyStage2();
-} catch (error) {
-  console.error("Stage 2 integration verification failed.", error);
+} catch {
+  console.error(
+    "Stage 2 integration verification failed; check database, Storage, and Gemini configuration.",
+  );
   process.exitCode = 1;
 } finally {
   await closeDb();

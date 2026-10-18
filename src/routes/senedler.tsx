@@ -158,13 +158,13 @@ function AddDoc() {
       if (photoInputRef.current) photoInputRef.current.value = "";
       await queryClient.invalidateQueries({ queryKey: ["documents", "recent"] });
     } catch (error) {
-      console.error(error);
+      console.error("Document upload request failed.");
       setFormError(error instanceof Error ? error.message : az.documents.loadError);
       if (documentId) {
         try {
           await discardDocumentDraft({ data: { documentId } });
-        } catch (cleanupError) {
-          console.error(cleanupError);
+        } catch {
+          console.error("Document draft cleanup failed.");
         }
       }
       await queryClient.invalidateQueries({ queryKey: ["documents", "recent"] });

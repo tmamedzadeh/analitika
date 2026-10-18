@@ -292,8 +292,8 @@ async function seedDemo(): Promise<void> {
 
 try {
   await seedDemo();
-} catch (error) {
-  console.error("Demo document seeding failed.", error);
+} catch {
+  console.error("Demo seeding failed; check database and Storage configuration.");
   process.exitCode = 1;
 } finally {
   closeStorage();

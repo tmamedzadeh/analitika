@@ -21,8 +21,8 @@ try {
   if (!target) throw new Error("No completed matching run was found.");
   await getDb().update(osintRuns).set({ pinned: true }).where(eq(osintRuns.id, target.id));
   console.log("Pinned completed OSINT result " + target.id + ".");
-} catch (error) {
-  console.error(error instanceof Error ? error.message : "Could not pin OSINT result.");
+} catch {
+  console.error("Could not pin OSINT result; check the database and completed run ID.");
   process.exitCode = 1;
 } finally {
   await closeDb();

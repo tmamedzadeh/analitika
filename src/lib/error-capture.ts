@@ -1,5 +1,4 @@
-// Captures the original Error out-of-band so server.ts can recover the stack
-// when h3 has already swallowed the throw into a generic 500 Response.
+// Captures an error briefly so server.ts can recognize h3's generic 500 response.
 
 let lastCapturedError: { error: unknown; at: number } | undefined;
 const TTL_MS = 5_000;
@@ -8,58 +7,30 @@ function record(error: unknown) {
   lastCapturedError = { error, at: Date.now() };
 }
 
-// h3's HTTPError serializes to {"status":500,"unhandled":true,"message":"HTTPError"} —
-// no stack, no cause — so a plain console.error(error) reaches the log pipeline with
-// the failure detail stripped. Expand Error-like args into a string that keeps the
-// message, stack, and the full cause chain.
-const CAUSE_DEPTH_LIMIT = 5;
-const DESCRIPTION_LENGTH_LIMIT = 8_000;
-
 export function describeError(error: unknown): string {
-  const parts: string[] = [];
-  let current: unknown = error;
-  for (let depth = 0; depth < CAUSE_DEPTH_LIMIT && current != null; depth++) {
-    if (!(current instanceof Error)) {
-      parts.push(typeof current === "string" ? current : safeStringify(current));
-      break;
-    }
-    const label = depth === 0 ? "" : "caused by: ";
-    const status = describeStatus(current);
-    parts.push(`${label}${current.stack ?? `${current.name}: ${current.message}`}${status}`);
-    current = current.cause;
-  }
-  return parts.join("\n").slice(0, DESCRIPTION_LENGTH_LIMIT);
-}
-
-function describeStatus(error: Error): string {
-  const { status, statusCode } = error as { status?: unknown; statusCode?: unknown };
-  const value = status ?? statusCode;
-  return typeof value === "number" ? ` (status ${value})` : "";
-}
-
-function safeStringify(value: unknown): string {
-  try {
-    return JSON.stringify(value) ?? String(value);
-  } catch {
-    return String(value);
-  }
-}
-
-function isErrorLike(value: unknown): value is Error {
-  return value instanceof Error;
+  if (!(error instanceof Error)) return "Application error (details omitted).";
+  const name = /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(error.name) ? error.name : "Error";
+  const { status, statusCode } = error as Error & { status?: unknown; statusCode?: unknown };
+  const code = status ?? statusCode;
+  const statusLabel = typeof code === "number" && Number.isFinite(code) ? ` status=${code}` : "";
+  return `Application error type=${name}${statusLabel}; details omitted.`;
 }
 
 // Wrap console.error so errors logged by any layer — including h3's internal
-// unhandled-error logging, which this file cannot hook directly — are both
-// recorded for consumeLastCapturedError and expanded before serialization.
+// unhandled-error logging, which this file cannot hook directly — are recorded
+// for consumeLastCapturedError. Never log messages, stacks, causes, or objects;
+// providers and database drivers may include keys or submitted text in them.
 const originalConsoleError = console.error.bind(console);
 console.error = (...args: unknown[]) => {
-  const expanded = args.map((arg) => {
-    if (!isErrorLike(arg)) return arg;
-    record(arg);
-    return describeError(arg);
+  const sanitized = args.map((arg) => {
+    if (arg instanceof Error) {
+      record(arg);
+      return describeError(arg);
+    }
+    if (arg === null || typeof arg === "number" || typeof arg === "boolean") return arg;
+    return "[redacted log detail]";
   });
-  originalConsoleError(...expanded);
+  originalConsoleError(...sanitized);
 };
 
 if (typeof globalThis.addEventListener === "function") {
