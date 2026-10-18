@@ -6,10 +6,18 @@ export const az = {
     requests: "Məlumat sorğusu",
     documents: "Sənədlər",
     settings: "Ayarlar",
+    primary: "Əsas naviqasiya",
   },
   actions: {
     home: "Ana səhifəyə qayıt",
     retry: "Yenidən cəhd et",
+    logout: "Çıxış",
+    logoutManagedTitle: "Çıxış",
+    logoutManagedDescription: "Tətbiqdən çıxış.",
+    user: "İstifadəçi 1",
+    close: "Bağla",
+    darkTheme: "Qaranlıq tema",
+    lightTheme: "Açıq tema",
   },
   notFound: {
     title: "Səhifə tapılmadı",
@@ -44,7 +52,6 @@ export const az = {
   analytics: {
     crumb: "Analitika",
     title: "Analitika üzrə axtarış",
-    systemReady: "Sistem aktivdir",
     modelBadge: "Model: Gemini / Analitika",
     questionLabel: "Analitik sual",
     questionPlaceholder: "Sualınızı Azərbaycan dilində yazın",
@@ -90,7 +97,6 @@ export const az = {
     title: "Məlumat sorğusu",
     description:
       "Axtardığınız analitika tapılmadısa, buradan sorğu göndərin. Sorğu cavablandırıldıqdan sonra nəticə Sənədlər bölməsinə əlavə olunur.",
-    systemReady: "Sistem aktivdir",
     formTitle: "Yeni sorğu",
     form: {
       department: "İdarə",
@@ -185,6 +191,7 @@ export const az = {
     openTitle: "Brifi aç",
     searchPlaceholder: "Brifdə axtarın",
     searchLabel: "Brifdə axtarın",
+    periodFilters: "Tarix filtrləri",
     month: "Ay",
     chooseMonth: "Ay seçin",
     all: "Hamısı",
@@ -333,7 +340,6 @@ export const az = {
   osint: {
     title: "OSINT: dərin axtarış",
     description: "Altı dildə açıq mənbələrdə axtarış və Azərbaycan dilində xülasə.",
-    systemReady: "Sistem aktivdir",
     modelBadge: "Model: Gemini / OSINT",
     providerBadge: "Mənbə axtarışı: Exa",
     queryLabel: "Axtarış sorğusu",

@@ -51,6 +51,7 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
     indexProgress: { percent: 0, totalChunks: 0, completedChunks: 0 },
     author: existing?.author ?? "admin",
     photoCount: photos.length,
+    coverUrl: photos[0]?.url ?? null,
   };
 
   async function addPhotos(files: File[]) {

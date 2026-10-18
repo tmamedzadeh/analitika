@@ -192,11 +192,7 @@ function Analytics() {
   }
 
   return (
-    <Shell
-      crumb={az.analytics.crumb}
-      title={az.analytics.title}
-      badges={[az.analytics.systemReady, az.analytics.modelBadge]}
-    >
+    <Shell crumb={az.analytics.crumb} title={az.analytics.title} badges={[az.analytics.modelBadge]}>
       <form onSubmit={submit} className="panel panel-glow flex flex-col gap-3 p-5 sm:flex-row">
         <input
           className="field"

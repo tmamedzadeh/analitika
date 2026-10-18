@@ -10,26 +10,28 @@ import {
 } from "@tanstack/react-router";
 import { type ReactNode } from "react";
 
+import { Shell } from "@/components/Shell";
 import appCss from "../styles.css?url";
 import { az } from "../lib/i18n/az";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">{az.notFound.title}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{az.notFound.description}</p>
+    <Shell crumb={az.notFound.title} title={az.notFound.title}>
+      <div className="panel flex min-h-72 flex-col items-center justify-center px-6 py-12 text-center">
+        <p className="text-6xl font-semibold tracking-tight text-primary">404</p>
+        <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+          {az.notFound.description}
+        </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             {az.actions.home}
           </Link>
         </div>
       </div>
-    </div>
+    </Shell>
   );
 }
 
@@ -40,29 +42,28 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">{az.error.title}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{az.error.description}</p>
+    <Shell crumb={az.error.title} title={az.error.title}>
+      <div className="panel flex min-h-72 flex-col items-center justify-center px-6 py-12 text-center">
+        <p className="max-w-md text-sm leading-6 text-muted-foreground">{az.error.description}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             {az.actions.retry}
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
             {az.actions.home}
           </a>
         </div>
       </div>
-    </div>
+    </Shell>
   );
 }
 
@@ -81,7 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/logo.png", type: "image/png" },
     ],
   }),
   shellComponent: RootShell,
@@ -92,7 +93,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="az">
+    <html lang="az" className="light">
       <head>
         <HeadContent />
       </head>

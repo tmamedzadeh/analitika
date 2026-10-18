@@ -91,6 +91,17 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
         .groupBy(briefAttachments.briefId)
     : [];
   const countByBrief = new Map(photoCounts.map((row) => [row.briefId, Number(row.total)]));
+  const featuredRow = pageRows.find((row) => row.date === getBakuDate()) ?? pageRows[0];
+  const [coverFile] = featuredRow
+    ? await db
+        .select({ storageKey: briefAttachments.storageKey })
+        .from(briefAttachments)
+        .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
+        .where(and(eq(briefAttachments.briefId, featuredRow.id), accessFilter()))
+        .orderBy(briefAttachments.ord)
+        .limit(1)
+    : [];
+  const coverUrl = coverFile ? await getStorage().getSignedUrl(coverFile.storageKey, 3600) : null;
   const items: BriefListItem[] = pageRows.map((row) => ({
     id: row.id,
     date: row.date,
@@ -101,6 +112,7 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
     indexProgress: briefProgress(row.indexProgress),
     author: row.author,
     photoCount: countByBrief.get(row.id) ?? 0,
+    coverUrl: row.id === featuredRow?.id ? coverUrl : null,
   }));
   return {
     items,

@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { CalendarDays, Plus, Search } from "lucide-react";
 import { useState } from "react";
 
 import { BriefCard } from "@/components/BriefCard";
@@ -36,7 +36,6 @@ function DailyBriefs() {
     <Shell
       crumb={az.briefs.title}
       title={az.briefs.title}
-      badges={[az.analytics.systemReady]}
       actions={
         <Button asChild size="lg" className="glow">
           <Link to="/brifler/yeni">
@@ -46,15 +45,22 @@ function DailyBriefs() {
         </Button>
       }
     >
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <input
-          className="field sm:!w-72"
-          aria-label={az.briefs.searchLabel}
-          placeholder={az.briefs.searchPlaceholder}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        <div className="flex flex-wrap gap-2">
+      <div className="panel mb-6 flex flex-col gap-4 p-4 sm:flex-row sm:flex-wrap sm:items-center">
+        <label className="relative min-w-0 flex-1 sm:min-w-64">
+          <Search
+            size={17}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            className="field pl-10"
+            aria-label={az.briefs.searchLabel}
+            placeholder={az.briefs.searchPlaceholder}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+        <div className="flex flex-wrap gap-2" role="group" aria-label={az.briefs.periodFilters}>
           {(
             [
               ["all", az.briefs.all],
@@ -65,7 +71,7 @@ function DailyBriefs() {
             <Button
               key={value}
               variant={period === value ? "secondary" : "outline"}
-              className={`rounded-full ${period === value ? "border border-primary/40 text-primary" : ""}`}
+              className={`rounded-full ${period === value ? "border border-primary/20 bg-accent text-primary" : ""}`}
               aria-pressed={period === value}
               onClick={() => {
                 setPeriod(value);
@@ -76,8 +82,9 @@ function DailyBriefs() {
             </Button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          {az.briefs.month}:
+        <label className="flex min-w-0 items-center gap-2 text-sm font-medium text-muted-foreground sm:ml-auto">
+          <CalendarDays size={16} aria-hidden="true" />
+          <span>{az.briefs.month}</span>
           <input
             className="field !w-40"
             type="month"
@@ -102,23 +109,23 @@ function DailyBriefs() {
         </p>
       )}
       {todayBrief && !briefsQuery.isLoading && (
-        <p className="label-mono mb-2 !text-primary !tracking-normal">{az.briefs.today}</p>
+        <p className="mb-3 text-xs font-semibold tracking-[0.08em] text-primary">
+          {az.briefs.today}
+        </p>
       )}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {orderedBriefs.map((brief, index) => (
-          <div
-            key={brief.id}
-            className={
-              index === 0 ? "lg:col-span-6" : index < 4 ? "lg:col-span-2" : "lg:col-span-3"
-            }
-          >
+          <div key={brief.id} className={index === 0 ? "sm:col-span-2 xl:col-span-3" : ""}>
             <BriefCard brief={brief} featured={index === 0} />
           </div>
         ))}
       </div>
       {!briefsQuery.isLoading && !briefsQuery.isError && briefs.length === 0 && (
-        <div className="panel flex flex-col items-center gap-4 py-16 text-center">
-          <p className="text-muted-foreground">
+        <div className="panel flex flex-col items-center gap-4 px-6 py-16 text-center">
+          <div className="grid h-12 w-12 place-items-center rounded-full bg-accent text-primary">
+            <Search size={20} aria-hidden="true" />
+          </div>
+          <p className="max-w-md text-sm leading-6 text-muted-foreground">
             {query || period !== "all" || month ? az.briefs.noMatches : az.briefs.empty}
           </p>
           {!query && period === "all" && !month && (

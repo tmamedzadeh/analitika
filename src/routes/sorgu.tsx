@@ -219,10 +219,7 @@ function Sorgu() {
     <Shell
       crumb={az.requests.title}
       title={az.requests.title}
-      badges={[
-        az.requests.systemReady,
-        az.requests.openCount.replace("{count}", String(openCount)),
-      ]}
+      badges={[az.requests.openCount.replace("{count}", String(openCount))]}
     >
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_352px]">
         <section>

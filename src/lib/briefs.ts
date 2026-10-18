@@ -30,6 +30,7 @@ export type Brief = {
 export type BriefListItem = Omit<Brief, "body" | "photos" | "publishedAt" | "highlight"> & {
   excerpt: string;
   photoCount: number;
+  coverUrl?: string | null;
 };
 
 export const briefIdSchema = z.string().uuid();

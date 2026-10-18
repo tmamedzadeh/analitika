@@ -99,11 +99,7 @@ function Osint() {
   const isActive = run?.status === "queued" || run?.status === "running";
 
   return (
-    <Shell
-      crumb={az.osint.title}
-      title={az.osint.title}
-      badges={[az.osint.systemReady, az.osint.providerBadge]}
-    >
+    <Shell crumb={az.osint.title} title={az.osint.title} badges={[az.osint.providerBadge]}>
       <form onSubmit={submit} className="panel panel-glow p-5">
         <label className="label-mono" htmlFor="osint-query">
           {az.osint.queryLabel}
@@ -223,7 +219,7 @@ function Osint() {
                   aria-valuenow={progress?.percent ?? 0}
                 >
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-violet transition-[width]"
+                    className="h-full rounded-full bg-primary transition-[width]"
                     style={{ width: `${progress?.percent ?? 0}%` }}
                   />
                 </div>
