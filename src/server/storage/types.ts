@@ -14,5 +14,6 @@ export interface StorageProvider {
   getSignedUrl(key: string, expiresInSeconds?: number): Promise<string>;
   getSignedUploadUrl(key: string, contentType: string, expiresInSeconds?: number): Promise<string>;
   getMetadata(key: string): Promise<StoredObjectMetadata>;
+  getPrefix(key: string, length: number): Promise<Uint8Array>;
   delete(key: string): Promise<void>;
 }

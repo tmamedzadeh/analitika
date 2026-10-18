@@ -77,6 +77,20 @@ export class S3Storage implements StorageProvider {
     };
   }
 
+  async getPrefix(key: string, length: number): Promise<Uint8Array> {
+    const byteCount = Math.max(1, Math.min(Math.floor(length), 64));
+    const result = await this.client.send(
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Range: `bytes=0-${byteCount - 1}`,
+      }),
+    );
+    if (!result.Body) throw new Error("Storage faylın məzmununu qaytarmadı.");
+    const bytes = await result.Body.transformToByteArray();
+    return bytes.slice(0, byteCount);
+  }
+
   async delete(key: string): Promise<void> {
     await this.client.send(
       new DeleteObjectCommand({

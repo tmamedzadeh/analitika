@@ -3,8 +3,8 @@ import type { InfoCredibility, SourceReliability } from "@/lib/reliability";
 
 export type CitationSource = {
   n: number;
-  sourceReliability: SourceReliability;
-  infoCredibility: InfoCredibility;
+  sourceReliability: SourceReliability | null;
+  infoCredibility: InfoCredibility | null;
 };
 
 export type ValidatedAnswer = {
@@ -34,7 +34,9 @@ export function validateCitations(
 
   const usedLowReliability = [...referenced].some((n) => {
     const source = available.get(n);
-    return source ? isLowReliability(source.sourceReliability, source.infoCredibility) : false;
+    return source && source.sourceReliability && source.infoCredibility
+      ? isLowReliability(source.sourceReliability, source.infoCredibility)
+      : false;
   });
   const normalizedWarning = lowReliabilityWarning.trim();
   const answerWithWarning =

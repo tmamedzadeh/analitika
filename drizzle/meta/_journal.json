@@ -29,6 +29,13 @@
       "when": 1792304648818,
       "tag": "0003_exa_osint_pins",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792308462508,
+      "tag": "0004_daily_briefs",
+      "breakpoints": true
     }
   ]
 }

@@ -25,11 +25,14 @@ export type AnalyticsFilters = z.infer<typeof analyticsFiltersSchema>;
 export type AnalyticsSearchRequest = z.infer<typeof analyticsSearchRequestSchema>;
 
 export type AnalyticsSource = {
+  sourceKind: "document" | "brief";
   n: number;
   chunkId: string;
-  documentId: string;
+  documentId: string | null;
+  briefId: string | null;
   title: string;
   docDate: string | null;
+  briefDate: string | null;
   department: string | null;
   sectionTitle: string;
   text: string;
@@ -39,8 +42,8 @@ export type AnalyticsSource = {
   isTable: boolean;
   attachmentCount: number;
   tags: string[];
-  sourceReliability: SourceReliability;
-  infoCredibility: InfoCredibility;
+  sourceReliability: SourceReliability | null;
+  infoCredibility: InfoCredibility | null;
 };
 
 export type AnalyticsSourcePreview = Omit<AnalyticsSource, "text" | "charStart" | "charEnd">;

@@ -6,6 +6,7 @@ import { Shell } from "@/components/Shell";
 import type { AnalyticsFilters, AnalyticsSourcePreview } from "@/lib/analytics";
 import { getAnalyticsOptions } from "@/lib/analytics.functions";
 import { departments, departmentIds, departmentLabel } from "@/lib/departments";
+import { briefRouteForSearchSource, briefSearchLabel } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
 import { infoCredibilityValues, sourceReliabilityValues } from "@/lib/reliability";
 
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/axtaris")({
 });
 
 function sourceUrl(source: AnalyticsSourcePreview): string {
-  return "/senedler/" + source.documentId + "?chunk=" + encodeURIComponent(source.chunkId);
+  return briefRouteForSearchSource(source) ?? "#";
 }
 
 function inlineAnswer(answer: string, sources: AnalyticsSourcePreview[]) {
@@ -40,7 +41,8 @@ function inlineAnswer(answer: string, sources: AnalyticsSourcePreview[]) {
     const match = /^\[(\d+)\]$/.exec(part);
     if (!match) return <span key={index}>{part}</span>;
     const source = sources.find((candidate) => candidate.n === Number(match[1]));
-    return source ? (
+    const href = source ? sourceUrl(source) : null;
+    return source && href ? (
       <a
         key={index}
         className="cite"
@@ -58,6 +60,7 @@ function inlineAnswer(answer: string, sources: AnalyticsSourcePreview[]) {
 }
 
 function ReliabilityBadges({ source }: { source: AnalyticsSourcePreview }) {
+  if (source.sourceReliability === null || source.infoCredibility === null) return null;
   const defaultSourceRating = source.sourceReliability === "F";
   const defaultInfoRating = source.infoCredibility === 6;
   const sourceLabel = az.reliability.sourceBadge + " " + source.sourceReliability;
@@ -420,21 +423,30 @@ function Analytics() {
                     <span className="cite !ml-0 mr-1">{source.n}</span>
                     {source.title}
                   </h3>
-                  <ReliabilityBadges source={source} />
+                  {source.sourceKind === "brief" ? (
+                    <span className="label-mono">{briefSearchLabel(source.briefDate ?? "")}</span>
+                  ) : (
+                    <ReliabilityBadges source={source} />
+                  )}
                 </div>
                 <p className="label-mono mt-2">
-                  {[
-                    departmentLabel(source.department),
-                    source.sectionTitle || az.analytics.sectionUnknown,
-                    source.docDate,
-                  ]
+                  {(source.sourceKind === "brief"
+                    ? [source.sectionTitle || az.analytics.sectionUnknown]
+                    : [
+                        departmentLabel(source.department),
+                        source.sectionTitle || az.analytics.sectionUnknown,
+                        source.docDate,
+                      ]
+                  )
                     .filter(Boolean)
                     .join(" · ")}
                   {source.isTable ? " · " + az.analytics.table : ""}
                 </p>
                 {source.quote && <p className="mt-2 text-sm">«{source.quote}»</p>}
                 <a className="pill mt-3 inline-flex" href={sourceUrl(source)}>
-                  {az.analytics.openDocument}
+                  {source.sourceKind === "brief"
+                    ? briefSearchLabel(source.briefDate ?? "")
+                    : az.analytics.openDocument}
                   {source.attachmentCount > 0
                     ? " · " + source.attachmentCount + " " + az.analytics.photos
                     : ""}

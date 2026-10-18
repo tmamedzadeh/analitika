@@ -1,7 +1,8 @@
 import { processDocumentJob } from "../jobs/process-document";
 import { runOsintJob } from "../jobs/run-osint";
+import { indexBriefJob } from "../jobs/index-brief";
 import { inngest } from "./client";
-import { documentIndexingRequested, osintRunRequested } from "./events";
+import { briefIndexingRequested, documentIndexingRequested, osintRunRequested } from "./events";
 
 const processDocument = inngest.createFunction(
   {
@@ -21,4 +22,13 @@ const runOsint = inngest.createFunction(
   async ({ event }) => runOsintJob(event.data.runId),
 );
 
-export const functions = [processDocument, runOsint];
+const indexBrief = inngest.createFunction(
+  {
+    id: "index-brief",
+    triggers: [briefIndexingRequested],
+    concurrency: { limit: 1, key: "event.data.briefId" },
+  },
+  async ({ event }) => indexBriefJob(event.data.briefId),
+);
+
+export const functions = [processDocument, runOsint, indexBrief];
