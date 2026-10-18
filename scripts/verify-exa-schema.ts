@@ -17,7 +17,7 @@ async function verifySchema(): Promise<void> {
     WHERE table_schema = 'public'
       AND table_name IN (
         'documents', 'info_requests', 'request_attachments', 'osint_runs',
-        'osint_sources', 'osint_cache', 'chunks'
+        'osint_sources', 'osint_cache', 'chunks', 'rate_limits'
       )
   `);
   const tables = new Set(tableRows.map((row) => String(row["table_name"])));
@@ -29,6 +29,7 @@ async function verifySchema(): Promise<void> {
     "osint_sources",
     "osint_cache",
     "chunks",
+    "rate_limits",
   ];
   if (requiredTables.some((table) => !tables.has(table))) {
     throw new Error("One or more required application tables are missing.");
@@ -39,15 +40,25 @@ async function verifySchema(): Promise<void> {
     WHERE table_schema = 'public'
       AND (
         (table_name = 'osint_runs' AND column_name = 'pinned') OR
-        (table_name = 'osint_sources' AND column_name = 'fetch_status')
+        (table_name = 'osint_runs' AND column_name = 'heartbeat_at') OR
+        (table_name = 'osint_sources' AND column_name = 'fetch_status') OR
+        (table_name = 'documents' AND column_name = 'chunk_count')
       )
   `);
   const columns = new Set(columnRows.map((row) => `${row["table_name"]}.${row["column_name"]}`));
-  if (!columns.has("osint_runs.pinned") || !columns.has("osint_sources.fetch_status")) {
-    throw new Error("The Exa OSINT migration is missing required columns.");
+  const requiredColumns = [
+    "osint_runs.pinned",
+    "osint_runs.heartbeat_at",
+    "osint_sources.fetch_status",
+    "documents.chunk_count",
+  ];
+  if (requiredColumns.some((column) => !columns.has(column))) {
+    throw new Error("One or more required application migrations are missing.");
   }
 
-  console.log("Database check passed: vector, pg_trgm, required tables, and Exa OSINT columns.");
+  console.log(
+    "Database check passed: extensions, required tables, rate limits, OSINT columns, and document counts.",
+  );
 }
 
 try {

@@ -18,14 +18,15 @@ export async function consumeIpRateLimit(
 ): Promise<boolean> {
   const key = `${scope}:${getAnalyticsClientKey(request)}`;
   const windowStart = rateLimitWindowStart(now, windowMs);
+  const windowStartParam = sql.param(windowStart, rateLimits.windowStart);
   const [bucket] = await getDb()
     .insert(rateLimits)
     .values({ key, windowStart, count: 1 })
     .onConflictDoUpdate({
       target: rateLimits.key,
       set: {
-        windowStart: sql`CASE WHEN ${rateLimits.windowStart} < ${windowStart} THEN ${windowStart} ELSE ${rateLimits.windowStart} END`,
-        count: sql`CASE WHEN ${rateLimits.windowStart} < ${windowStart} THEN 1 ELSE ${rateLimits.count} + 1 END`,
+        windowStart: sql`CASE WHEN ${rateLimits.windowStart} < ${windowStartParam} THEN ${windowStartParam} ELSE ${rateLimits.windowStart} END`,
+        count: sql`CASE WHEN ${rateLimits.windowStart} < ${windowStartParam} THEN 1 ELSE ${rateLimits.count} + 1 END`,
       },
     })
     .returning({ count: rateLimits.count });
