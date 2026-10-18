@@ -1,9 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+
 import { BriefEditor } from "@/components/BriefEditor";
-import { useBriefs } from "@/components/BriefsProvider";
+import { Button } from "@/components/ui/button";
+import { getBrief } from "@/lib/briefs.functions";
 import { briefHead } from "@/lib/briefs";
-export const Route = createFileRoute("/brifler/$id_/redakte")({ head: () => briefHead("Brifi redaktə et", "Gündəlik brifin mətnini və fotolarını yeniləyin."), component: EditBrief });
+import { az } from "@/lib/i18n/az";
+
+export const Route = createFileRoute("/brifler/$id_/redakte")({
+  loader: ({ params }) => getBrief({ data: { briefId: params.id } }),
+  head: () => briefHead(az.briefs.editTitle, az.briefs.description),
+  component: EditBrief,
+});
+
 function EditBrief() {
-  const { id } = Route.useParams(); const { briefs } = useBriefs(); const brief = briefs.find(item => item.id === id);
-  return brief ? <BriefEditor existing={brief} /> : <div className="p-8">Brif tapılmadı. <Link to="/" className="text-primary">Bütün briflər</Link></div>;
+  const data = Route.useLoaderData();
+  if (data?.brief) return <BriefEditor existing={data.brief} />;
+  return (
+    <div className="p-8">
+      {az.briefs.missing}{" "}
+      <Button asChild variant="link" className="p-0">
+        <Link to="/">{az.briefs.backToList}</Link>
+      </Button>
+    </div>
+  );
 }

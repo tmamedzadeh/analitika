@@ -1,9 +1,17 @@
 import { inArray } from "drizzle-orm";
 
+import { formatBriefEmbeddingText, getBakuDate } from "../src/lib/briefs";
 import { createGeminiProviders } from "../src/server/ai/gemini";
 import { closeDb, getDb } from "../src/server/db";
-import { chunks, documents } from "../src/server/db/schema";
+import {
+  attachments,
+  briefAttachments,
+  chunks,
+  dailyBriefs,
+  documents,
+} from "../src/server/db/schema";
 import { chunkDocument } from "../src/server/ingest/chunker";
+import { closeStorage, getStorage } from "../src/server/storage/s3";
 
 const demoTag = "demo-synthetic";
 const demoDocuments = [
@@ -63,25 +71,121 @@ const demoDocuments = [
   },
 ] as const;
 
+const demoBriefIds = [
+  "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd1001",
+  "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd1002",
+  "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd1003",
+  "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd1004",
+  "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd1005",
+  "e632b7bf-2e8f-4b0f-8bc7-3c01f2fd1006",
+] as const;
+
+const briefTemplates = [
+  {
+    title: "Demo brifi: şəhər nəqliyyatı üzrə gündəlik müşahidə",
+    body: "## Nəqliyyat\nBu mətn yalnız sintetik demo və test məlumatıdır. Şərti marşrutda pik saatlarda gözləmə vaxtı əvvəlki ölçmə ilə müqayisədə azalıb. Müşahidə müddəti qısa olduğundan nəticə bütün şəhərə şamil edilmir.\n\n## Ölçmə\n| Göstərici | Əvvəl | Sınaq |\n|---|---:|---:|\n| Gözləmə vaxtı | 18 dəqiqə | 11 dəqiqə |\n| Ölçmə günləri | 5 | 5 |",
+    status: "published" as const,
+    photoCount: 2,
+  },
+  {
+    title: "Demo brifi: su təchizatı müraciətlərinin xülasəsi",
+    body: "## Əsas müşahidə\nYalnız demo üçün yaradılmış şərti məlumatda müraciətlərin çoxu axşam saatlarında təzyiqin azalması ilə bağlıdır. Ölçmələr üç məhəllənin iki həftəlik müşahidəsinə əsaslanır.\n\n## Növbəti addım\nNasazlıq nöqtələrini müəyyən etmək üçün ölçmə cədvəlinin davam etdirilməsi təklif olunur. Bu nəticələr real infrastruktur barədə məlumat deyil.",
+    status: "published" as const,
+    photoCount: 0,
+  },
+  {
+    title: "Demo brifi: rayon kitabxanasının rəqəmsal xidməti",
+    body: "## İlk ay\nSintetik pilot məlumatına əsasən elektron kataloqdan 40 nəfər istifadə edib, 9 nəfər kitab sifariş edib.\n\n## Cədvəl: şərti göstəricilər\n| Göstərici | Say |\n|---|---:|\n| Kataloqa baxış | 40 |\n| Sifariş | 9 |",
+    status: "published" as const,
+    photoCount: 1,
+  },
+  {
+    title: "Demo brifi: parkların suvarma qrafiki",
+    body: "## Pilot\nBu sintetik brifdə suvarmanın səhər saatlarına keçirildiyi şərti sınaq təsvir olunur. Nümunə sahəsində su sərfi əvvəlki həftəyə nəzərən azalıb.\n\n## Məhdudiyyət\nÖlçmə yalnız bir həftə aparılıb və digər mövsümlərə aid nəticə vermir.",
+    status: "published" as const,
+    photoCount: 2,
+  },
+  {
+    title: "Demo brifi: xidmət müraciətlərinin emalı",
+    body: "## Gündəlik xülasə\nTəlim üçün uydurulmuş ssenaridə müraciətlər mövzu üzrə qruplaşdırılıb və cavab müddəti həftəlik müqayisə edilib. Nümunə nəticələr yalnız proqramın nümayişi üçündür.\n\nİlkin qruplaşdırma ümumi sualların bir neçə mövzuda cəmləndiyini göstərir.",
+    status: "published" as const,
+    photoCount: 0,
+  },
+  {
+    title: "Demo qaralama: həftəlik müşahidələr",
+    body: "## Qaralama\nBu sintetik qaralama axtarış indeksinə daxil edilməməlidir. Mətn yekun redaktədən sonra dərc olunacaq.",
+    status: "draft" as const,
+    photoCount: 1,
+  },
+] as const;
+
+function dateDaysAgo(today: string, daysAgo: number): string {
+  const date = new Date(`${today}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - daysAgo);
+  return date.toISOString().slice(0, 10);
+}
+
+function demoBriefsFor(today: string) {
+  return briefTemplates.map((brief, index) => ({
+    id: demoBriefIds[index]!,
+    date: dateDaysAgo(today, index),
+    ...brief,
+  }));
+}
+
+const demoPng = new Uint8Array(
+  Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/uXcAAAAASUVORK5CYII=",
+    "base64",
+  ),
+);
+
 async function seedDemo(): Promise<void> {
   const db = getDb();
   const ids = demoDocuments.map((document) => document.id);
+  const today = getBakuDate();
+  const demoBriefs = demoBriefsFor(today);
+  const briefIds = demoBriefs.map((brief) => brief.id);
+  const oldBriefFiles = await db
+    .select({ storageKey: briefAttachments.storageKey })
+    .from(briefAttachments)
+    .where(inArray(briefAttachments.briefId, briefIds));
+  const oldDocumentFiles = await db
+    .select({ storageKey: attachments.storageKey })
+    .from(attachments)
+    .where(inArray(attachments.documentId, ids));
+
   if (process.argv.includes("--clean")) {
+    if (oldBriefFiles.length > 0 || oldDocumentFiles.length > 0) {
+      const storage = getStorage();
+      await Promise.all(
+        [...oldBriefFiles, ...oldDocumentFiles].map((file) => storage.delete(file.storageKey)),
+      );
+    }
+    await db.delete(dailyBriefs).where(inArray(dailyBriefs.id, briefIds));
     await db.delete(documents).where(inArray(documents.id, ids));
-    console.log("Synthetic demo documents and their chunks were deleted.");
+    console.log("Synthetic demo documents, briefs, chunks, and brief photos were deleted.");
     return;
   }
 
-  const sourceChunks = demoDocuments.flatMap((document) =>
+  const documentSourceChunks = demoDocuments.flatMap((document) =>
     chunkDocument(document.body, document.title).map((chunk) => ({ document, chunk })),
   );
-  const vectors = await createGeminiProviders().embeddings.embedDocuments(
-    sourceChunks.map(({ chunk }) => chunk.embeddingText),
-    { maxAttempts: 1 },
+  const indexedBriefs = demoBriefs.filter((brief) => brief.status === "published");
+  const briefSourceChunks = indexedBriefs.flatMap((brief) =>
+    chunkDocument(brief.body, brief.title).map((chunk) => ({ brief, chunk })),
   );
-  const embeddingModel = createGeminiProviders().embeddings.model;
+  const embeddingProvider = createGeminiProviders().embeddings;
+  const embeddingInputs = [
+    ...documentSourceChunks.map(({ chunk }) => chunk.embeddingText),
+    ...briefSourceChunks.map(({ brief, chunk }) =>
+      formatBriefEmbeddingText(brief.title, brief.date, chunk.text),
+    ),
+  ];
+  const vectors = await embeddingProvider.embedDocuments(embeddingInputs, { maxAttempts: 1 });
+  const embeddingModel = embeddingProvider.model;
   if (
-    vectors.length !== sourceChunks.length ||
+    vectors.length !== embeddingInputs.length ||
     vectors.some(
       (vector) => vector.length !== 768 || vector.some((value) => !Number.isFinite(value)),
     )
@@ -89,8 +193,25 @@ async function seedDemo(): Promise<void> {
     throw new Error("Gemini embeddings must contain 768 finite dimensions.");
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const photoRows = demoBriefs.flatMap((brief) =>
+    Array.from({ length: brief.photoCount }, (_, ord) => ({
+      id: crypto.randomUUID(),
+      briefId: brief.id,
+      storageKey: `briefs/${brief.id}/demo-${ord + 1}.png`,
+      name: `demo-foto-${ord + 1}.png`,
+      mime: "image/png",
+      size: demoPng.byteLength,
+      ord,
+    })),
+  );
+  const storage = getStorage();
+  for (const photo of photoRows) {
+    await storage.put({ key: photo.storageKey, body: demoPng, contentType: "image/png" });
+  }
+
+  const now = new Date();
   await db.transaction(async (transaction) => {
+    await transaction.delete(dailyBriefs).where(inArray(dailyBriefs.id, briefIds));
     await transaction.delete(documents).where(inArray(documents.id, ids));
     await transaction.insert(documents).values(
       demoDocuments.map((document) => ({
@@ -107,8 +228,31 @@ async function seedDemo(): Promise<void> {
         progress: { percent: 100, totalChunks: 1, completedChunks: 1 },
       })),
     );
-    await transaction.insert(chunks).values(
-      sourceChunks.map(({ document, chunk }, index) => ({
+    await transaction.insert(dailyBriefs).values(
+      demoBriefs.map((brief) => {
+        const totalChunks = briefSourceChunks.filter((entry) => entry.brief.id === brief.id).length;
+        const published = brief.status === "published";
+        return {
+          id: brief.id,
+          briefDate: brief.date,
+          title: brief.title,
+          body: brief.body,
+          status: brief.status,
+          authorId: "admin",
+          indexStatus: published ? "ready" : "none",
+          indexProgress: {
+            percent: published ? 100 : 0,
+            totalChunks,
+            completedChunks: published ? totalChunks : 0,
+          },
+          publishedAt: published ? now : null,
+          updatedAt: now,
+        };
+      }),
+    );
+    if (photoRows.length > 0) await transaction.insert(briefAttachments).values(photoRows);
+    await transaction.insert(chunks).values([
+      ...documentSourceChunks.map(({ document, chunk }, index) => ({
         documentId: document.id,
         ord: chunk.ord,
         sectionTitle: chunk.sectionTitle,
@@ -119,15 +263,30 @@ async function seedDemo(): Promise<void> {
         embedding: vectors[index]!,
         embeddingModel,
       })),
-    );
+      ...briefSourceChunks.map(({ brief, chunk }, index) => ({
+        documentId: null,
+        briefId: brief.id,
+        ord: chunk.ord,
+        sectionTitle: chunk.sectionTitle,
+        text: chunk.text,
+        charStart: chunk.charStart,
+        charEnd: chunk.charEnd,
+        isTable: chunk.isTable,
+        embedding: vectors[documentSourceChunks.length + index]!,
+        embeddingModel,
+      })),
+    ]);
   });
+  const retainedKeys = new Set(photoRows.map((photo) => photo.storageKey));
+  await Promise.all(
+    oldBriefFiles
+      .filter((file) => !retainedKeys.has(file.storageKey))
+      .map((file) => storage.delete(file.storageKey)),
+  );
+  await Promise.all(oldDocumentFiles.map((file) => storage.delete(file.storageKey)));
 
   console.log(
-    "Seeded " +
-      demoDocuments.length +
-      " synthetic Azerbaijani documents with tag '" +
-      demoTag +
-      "'. Run 'bun run db:seed:demo -- --clean' to delete them.",
+    `Seeded ${demoDocuments.length} synthetic documents and ${demoBriefs.length} synthetic briefs. Run 'bun run db:seed:demo -- --clean' to delete them.`,
   );
 }
 
@@ -137,5 +296,6 @@ try {
   console.error("Demo document seeding failed.", error);
   process.exitCode = 1;
 } finally {
+  closeStorage();
   await closeDb();
 }

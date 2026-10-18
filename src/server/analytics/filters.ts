@@ -5,7 +5,7 @@ import { departments } from "@/lib/departments";
 import { accessFilter } from "@/server/db/access";
 import { documents } from "@/server/db/schema";
 
-function minimumDocDate(period: AnalyticsFilters["period"]): string | null {
+export function minimumDocDate(period: AnalyticsFilters["period"]): string | null {
   if (period === "all") return null;
   const date = new Date();
   if (period === "30d") date.setUTCDate(date.getUTCDate() - 30);

@@ -4,21 +4,31 @@ import { az } from "@/lib/i18n/az";
 export function buildAnalyticsPrompt(query: string, sources: readonly AnalyticsSource[]) {
   const context = sources
     .map((source) => {
-      const date = source.docDate ?? "tarix göstərilməyib";
+      const date =
+        source.sourceKind === "brief"
+          ? (source.briefDate ?? "tarix göstərilməyib")
+          : (source.docDate ?? "tarix göstərilməyib");
       const section = source.sectionTitle || "bölmə göstərilməyib";
+      const label = source.sourceKind === "brief" ? "Gündəlik xülasə" : "Sənəd";
+      const reliability =
+        source.sourceKind === "document" && source.sourceReliability && source.infoCredibility
+          ? "Mənbə etibarlılığı: " +
+            source.sourceReliability +
+            " (" +
+            az.reliability.source[source.sourceReliability] +
+            "). Məlumat etibarlılığı: " +
+            source.infoCredibility +
+            " (" +
+            az.reliability.information[source.infoCredibility] +
+            ")."
+          : "";
       return [
-        "[" + source.n + "] " + source.title + " · " + section + " · " + date,
-        "Mənbə etibarlılığı: " +
-          source.sourceReliability +
-          " (" +
-          az.reliability.source[source.sourceReliability] +
-          "). Məlumat etibarlılığı: " +
-          source.infoCredibility +
-          " (" +
-          az.reliability.information[source.infoCredibility] +
-          ").",
+        "[" + source.n + "] " + label + " · " + source.title + " · " + section + " · " + date,
+        reliability,
         source.text,
-      ].join("\n");
+      ]
+        .filter(Boolean)
+        .join("\n");
     })
     .join("\n\n---\n\n");
 

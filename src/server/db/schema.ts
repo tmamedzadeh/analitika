@@ -82,6 +82,34 @@ export const documents = pgTable(
   ],
 );
 
+export const dailyBriefs = pgTable(
+  "daily_briefs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    briefDate: date("brief_date").notNull().unique(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    status: text("status").notNull().default("draft"),
+    authorId: text("author_id").notNull().default("admin"),
+    indexStatus: text("index_status").notNull().default("none"),
+    indexProgress: jsonb("index_progress").notNull().default(emptyJsonObject),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("daily_briefs_status_date_idx").on(table.status, table.briefDate),
+    index("daily_briefs_title_trgm_idx").using("gin", table.title.op("gin_trgm_ops")),
+    index("daily_briefs_body_trgm_idx").using("gin", table.body.op("gin_trgm_ops")),
+    check("daily_briefs_body_length_check", sql.raw("char_length(body) <= 200000")),
+    check("daily_briefs_status_check", sql.raw("status IN ('draft', 'published')")),
+    check(
+      "daily_briefs_index_status_check",
+      sql.raw("index_status IN ('none', 'queued', 'processing', 'ready', 'failed')"),
+    ),
+  ],
+);
+
 export const documentAcl = pgTable(
   "document_acl",
   {
@@ -97,9 +125,8 @@ export const chunks = pgTable(
   "chunks",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    documentId: uuid("document_id")
-      .notNull()
-      .references(() => documents.id, { onDelete: "cascade" }),
+    documentId: uuid("document_id").references(() => documents.id, { onDelete: "cascade" }),
+    briefId: uuid("brief_id").references(() => dailyBriefs.id, { onDelete: "cascade" }),
     ord: integer("ord").notNull(),
     sectionTitle: text("section_title").notNull().default(""),
     text: text("text").notNull(),
@@ -112,11 +139,19 @@ export const chunks = pgTable(
   },
   (table) => [
     unique("chunks_document_ord_unique").on(table.documentId, table.ord),
+    unique("chunks_brief_ord_unique").on(table.briefId, table.ord),
     index("chunks_embedding_hnsw_idx").using("hnsw", table.embedding.op("vector_cosine_ops")),
     index("chunks_tsv_gin_idx").using("gin", table.tsv),
     index("chunks_text_trgm_gin_idx").using("gin", table.text.op("gin_trgm_ops")),
     index("chunks_document_idx").on(table.documentId),
+    index("chunks_brief_idx").on(table.briefId),
     check("chunks_char_range_check", sql.raw("char_start <= char_end")),
+    check(
+      "chunks_source_check",
+      sql.raw(
+        "(document_id IS NOT NULL AND brief_id IS NULL) OR (document_id IS NULL AND brief_id IS NOT NULL)",
+      ),
+    ),
   ],
 );
 
@@ -190,6 +225,31 @@ export const requestAttachments = pgTable(
   (table) => [
     index("request_attachments_request_idx").on(table.requestId),
     check("request_attachments_size_nonnegative", sql.raw("size >= 0")),
+  ],
+);
+
+export const briefAttachments = pgTable(
+  "brief_attachments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    briefId: uuid("brief_id")
+      .notNull()
+      .references(() => dailyBriefs.id, { onDelete: "cascade" }),
+    storageKey: text("storage_key").notNull().unique(),
+    name: text("name").notNull(),
+    mime: text("mime").notNull(),
+    size: integer("size").notNull(),
+    ord: integer("ord").notNull(),
+  },
+  (table) => [
+    unique("brief_attachments_brief_ord_unique").on(table.briefId, table.ord),
+    index("brief_attachments_brief_idx").on(table.briefId),
+    check(
+      "brief_attachments_mime_check",
+      sql.raw("mime IN ('image/jpeg', 'image/png', 'image/webp')"),
+    ),
+    check("brief_attachments_size_check", sql.raw("size > 0 AND size <= 10485760")),
+    check("brief_attachments_ord_check", sql.raw("ord >= 0 AND ord < 10")),
   ],
 );
 

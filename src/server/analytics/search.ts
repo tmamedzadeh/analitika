@@ -1,6 +1,8 @@
-import { and, asc, count, desc, eq, inArray, isNotNull, lt, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, lt, or, sql, type SQL } from "drizzle-orm";
 
+import { briefCanAppearInSearch } from "@/lib/briefs";
 import type { AnalyticsFilters, AnalyticsSource } from "@/lib/analytics";
+import { departments } from "@/lib/departments";
 import { getAppConfig } from "@/server/config";
 import {
   GeminiRerankProvider,
@@ -11,8 +13,8 @@ import { GeminiLLMProvider } from "@/server/ai/gemini";
 import { createGeminiProviders } from "@/server/ai/gemini";
 import { getDb } from "@/server/db";
 import { accessFilter } from "@/server/db/access";
-import { attachments, chunks, documents } from "@/server/db/schema";
-import { documentConditions } from "./filters";
+import { attachments, briefAttachments, chunks, dailyBriefs, documents } from "@/server/db/schema";
+import { documentConditions, minimumDocDate } from "./filters";
 import { reciprocalRankFusion } from "./ranking";
 
 const CANDIDATE_LIMIT = 50;
@@ -32,9 +34,14 @@ function sourceProjection() {
   return {
     id: chunks.id,
     chunkId: chunks.id,
+    sourceKind: sql<
+      "document" | "brief"
+    >`case when ${chunks.briefId} is null then 'document' else 'brief' end`,
     documentId: documents.id,
-    title: documents.title,
+    briefId: dailyBriefs.id,
+    title: sql<string>`coalesce(${documents.title}, ${dailyBriefs.title})`,
     docDate: documents.docDate,
+    briefDate: dailyBriefs.briefDate,
     department: documents.department,
     sectionTitle: chunks.sectionTitle,
     text: chunks.text,
@@ -45,6 +52,30 @@ function sourceProjection() {
     sourceReliability: documents.sourceReliability,
     infoCredibility: documents.infoCredibility,
   };
+}
+
+export function searchSourceConditions(filters: AnalyticsFilters) {
+  const documentSource = and(isNotNull(chunks.documentId), ...documentConditions(filters));
+  if (
+    !briefCanAppearInSearch({
+      departmentIds: filters.departmentIds,
+      allDepartmentIds: departments.map(({ id }) => id),
+      minSourceReliability: filters.minSourceReliability,
+      minInfoCredibility: filters.minInfoCredibility,
+    })
+  ) {
+    return documentSource;
+  }
+
+  const briefConditions = [
+    isNotNull(chunks.briefId),
+    eq(dailyBriefs.status, "published"),
+    eq(dailyBriefs.indexStatus, "ready"),
+    accessFilter(),
+  ];
+  const fromDate = minimumDocDate(filters.period);
+  if (fromDate) briefConditions.push(sql`${dailyBriefs.briefDate} >= ${fromDate}`);
+  return or(documentSource, and(...briefConditions));
 }
 
 export async function searchDocumentChunks(
@@ -96,38 +127,30 @@ export async function searchDocumentChunks(
   ]) as SQL<number>;
   const textMatch = sql.join([chunks.tsv, sql.raw(" @@ "), tsQuery]);
   const trigramMatch = sql.join([chunks.text, sql.raw(" % "), sql.param(query)]);
-  const conditions = documentConditions(filters);
+  const sourceCondition = searchSourceConditions(filters);
   const modelCondition = eq(chunks.embeddingModel, embeddingModel);
 
+  const queryCandidates = (kind: "vector" | "text" | "trigram") => {
+    const builder = db
+      .select(sourceProjection())
+      .from(chunks)
+      .leftJoin(documents, eq(chunks.documentId, documents.id))
+      .leftJoin(dailyBriefs, eq(chunks.briefId, dailyBriefs.id));
+    const conditions = [sourceCondition, modelCondition];
+    if (kind === "vector")
+      conditions.push(isNotNull(chunks.embedding), lt(vectorDistance, MAX_VECTOR_DISTANCE));
+    if (kind === "text") conditions.push(textMatch);
+    if (kind === "trigram") conditions.push(trigramMatch);
+    const selected = builder.where(and(...conditions));
+    if (kind === "vector") return selected.orderBy(asc(vectorDistance)).limit(CANDIDATE_LIMIT);
+    if (kind === "text") return selected.orderBy(desc(textScore)).limit(CANDIDATE_LIMIT);
+    return selected.orderBy(desc(similarity)).limit(CANDIDATE_LIMIT);
+  };
+
   const [vectorRows, fullTextRows, trigramRows] = await Promise.all([
-    db
-      .select(sourceProjection())
-      .from(chunks)
-      .innerJoin(documents, eq(chunks.documentId, documents.id))
-      .where(
-        and(
-          ...conditions,
-          modelCondition,
-          isNotNull(chunks.embedding),
-          lt(vectorDistance, MAX_VECTOR_DISTANCE),
-        ),
-      )
-      .orderBy(asc(vectorDistance))
-      .limit(CANDIDATE_LIMIT),
-    db
-      .select(sourceProjection())
-      .from(chunks)
-      .innerJoin(documents, eq(chunks.documentId, documents.id))
-      .where(and(...conditions, modelCondition, textMatch))
-      .orderBy(desc(textScore))
-      .limit(CANDIDATE_LIMIT),
-    db
-      .select(sourceProjection())
-      .from(chunks)
-      .innerJoin(documents, eq(chunks.documentId, documents.id))
-      .where(and(...conditions, modelCondition, trigramMatch))
-      .orderBy(desc(similarity))
-      .limit(CANDIDATE_LIMIT),
+    queryCandidates("vector"),
+    queryCandidates("text"),
+    queryCandidates("trigram"),
   ]);
 
   const candidates = reciprocalRankFusion([vectorRows, fullTextRows, trigramRows], 60).slice(
@@ -153,23 +176,43 @@ export async function searchDocumentChunks(
     .filter((candidate): candidate is (typeof candidates)[number] => candidate !== undefined)
     .slice(0, RESULT_LIMIT);
 
-  const documentIds = [...new Set(fused.map(({ item }) => item.documentId))];
-  const counts = await db
-    .select({ documentId: attachments.documentId, total: count() })
-    .from(attachments)
-    .innerJoin(documents, eq(attachments.documentId, documents.id))
-    .where(and(inArray(attachments.documentId, documentIds), accessFilter()))
-    .groupBy(attachments.documentId);
-  const countByDocument = new Map(counts.map((row) => [row.documentId, Number(row.total)]));
+  const documentIds = [
+    ...new Set(fused.flatMap(({ item }) => (item.documentId ? [item.documentId] : []))),
+  ];
+  const briefIds = [...new Set(fused.flatMap(({ item }) => (item.briefId ? [item.briefId] : [])))];
+  const [documentCounts, briefCounts] = await Promise.all([
+    documentIds.length
+      ? db
+          .select({ id: attachments.documentId, total: count() })
+          .from(attachments)
+          .innerJoin(documents, eq(attachments.documentId, documents.id))
+          .where(and(inArray(attachments.documentId, documentIds), accessFilter()))
+          .groupBy(attachments.documentId)
+      : Promise.resolve([]),
+    briefIds.length
+      ? db
+          .select({ id: briefAttachments.briefId, total: count() })
+          .from(briefAttachments)
+          .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
+          .where(and(inArray(briefAttachments.briefId, briefIds), accessFilter()))
+          .groupBy(briefAttachments.briefId)
+      : Promise.resolve([]),
+  ]);
+  const countByDocument = new Map(documentCounts.map((row) => [row.id, Number(row.total)]));
+  const countByBrief = new Map(briefCounts.map((row) => [row.id, Number(row.total)]));
 
   return fused.map(({ item }, index) => {
     const quote = item.text.replace(/\s+/g, " ").trim();
+    const sourceKind = item.sourceKind as AnalyticsSource["sourceKind"];
     return {
       n: index + 1,
+      sourceKind,
       chunkId: item.chunkId,
       documentId: item.documentId,
+      briefId: item.briefId,
       title: item.title,
       docDate: item.docDate,
+      briefDate: item.briefDate,
       department: item.department,
       sectionTitle: item.sectionTitle,
       text: item.text,
@@ -177,8 +220,15 @@ export async function searchDocumentChunks(
       charStart: item.charStart,
       charEnd: item.charEnd,
       isTable: item.isTable,
-      attachmentCount: countByDocument.get(item.documentId) ?? 0,
-      tags: item.tags,
+      attachmentCount:
+        sourceKind === "brief"
+          ? item.briefId
+            ? (countByBrief.get(item.briefId) ?? 0)
+            : 0
+          : item.documentId
+            ? (countByDocument.get(item.documentId) ?? 0)
+            : 0,
+      tags: item.tags ?? [],
       sourceReliability: item.sourceReliability as AnalyticsSource["sourceReliability"],
       infoCredibility: item.infoCredibility as AnalyticsSource["infoCredibility"],
     };
@@ -188,9 +238,7 @@ export async function searchDocumentChunks(
 export async function getAnalyticsOptions(): Promise<{ tags: string[] }> {
   const db = getDb();
   const rows = await db
-    .select({
-      tags: documents.tags,
-    })
+    .select({ tags: documents.tags })
     .from(documents)
     .where(and(eq(documents.status, "ready"), accessFilter()))
     .orderBy(desc(documents.createdAt), asc(documents.title))
@@ -199,7 +247,5 @@ export async function getAnalyticsOptions(): Promise<{ tags: string[] }> {
   const tags = [...new Set(rows.flatMap((row) => row.tags))]
     .filter(Boolean)
     .sort((left, right) => left.localeCompare(right, "az"));
-  return {
-    tags,
-  };
+  return { tags };
 }

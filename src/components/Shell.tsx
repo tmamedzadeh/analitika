@@ -10,6 +10,7 @@ import {
   PanelsTopLeft,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { az } from "@/lib/i18n/az";
 
 function ThemeToggle() {
   const [light, setLight] = useState(false);
@@ -36,12 +37,12 @@ function ThemeToggle() {
 }
 
 const nav = [
-  { to: "/", icon: PanelsTopLeft, label: "Gündəlik xülasələr" },
-  { to: "/axtaris", icon: Search, label: "Analitika" },
-  { to: "/osint", icon: Globe, label: "OSINT" },
-  { to: "/sorgu", icon: MessageSquareText, label: "Məlumat sorğusu" },
-  { to: "/senedler", icon: FileText, label: "Sənədlər" },
-  { to: "/ayarlar", icon: SlidersHorizontal, label: "Ayarlar" },
+  { to: "/", icon: PanelsTopLeft, label: az.navigation.dailyBriefs },
+  { to: "/axtaris", icon: Search, label: az.navigation.analyticsSearch },
+  { to: "/osint", icon: Globe, label: az.navigation.osint },
+  { to: "/sorgu", icon: MessageSquareText, label: az.navigation.requests },
+  { to: "/senedler", icon: FileText, label: az.navigation.documents },
+  { to: "/ayarlar", icon: SlidersHorizontal, label: az.navigation.settings },
 ] as const;
 
 export function Shell({

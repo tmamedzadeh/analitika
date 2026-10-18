@@ -9,7 +9,6 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { type ReactNode } from "react";
-import { BriefsProvider } from "@/components/BriefsProvider";
 
 import appCss from "../styles.css?url";
 import { az } from "../lib/i18n/az";
@@ -35,7 +34,9 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
-  console.error(error);
+  // Route errors may include SQL parameters or submitted content.
+  void error;
+  console.error("A route failed to render.");
   const router = useRouter();
 
   return (
@@ -109,7 +110,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <BriefsProvider><Outlet /></BriefsProvider>
+      <Outlet />
     </QueryClientProvider>
   );
 }
