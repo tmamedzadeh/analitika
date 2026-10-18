@@ -109,6 +109,7 @@
 - OSINT xülasələri, mənbə xülasələri və analitika sintezi Markdown kimi render olunur; analitika sintezindəki `[n]` istinadları mənbələrə keçid olaraq qalır.
 - Analitika axtarışından seçilmiş fraqment UID-si sənəd və brif səhifəsində müvafiq mətn hissəsini vurğulayır və ona avtomatik sürüşdürür. Sənəd səhifəsində fraqment sayı axtarış indeksi üçün mətn hissələrinin sayını göstərir.
 - OSINT nəticələrinin saxlanması backend-də dəyişməz qalır, UI isə demo/sabitləmə göstəricisini göstərmir; keşlənmiş nəticə üçün ümumi bildiriş istifadə olunur.
+- Sənəd siyahısında indeksləməsi uğurla bitmiş qeydlər üçün status və “tamamlandı” addımı gizlədilir; gözləyən və uğursuz qeydlərin statusu görünür.
 
 ## 2026-10-18 — V1 kod auditi
 

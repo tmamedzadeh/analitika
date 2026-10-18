@@ -278,7 +278,7 @@ export const az = {
       title: "Başlıq",
       titlePlaceholder: "Başlıq",
       body: "Mətn",
-      bodyPlaceholder: "Bölmələr üçün #, cədvəllər üçün | işarəsi.",
+      bodyPlaceholder: "Məlumatları əlavə edin.",
       department: "İdarə",
       departmentPlaceholder: "İdarə seçin",
       date: "Tarix",

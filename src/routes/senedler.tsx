@@ -404,23 +404,23 @@ function AddDoc() {
                     >
                       {document.title}
                     </Link>
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span
-                        className={`label-mono inline-flex rounded-full border px-3 py-1 ${
-                          document.status === "ready"
-                            ? "border-success/50 !text-success"
-                            : document.status === "failed"
+                    {document.status !== "ready" && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`label-mono inline-flex rounded-full border px-3 py-1 ${
+                            document.status === "failed"
                               ? "border-destructive/50 !text-destructive"
                               : "border-warning/50 !text-warning"
-                        }`}
-                      >
-                        {az.documents.status[document.status]}
-                      </span>
-                      <span className="label-mono">
-                        {az.documents.step[document.step as keyof typeof az.documents.step] ??
-                          document.step}
-                      </span>
-                    </div>
+                          }`}
+                        >
+                          {az.documents.status[document.status]}
+                        </span>
+                        <span className="label-mono">
+                          {az.documents.step[document.step as keyof typeof az.documents.step] ??
+                            document.step}
+                        </span>
+                      </div>
+                    )}
                     {isActive(document) && (
                       <div
                         className="mt-3 h-1 rounded-full bg-secondary"
@@ -431,11 +431,6 @@ function AddDoc() {
                           style={{ width: `${percent}%` }}
                         />
                       </div>
-                    )}
-                    {document.status === "ready" && (
-                      <p className="label-mono mt-3">
-                        {document.chunkCount} {az.documents.chunks}
-                      </p>
                     )}
                     {document.status === "failed" && document.error && (
                       <p className="mt-3 text-sm text-destructive">{document.error}</p>
