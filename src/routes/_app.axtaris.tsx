@@ -342,7 +342,7 @@ function Analytics() {
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_352px]">
         <section className="panel h-fit p-6">
           <div className="flex flex-wrap justify-between gap-2">
-            <span className="label-mono !text-primary">{az.analytics.synthesis}</span>
+            <span className="label-mono text-primary!">{az.analytics.synthesis}</span>
             <span className="label-mono">
               {busy ? (
                 <span className="inline-flex items-center gap-1.5">
@@ -454,7 +454,7 @@ function Analytics() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="font-semibold">
-                    <span className="cite !ml-0 mr-1">{source.n}</span>
+                    <span className="cite ml-0! mr-1">{source.n}</span>
                     {source.title}
                   </h3>
                   {source.sourceKind === "brief" ? (

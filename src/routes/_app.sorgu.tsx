@@ -377,7 +377,7 @@ function Sorgu() {
                       </span>
                       <button
                         type="button"
-                        className="pill !py-1"
+                        className="pill py-1!"
                         aria-label={`${az.requests.form.removeFile}: ${file.name}`}
                         onClick={() =>
                           setFiles((current) =>
@@ -526,7 +526,7 @@ function Sorgu() {
                     <Link
                       to="/senedler/$id"
                       params={{ id: request.answerDocumentId }}
-                      className="pill mt-3 inline-flex !py-1"
+                      className="pill mt-3 inline-flex py-1!"
                     >
                       {az.requests.openDocument}
                     </Link>

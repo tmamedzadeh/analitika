@@ -80,11 +80,11 @@ export function Shell({
       <header className="mb-6 flex flex-wrap items-center justify-between gap-x-5 gap-y-4 border-b border-border pb-5 md:mb-8">
         <div className="min-w-0 flex-1">
           {crumb !== title && (
-            <p className="mb-1 text-xs font-semibold tracking-[0.1em] text-muted-foreground">
+            <p className="mb-1 text-xs font-semibold tracking-widest text-muted-foreground">
               {crumb}
             </p>
           )}
-          <h1 className="text-[1.55rem] font-semibold leading-tight tracking-[-0.025em] text-foreground sm:text-3xl">
+          <h1 className="text-[1.55rem] font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
             {title}
           </h1>
         </div>
@@ -130,6 +130,7 @@ export function ShellLayout({ children }: { children: ReactNode }) {
               PLATFORMA
             </span>
           </Link>
+          tracking-widest
         </div>
 
         <nav

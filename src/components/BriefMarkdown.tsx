@@ -83,7 +83,7 @@ export function BriefMarkdown({
         <table
           {...props}
           data-chunk-highlight={selected ? "true" : undefined}
-          className={selected ? "rounded outline outline-2 outline-primary/50" : undefined}
+          className={selected ? "rounded outline-2 outline-primary/50" : undefined}
         >
           {children}
         </table>
@@ -92,7 +92,7 @@ export function BriefMarkdown({
   };
 
   return (
-    <div className="markdown-content max-w-none break-words leading-7 [&_[data-chunk-highlight=true]]:rounded [&_[data-chunk-highlight=true]]:bg-primary/10 [&_[data-chunk-highlight=true]]:outline [&_[data-chunk-highlight=true]]:outline-1 [&_[data-chunk-highlight=true]]:outline-primary/40">
+    <div className="markdown-content max-w-none ürap-break-word leading-7 **:data-[chunk-highlight=true]:rounded **:data-[chunk-highlight=true]:bg-primary/10 **:data-[chunk-highlight=true]:outline **:data-[chunk-highlight=true]:outline-primary/40">
       <ReactMarkdown skipHtml remarkPlugins={[remarkGfm]} components={components}>
         {markdown}
       </ReactMarkdown>

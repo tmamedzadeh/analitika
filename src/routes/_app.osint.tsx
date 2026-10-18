@@ -195,7 +195,7 @@ function Osint() {
         <div className="space-y-6">
           <section className="panel p-5 sm:p-6" aria-live="polite">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="label-mono !text-primary">{az.osint.progress}</p>
+              <p className="label-mono text-primary!">{az.osint.progress}</p>
               {run && !isActive ? (
                 <button
                   type="button"
@@ -267,7 +267,7 @@ function Osint() {
           </section>
 
           <section className="panel p-5 sm:p-6">
-            <p className="label-mono !text-primary">{az.osint.summary}</p>
+            <p className="label-mono text-primary!">{az.osint.summary}</p>
             {run?.summary ? (
               <div className="mt-4 text-base leading-7">
                 <BriefMarkdown markdown={run.summary} />
@@ -295,7 +295,7 @@ function Osint() {
                 {runSources.map((source, index) => (
                   <article className="panel min-w-0 p-5" key={source.id}>
                     <h2 className="font-semibold leading-snug">
-                      <span className="cite !ml-0 mr-1">{index + 1}</span>
+                      <span className="cite ml-0! mr-1">{index + 1}</span>
                       {source.title}
                     </h2>
                     <p className="label-mono mt-2 break-all">

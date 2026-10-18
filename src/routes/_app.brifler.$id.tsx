@@ -146,7 +146,7 @@ function BriefDetail() {
         <Button asChild variant="outline" className="rounded-full">
           <Link to="/">{az.briefs.backToList}</Link>
         </Button>
-        <p className="label-mono !tracking-normal">
+        <p className="label-mono tracking-normal!">
           {date.day} {date.month} · {date.weekday}
         </p>
       </div>
@@ -162,7 +162,7 @@ function BriefDetail() {
         </article>
         {brief.photos.length > 0 && (
           <section className="mt-5">
-            <p className="label-mono mb-3 !tracking-normal">{az.briefs.photos}</p>
+            <p className="label-mono mb-3 tracking-normal!">{az.briefs.photos}</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {brief.photos.map((item, index) => (
                 <Button

@@ -234,7 +234,7 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
             >
               <Upload />
               <span>{az.briefs.photoHint}</span>
-              <span className="label-mono !tracking-normal">{az.briefs.photoNote}</span>
+              <span className="label-mono tracking-normal!">{az.briefs.photoNote}</span>
             </Button>
           </div>
           {checkingPhotos && (
@@ -288,7 +288,7 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
           </div>
         </form>
         <aside>
-          <p className="label-mono mb-3 !tracking-normal">{az.briefs.preview}</p>
+          <p className="label-mono mb-3 tracking-normal!">{az.briefs.preview}</p>
           {date && <BriefCard brief={preview} preview />}
         </aside>
       </div>

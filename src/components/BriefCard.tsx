@@ -22,15 +22,15 @@ export function BriefCard({
         <div
           className={
             featured
-              ? "w-[4.5rem] shrink-0 border-r border-border pr-4 sm:w-24 sm:pr-5"
-              : "w-[3.75rem] shrink-0 border-r border-border pr-3"
+              ? "w-18 shrink-0 border-r border-border pr-4 sm:w-24 sm:pr-5"
+              : "w-15 shrink-0 border-r border-border pr-3"
           }
         >
           <p
             className={
               featured
-                ? "text-5xl font-semibold leading-none tracking-[-0.05em] text-primary sm:text-6xl"
-                : "text-4xl font-semibold leading-none tracking-[-0.05em] text-primary"
+                ? "text-5xl font-semibold leading-none tracking-tighter text-primary sm:text-6xl"
+                : "text-4xl font-semibold leading-none tracking-tighter text-primary"
             }
           >
             {date.day}

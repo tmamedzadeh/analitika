@@ -409,8 +409,8 @@ function AddDoc() {
                         <span
                           className={`label-mono inline-flex rounded-full border px-3 py-1 ${
                             document.status === "failed"
-                              ? "border-destructive/50 !text-destructive"
-                              : "border-warning/50 !text-warning"
+                              ? "border-destructive/50 text-destructive!"
+                              : "border-warning/50 text-warning!"
                           }`}
                         >
                           {az.documents.status[document.status]}
@@ -440,7 +440,7 @@ function AddDoc() {
                         type="button"
                         disabled={retryingId === document.id}
                         onClick={() => void retry(document.id)}
-                        className="pill mt-3 !py-1"
+                        className="pill mt-3 py-1!"
                       >
                         {retryingId === document.id && <ZirveLoader variant="inline" label="" />}
                         {retryingId === document.id ? az.documents.retrying : az.documents.retry}

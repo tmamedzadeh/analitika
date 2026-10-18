@@ -124,7 +124,7 @@ function DailyBriefs() {
               <Button
                 type="button"
                 variant="outline"
-                className="field !w-40 justify-start px-3 font-normal"
+                className="field w-40! justify-start px-3 font-normal"
                 aria-label={
                   selectedMonthIndex >= 0
                     ? `${shortMonthsAz[selectedMonthIndex]} ${selectedMonthYear}`
