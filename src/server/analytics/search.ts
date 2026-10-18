@@ -153,10 +153,18 @@ export async function searchDocumentChunks(
     queryCandidates("trigram"),
   ]);
 
-  const candidates = reciprocalRankFusion([vectorRows, fullTextRows, trigramRows], 60).slice(
-    0,
-    RERANK_CANDIDATE_LIMIT,
-  );
+  const seenSources = new Set<string>();
+  const candidates = reciprocalRankFusion([vectorRows, fullTextRows, trigramRows], 60)
+    .filter(({ item }) => {
+      const sourceKey =
+        item.sourceKind === "brief"
+          ? `brief:${item.briefId ?? item.chunkId}`
+          : `document:${item.documentId ?? item.chunkId}`;
+      if (seenSources.has(sourceKey)) return false;
+      seenSources.add(sourceKey);
+      return true;
+    })
+    .slice(0, RERANK_CANDIDATE_LIMIT);
   if (candidates.length === 0) return [];
 
   const rerankProvider =

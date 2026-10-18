@@ -236,7 +236,7 @@ function Analytics() {
           </select>
         </label>
         <fieldset className="min-w-0 border-0 p-0 text-sm">
-          <legend className="mb-1.5 font-medium">{az.analytics.departmentFilter}</legend>
+          <legend className="mb-1.5">{az.analytics.departmentFilter}</legend>
           <div className="flex flex-wrap gap-x-3 gap-y-2">
             <label className="flex items-center gap-1.5">
               <input
@@ -276,12 +276,9 @@ function Analytics() {
           </div>
         </fieldset>
         <fieldset className="min-w-0 border-0 p-0 text-sm">
-          <legend className="mb-1.5 font-medium">{az.analytics.reliabilityLabel}</legend>
           <div className="grid grid-cols-2 gap-2">
             <label className="flex min-w-0 flex-col gap-1.5">
-              <span className="text-xs text-muted-foreground">
-                {az.analytics.sourceReliabilityFilter}
-              </span>
+              <span className="">{az.analytics.sourceReliabilityFilter}</span>
               <select
                 className="field"
                 value={filters.minSourceReliability}
@@ -300,9 +297,7 @@ function Analytics() {
               </select>
             </label>
             <label className="flex min-w-0 flex-col gap-1.5">
-              <span className="text-xs text-muted-foreground">
-                {az.analytics.infoReliabilityFilter}
-              </span>
+              <span className="">{az.analytics.infoReliabilityFilter}</span>
               <select
                 className="field"
                 value={filters.minInfoCredibility}

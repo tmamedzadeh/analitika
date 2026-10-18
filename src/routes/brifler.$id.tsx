@@ -155,90 +155,33 @@ function BriefDetail() {
           {error}
         </p>
       )}
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
-        <div>
-          <article className="rounded-xl border border-border bg-card p-5 text-sm leading-7 sm:p-6">
-            <h2 className="sr-only">{az.briefs.markdown}</h2>
-            <BriefMarkdown markdown={brief.body} highlight={brief.highlight} />
-          </article>
-          {brief.photos.length > 0 && (
-            <section className="mt-5">
-              <p className="label-mono mb-3 !tracking-normal">{az.briefs.photos}</p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {brief.photos.map((item, index) => (
-                  <Button
-                    key={item.id}
-                    variant="ghost"
-                    className="h-auto p-0"
-                    onClick={() => setPhotoIndex(index)}
-                    aria-label={az.briefs.addPhoto}
-                  >
-                    <img
-                      className="aspect-video w-full rounded-lg object-cover"
-                      src={item.url}
-                      alt={item.name}
-                    />
-                  </Button>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-        <aside className="rounded-xl border border-border bg-card p-5">
-          <p className="label-mono !text-primary !tracking-normal">{az.briefs.title}</p>
-          <dl className="mt-3 text-sm">
-            <div className="flex justify-between gap-3 border-t border-border py-3">
-              <dt className="label-mono !tracking-normal">{az.briefs.author}</dt>
-              <dd>{brief.author}</dd>
+      <div>
+        <article className="rounded-xl border border-border bg-card p-5 text-sm leading-7 sm:p-6">
+          <h2 className="sr-only">{az.briefs.markdown}</h2>
+          <BriefMarkdown markdown={brief.body} highlight={brief.highlight} />
+        </article>
+        {brief.photos.length > 0 && (
+          <section className="mt-5">
+            <p className="label-mono mb-3 !tracking-normal">{az.briefs.photos}</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {brief.photos.map((item, index) => (
+                <Button
+                  key={item.id}
+                  variant="ghost"
+                  className="h-auto p-0"
+                  onClick={() => setPhotoIndex(index)}
+                  aria-label={az.briefs.addPhoto}
+                >
+                  <img
+                    className="aspect-video w-full rounded-lg object-cover"
+                    src={item.url}
+                    alt={item.name}
+                  />
+                </Button>
+              ))}
             </div>
-            <div className="flex justify-between gap-3 border-t border-border py-3">
-              <dt className="label-mono !tracking-normal">{az.briefs.date}</dt>
-              <dd>{brief.date.split("-").reverse().join(".")}</dd>
-            </div>
-            <div className="flex justify-between gap-3 border-t border-border py-3">
-              <dt className="label-mono !tracking-normal">{az.briefs.photos}</dt>
-              <dd>{az.briefs.photoCount.replace("{count}", String(brief.photos.length))}</dd>
-            </div>
-            <div className="border-t border-border py-3">
-              <dt className="label-mono !tracking-normal">
-                {az.briefs.indexStatus[brief.indexStatus]}
-              </dt>
-              {brief.indexStatus === "processing" && (
-                <dd className="mt-2 text-xs text-muted-foreground">
-                  {brief.indexProgress.completedChunks} / {brief.indexProgress.totalChunks}
-                </dd>
-              )}
-            </div>
-          </dl>
-          <div className="grid grid-cols-2 gap-2 border-t border-border pt-3">
-            {data.previousId ? (
-              <Button asChild variant="outline" className="rounded-full px-2">
-                <Link to="/brifler/$id" params={{ id: data.previousId }}>
-                  <ChevronLeft />
-                  {az.briefs.previous}
-                </Link>
-              </Button>
-            ) : (
-              <Button disabled variant="outline">
-                <ChevronLeft />
-                {az.briefs.previous}
-              </Button>
-            )}
-            {data.nextId ? (
-              <Button asChild variant="outline" className="rounded-full px-2">
-                <Link to="/brifler/$id" params={{ id: data.nextId }}>
-                  {az.briefs.next}
-                  <ChevronRight />
-                </Link>
-              </Button>
-            ) : (
-              <Button disabled variant="outline">
-                {az.briefs.next}
-                <ChevronRight />
-              </Button>
-            )}
-          </div>
-        </aside>
+          </section>
+        )}
       </div>
       <Dialog
         open={Boolean(photo)}

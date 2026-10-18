@@ -92,7 +92,7 @@ export function BriefMarkdown({
   };
 
   return (
-    <div className="prose prose-sm max-w-none break-words leading-7 [&_[data-chunk-highlight=true]]:rounded [&_[data-chunk-highlight=true]]:bg-primary/10 [&_[data-chunk-highlight=true]]:outline [&_[data-chunk-highlight=true]]:outline-1 [&_[data-chunk-highlight=true]]:outline-primary/40">
+    <div className="markdown-content max-w-none break-words leading-7 [&_[data-chunk-highlight=true]]:rounded [&_[data-chunk-highlight=true]]:bg-primary/10 [&_[data-chunk-highlight=true]]:outline [&_[data-chunk-highlight=true]]:outline-1 [&_[data-chunk-highlight=true]]:outline-primary/40">
       <ReactMarkdown skipHtml remarkPlugins={[remarkGfm]} components={components}>
         {markdown}
       </ReactMarkdown>
