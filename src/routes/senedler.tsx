@@ -5,6 +5,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { LocalizedDatePicker } from "@/components/LocalizedDatePicker";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Shell } from "@/components/Shell";
+import { ZirveLoader } from "@/components/ZirveLoader";
 import {
   infoCredibilityLabels,
   infoCredibilityValues,
@@ -359,6 +360,7 @@ function AddDoc() {
               disabled={saving}
               className="glow rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-60"
             >
+              {saving && <ZirveLoader variant="inline" label="" />}
               {saving ? az.documents.form.saving : az.documents.form.save}
             </button>
             <button
@@ -386,7 +388,7 @@ function AddDoc() {
         <aside>
           <p className="label-mono mb-3">{az.documents.recent}</p>
           {documentsQuery.isPending ? (
-            <div className="panel p-5 label-mono">{az.documents.loading}</div>
+            <ZirveLoader variant="compact" label={az.documents.loading} />
           ) : documentsQuery.isError ? (
             <div className="panel p-5 text-sm text-destructive">{az.documents.loadError}</div>
           ) : documentsQuery.data.length === 0 ? (
@@ -442,6 +444,7 @@ function AddDoc() {
                         onClick={() => void retry(document.id)}
                         className="pill mt-3 !py-1"
                       >
+                        {retryingId === document.id && <ZirveLoader variant="inline" label="" />}
                         {retryingId === document.id ? az.documents.retrying : az.documents.retry}
                       </button>
                     )}

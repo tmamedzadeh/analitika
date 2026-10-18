@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 
 import { BriefMarkdown } from "@/components/BriefMarkdown";
 import { Shell } from "@/components/Shell";
+import { ZirveLoader } from "@/components/ZirveLoader";
 import type { AnalyticsFilters, AnalyticsSourcePreview } from "@/lib/analytics";
 import { getAnalyticsOptions } from "@/lib/analytics.functions";
 import { departments, departmentIds, departmentLabel } from "@/lib/departments";
@@ -214,7 +215,10 @@ function Analytics() {
           </select>
         </label>
         <label className="flex flex-col gap-1.5 text-sm">
-          <span>{az.analytics.tagLabel}</span>
+          <span className="flex items-center gap-2">
+            {az.analytics.tagLabel}
+            {optionsQuery.isPending && <ZirveLoader variant="inline" label="" />}
+          </span>
           <select
             className="field"
             value={filters.tag}
@@ -330,15 +334,22 @@ function Analytics() {
           <div className="flex flex-wrap justify-between gap-2">
             <span className="label-mono !text-primary">{az.analytics.synthesis}</span>
             <span className="label-mono">
-              {elapsedMs === null
-                ? busy
-                  ? az.analytics.generating
-                  : hasSearched
-                    ? az.analytics.sourcesCount.replace("{count}", String(sources.length))
-                    : az.analytics.waiting
-                : az.analytics.timing
-                    .replace("{seconds}", (elapsedMs / 1000).toFixed(1))
-                    .replace("{count}", String(sources.length))}
+              {busy ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <ZirveLoader variant="inline" label="" />
+                  {az.analytics.generating}
+                </span>
+              ) : elapsedMs === null ? (
+                hasSearched ? (
+                  az.analytics.sourcesCount.replace("{count}", String(sources.length))
+                ) : (
+                  az.analytics.waiting
+                )
+              ) : (
+                az.analytics.timing
+                  .replace("{seconds}", (elapsedMs / 1000).toFixed(1))
+                  .replace("{count}", String(sources.length))
+              )}
             </span>
           </div>
           {incomplete && (

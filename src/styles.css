@@ -189,3 +189,94 @@
   font-size: 11px;
   vertical-align: middle;
 }
+
+.zirve-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--color-muted-foreground);
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.zirve-loader[data-visible="true"] {
+  opacity: 1;
+}
+
+.zirve-loader-compact {
+  min-height: 5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1.125rem;
+  background: var(--color-card);
+  padding: 1rem 1.25rem;
+}
+
+.zirve-loader-page {
+  min-height: min(42vh, 24rem);
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+
+.zirve-loader-inline {
+  display: inline-flex;
+  width: 1.75rem;
+  flex: 0 0 1.75rem;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.zirve-loader-inline.is-visible {
+  opacity: 1;
+}
+
+.zirve-loader-mark {
+  position: relative;
+  display: block;
+  flex: none;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.zirve-loader-scan {
+  position: absolute;
+  z-index: 1;
+  inset: -100% 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 48%,
+    rgb(15 166 184 / 52%) 50%,
+    transparent 52%
+  );
+  mask-image: url("/logo.png");
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  animation: zirve-loader-scan 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes zirve-loader-scan {
+  from {
+    transform: translateY(-16%);
+  }
+  to {
+    transform: translateY(16%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zirve-loader,
+  .zirve-loader-inline {
+    transition: none;
+  }
+
+  .zirve-loader-scan {
+    animation: none;
+    opacity: 0.45;
+    transform: translateY(16%);
+  }
+}

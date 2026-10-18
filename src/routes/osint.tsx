@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 
 import { BriefMarkdown } from "@/components/BriefMarkdown";
 import { Shell } from "@/components/Shell";
+import { ZirveLoader } from "@/components/ZirveLoader";
 import { az } from "@/lib/i18n/az";
 import { getOsintRun, listOsintRuns, startOsintRun } from "@/lib/osint.functions";
 import {
@@ -119,6 +120,7 @@ function Osint() {
             className="glow whitespace-nowrap rounded-xl bg-primary px-7 py-3 font-semibold text-primary-foreground disabled:opacity-60"
             disabled={submitting || languages.length === 0 || query.trim().length < 3}
           >
+            {submitting && <ZirveLoader variant="inline" label="" />}
             {submitting ? az.osint.searching : az.osint.search}
           </button>
         </div>
@@ -198,14 +200,17 @@ function Osint() {
                   disabled={submitting}
                   onClick={() => void executeSearch(true)}
                 >
+                  {submitting && <ZirveLoader variant="inline" label="" />}
                   {az.osint.refresh}
                 </button>
               ) : null}
             </div>
             {!run ? (
-              <p className="mt-4 text-muted-foreground">
-                {runQuery.isLoading ? az.osint.loading : az.osint.noProgress}
-              </p>
+              runQuery.isPending && selectedRunId ? (
+                <ZirveLoader variant="compact" className="mt-4" label={az.osint.loading} />
+              ) : (
+                <p className="mt-4 text-muted-foreground">{az.osint.noProgress}</p>
+              )
             ) : (
               <>
                 <p className="mt-3 font-medium">
@@ -324,9 +329,11 @@ function Osint() {
         <aside>
           <p className="label-mono mb-3">{az.osint.history}</p>
           {history.length === 0 ? (
-            <div className="panel p-5 text-sm text-muted-foreground">
-              {historyQuery.isLoading ? az.osint.loading : az.osint.noHistory}
-            </div>
+            historyQuery.isPending ? (
+              <ZirveLoader variant="compact" label={az.osint.loading} />
+            ) : (
+              <div className="panel p-5 text-sm text-muted-foreground">{az.osint.noHistory}</div>
+            )
           ) : (
             <div className="space-y-2">
               {history.map((item) => (

@@ -4,6 +4,7 @@ import { useRef, useState, type FormEvent } from "react";
 
 import { LocalizedDatePicker } from "@/components/LocalizedDatePicker";
 import { Shell } from "@/components/Shell";
+import { ZirveLoader } from "@/components/ZirveLoader";
 import { departments, departmentLabel } from "@/lib/departments";
 import { az } from "@/lib/i18n/az";
 import {
@@ -73,6 +74,10 @@ function Sorgu() {
   const [pageError, setPageError] = useState("");
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [updatingRequest, setUpdatingRequest] = useState<{
+    requestId: string;
+    kind: "status" | "answer";
+  } | null>(null);
 
   const requestsQuery = useQuery({
     queryKey: ["info-requests"],
@@ -190,6 +195,7 @@ function Sorgu() {
   }
 
   async function changeStatus(requestId: string, status: (typeof requestStatuses)[number]) {
+    setUpdatingRequest({ requestId, kind: "status" });
     setPageError("");
     try {
       await updateInfoRequestStatus({ data: { requestId, status } });
@@ -197,10 +203,13 @@ function Sorgu() {
     } catch (error) {
       setPageError(error instanceof Error ? error.message : az.requests.refreshFailed);
       await queryClient.invalidateQueries({ queryKey: ["info-requests"] });
+    } finally {
+      setUpdatingRequest(null);
     }
   }
 
   async function changeAnswerDocument(requestId: string, answerDocumentId: string) {
+    setUpdatingRequest({ requestId, kind: "answer" });
     setPageError("");
     try {
       await setInfoRequestAnswerDocument({
@@ -210,6 +219,8 @@ function Sorgu() {
     } catch (error) {
       setPageError(error instanceof Error ? error.message : az.requests.refreshFailed);
       await queryClient.invalidateQueries({ queryKey: ["info-requests"] });
+    } finally {
+      setUpdatingRequest(null);
     }
   }
 
@@ -400,6 +411,7 @@ function Sorgu() {
                 type="submit"
                 disabled={saving}
               >
+                {saving && <ZirveLoader variant="inline" label="" />}
                 {saving ? az.requests.form.submitting : az.requests.form.submit}
               </button>
               <button className="pill" type="button" disabled={saving} onClick={resetForm}>
@@ -419,8 +431,8 @@ function Sorgu() {
               {pageError}
             </p>
           )}
-          {requestsQuery.isPending ? (
-            <div className="panel p-5 text-sm text-muted-foreground">{az.requests.loading}</div>
+          {requestsQuery.isPending || documentsQuery.isPending ? (
+            <ZirveLoader variant="compact" label={az.requests.loading} />
           ) : requestsQuery.isError ? (
             <div role="alert" className="panel p-5 text-sm text-destructive">
               {az.requests.listFailed}
@@ -448,12 +460,22 @@ function Sorgu() {
                       .join(" · ")}
                   </p>
                   <label className="mt-3 block">
-                    <span className="sr-only">
-                      {az.requests.statusLabel} · {requestTopic(request.details)}
+                    <span className="mb-1 flex items-center gap-2">
+                      <span className="sr-only">
+                        {az.requests.statusLabel} · {requestTopic(request.details)}
+                      </span>
+                      {updatingRequest?.requestId === request.id &&
+                        updatingRequest.kind === "status" && (
+                          <>
+                            <span className="sr-only">{az.loader.processing}</span>
+                            <ZirveLoader variant="inline" label="" />
+                          </>
+                        )}
                     </span>
                     <select
                       className="field py-2 text-sm"
                       value={request.status}
+                      disabled={updatingRequest?.requestId === request.id}
                       onChange={(event) =>
                         void changeStatus(
                           request.id,
@@ -469,12 +491,21 @@ function Sorgu() {
                     </select>
                   </label>
                   <label className="mt-2 block">
-                    <span className="sr-only">
-                      {az.requests.answerDocument} · {requestTopic(request.details)}
+                    <span className="mb-1 flex items-center gap-2">
+                      <span className="sr-only">
+                        {az.requests.answerDocument} · {requestTopic(request.details)}
+                      </span>
+                      {updatingRequest?.requestId === request.id &&
+                        updatingRequest.kind === "answer" && (
+                          <ZirveLoader variant="inline" label="" />
+                        )}
                     </span>
                     <select
                       className="field py-2 text-sm"
                       value={request.answerDocumentId ?? ""}
+                      disabled={
+                        documentsQuery.isPending || updatingRequest?.requestId === request.id
+                      }
                       onChange={(event) =>
                         void changeAnswerDocument(request.id, event.currentTarget.value)
                       }

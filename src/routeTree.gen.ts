@@ -18,7 +18,7 @@ import { Route as SorguRouteImport } from './routes/sorgu'
 import { Route as ApiInngestRouteImport } from './routes/api.inngest'
 import { Route as BriflerIdRouteImport } from './routes/brifler.$id'
 import { Route as BriflerYeniRouteImport } from './routes/brifler.yeni'
-import { Route as SenedlerIdRouteImport } from './routes/senedler.$id'
+import { Route as SenedlerIdRouteImport } from './routes/senedler_.$id'
 import { Route as SorguIdRouteImport } from './routes/sorgu.$id'
 import { Route as ApiAnalyticsSearchRouteImport } from './routes/api.analytics.search'
 import { Route as BriflerIdRedakteRouteImport } from './routes/brifler.$id_.redakte'
@@ -69,9 +69,9 @@ const BriflerYeniRoute = BriflerYeniRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const SenedlerIdRoute = SenedlerIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => SenedlerRoute,
+  id: '/senedler_/$id',
+  path: '/senedler/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const SorguIdRoute = SorguIdRouteImport.update({
   id: '/$id',
@@ -94,7 +94,7 @@ export interface FileRoutesByFullPath {
   '/axtaris': typeof AxtarisRoute
   '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
-  '/senedler': typeof SenedlerRouteWithChildren
+  '/senedler': typeof SenedlerRoute
   '/sorgu': typeof SorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
   '/brifler/$id': typeof BriflerIdRoute
@@ -109,7 +109,7 @@ export interface FileRoutesByTo {
   '/axtaris': typeof AxtarisRoute
   '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
-  '/senedler': typeof SenedlerRouteWithChildren
+  '/senedler': typeof SenedlerRoute
   '/sorgu': typeof SorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
   '/brifler/$id': typeof BriflerIdRoute
@@ -125,12 +125,12 @@ export interface FileRoutesById {
   '/axtaris': typeof AxtarisRoute
   '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
-  '/senedler': typeof SenedlerRouteWithChildren
+  '/senedler': typeof SenedlerRoute
   '/sorgu': typeof SorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
   '/brifler/$id': typeof BriflerIdRoute
   '/brifler/yeni': typeof BriflerYeniRoute
-  '/senedler/$id': typeof SenedlerIdRoute
+  '/senedler_/$id': typeof SenedlerIdRoute
   '/sorgu/$id': typeof SorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
   '/brifler/$id_/redakte': typeof BriflerIdRedakteRoute
@@ -177,7 +177,7 @@ export interface FileRouteTypes {
     | '/api/inngest'
     | '/brifler/$id'
     | '/brifler/yeni'
-    | '/senedler/$id'
+    | '/senedler_/$id'
     | '/sorgu/$id'
     | '/api/analytics/search'
     | '/brifler/$id_/redakte'
@@ -188,11 +188,12 @@ export interface RootRouteChildren {
   AxtarisRoute: typeof AxtarisRoute
   AyarlarRoute: typeof AyarlarRoute
   OsintRoute: typeof OsintRoute
-  SenedlerRoute: typeof SenedlerRouteWithChildren
+  SenedlerRoute: typeof SenedlerRoute
   SorguRoute: typeof SorguRouteWithChildren
   ApiInngestRoute: typeof ApiInngestRoute
   BriflerIdRoute: typeof BriflerIdRoute
   BriflerYeniRoute: typeof BriflerYeniRoute
+  SenedlerIdRoute: typeof SenedlerIdRoute
   ApiAnalyticsSearchRoute: typeof ApiAnalyticsSearchRoute
   BriflerIdRedakteRoute: typeof BriflerIdRedakteRoute
 }
@@ -262,12 +263,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BriflerYeniRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/senedler/$id': {
-      id: '/senedler/$id'
-      path: '/$id'
+    '/senedler_/$id': {
+      id: '/senedler_/$id'
+      path: '/senedler/$id'
       fullPath: '/senedler/$id'
       preLoaderRoute: typeof SenedlerIdRouteImport
-      parentRoute: typeof SenedlerRoute
+      parentRoute: typeof rootRouteImport
     }
     '/sorgu/$id': {
       id: '/sorgu/$id'
@@ -293,18 +294,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface SenedlerRouteChildren {
-  SenedlerIdRoute: typeof SenedlerIdRoute
-}
-
-const SenedlerRouteChildren: SenedlerRouteChildren = {
-  SenedlerIdRoute: SenedlerIdRoute,
-}
-
-const SenedlerRouteWithChildren = SenedlerRoute._addFileChildren(
-  SenedlerRouteChildren,
-)
-
 interface SorguRouteChildren {
   SorguIdRoute: typeof SorguIdRoute
 }
@@ -320,11 +309,12 @@ const rootRouteChildren: RootRouteChildren = {
   AxtarisRoute: AxtarisRoute,
   AyarlarRoute: AyarlarRoute,
   OsintRoute: OsintRoute,
-  SenedlerRoute: SenedlerRouteWithChildren,
+  SenedlerRoute: SenedlerRoute,
   SorguRoute: SorguRouteWithChildren,
   ApiInngestRoute: ApiInngestRoute,
   BriflerIdRoute: BriflerIdRoute,
   BriflerYeniRoute: BriflerYeniRoute,
+  SenedlerIdRoute: SenedlerIdRoute,
   ApiAnalyticsSearchRoute: ApiAnalyticsSearchRoute,
   BriflerIdRedakteRoute: BriflerIdRedakteRoute,
 }

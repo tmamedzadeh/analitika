@@ -5,6 +5,7 @@ import { Upload, X } from "lucide-react";
 import { BriefCard } from "@/components/BriefCard";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Shell } from "@/components/Shell";
+import { ZirveLoader } from "@/components/ZirveLoader";
 import { Button } from "@/components/ui/button";
 import { discardBriefUploads, prepareBriefUploads, saveBrief } from "@/lib/briefs.functions";
 import {
@@ -38,6 +39,7 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [checkingPhotos, setCheckingPhotos] = useState(false);
   const [intent, setIntent] = useState<"draft" | "published">("published");
   const existingPhotos = photos.filter((photo) => photo.id);
   const newPhotos = photos.flatMap((photo) => (photo.file ? [photo.file] : []));
@@ -60,16 +62,23 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
       setError(inputError);
       return;
     }
-    const inspected = await Promise.all(files.map(inspectBriefPhoto));
-    if (inspected.some((item) => item === null)) {
+    setCheckingPhotos(true);
+    try {
+      const inspected = await Promise.all(files.map(inspectBriefPhoto));
+      if (inspected.some((item) => item === null)) {
+        setError(az.briefs.validation.photoType);
+        return;
+      }
+      setError("");
+      setPhotos((current) => [
+        ...current,
+        ...files.map((file) => ({ name: file.name, url: URL.createObjectURL(file), file })),
+      ]);
+    } catch {
       setError(az.briefs.validation.photoType);
-      return;
+    } finally {
+      setCheckingPhotos(false);
     }
-    setError("");
-    setPhotos((current) => [
-      ...current,
-      ...files.map((file) => ({ name: file.name, url: URL.createObjectURL(file), file })),
-    ]);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -229,6 +238,9 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
               <span className="label-mono !tracking-normal">{az.briefs.photoNote}</span>
             </Button>
           </div>
+          {checkingPhotos && (
+            <ZirveLoader variant="compact" label={az.loader.processing} className="mt-4" />
+          )}
           {photos.length > 0 && (
             <div className="mt-4 grid grid-cols-3 gap-3">
               {photos.map((photo, index) => (
@@ -269,6 +281,7 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
               disabled={busy}
               onClick={() => setIntent("published")}
             >
+              {busy && intent === "published" && <ZirveLoader variant="inline" label="" />}
               {busy && intent === "published" ? az.briefs.loading : az.briefs.publish}
             </Button>
             <Button
@@ -280,6 +293,7 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
               disabled={busy}
               onClick={() => setIntent("draft")}
             >
+              {busy && intent === "draft" && <ZirveLoader variant="inline" label="" />}
               {busy && intent === "draft" ? az.briefs.loading : az.briefs.saveDraft}
             </Button>
             <Button asChild variant="outline" className="rounded-full" disabled={busy}>

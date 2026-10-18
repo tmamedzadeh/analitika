@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { BriefMarkdown } from "@/components/BriefMarkdown";
 import { Shell } from "@/components/Shell";
+import { ZirveLoader } from "@/components/ZirveLoader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -109,7 +110,13 @@ function BriefDetail() {
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="rounded-full" disabled={deleting}>
+              <Button
+                variant="destructive"
+                className="rounded-full"
+                disabled={deleting}
+                aria-busy={deleting}
+              >
+                {deleting && <ZirveLoader variant="inline" label="" />}
                 <Trash2 />
                 {az.briefs.delete}
               </Button>

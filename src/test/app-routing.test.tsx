@@ -14,8 +14,23 @@ describe("App routing", () => {
 
     expect(matches.at(-1)?.routeId).not.toBe(rootRouteId);
   });
+
+  it("keeps brief details at /brifler/:id", () => {
+    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+    expect(
+      router.matchRoutes("/brifler/2c227f83-a225-4b68-9492-979cd1d59f13").at(-1)?.routeId,
+    ).toBe("/brifler/$id");
+  });
   it("keeps analytics search at /axtaris", () => {
     const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
     expect(router.matchRoutes("/axtaris").at(-1)?.routeId).toBe("/axtaris");
+  });
+
+  it("matches document details as a top-level route at the existing URL", () => {
+    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+    const matches = router.matchRoutes("/senedler/2c227f83-a225-4b68-9492-979cd1d59f13");
+
+    expect(matches.at(-1)?.routeId).toBe("/senedler_/$id");
+    expect(matches.some((match) => match.routeId === "/senedler")).toBe(false);
   });
 });

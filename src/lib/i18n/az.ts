@@ -1,4 +1,9 @@
 export const az = {
+  loader: {
+    loading: "Məlumat yüklənir…",
+    processing: "Məlumatlar emal olunur…",
+    pageTitle: "Səhifə açılır",
+  },
   navigation: {
     dailyBriefs: "Gündəlik xülasələr",
     analyticsSearch: "Analitika axtarışı",
@@ -193,7 +198,7 @@ export const az = {
   },
   briefs: {
     title: "Gündəlik xülasələr",
-    description: "Gündəlik briflər və təsdiqlənmiş xülasələr.",
+    description: "Gündəlik xülasələr.",
     add: "Əlavə et",
     addTitle: "Məlumat əlavə et",
     editTitle: "Məlumatı redaktə et",
@@ -212,7 +217,7 @@ export const az = {
     empty: "Məlumat  yoxdur",
     noMatches: "Bu axtarışa uyğun məlumat tapılmadı.",
     listFailed: "Məlumatları yükləmək mümkün olmadı.",
-    loading: "Briflər yüklənir…",
+    loading: "Məlumatlar yüklənir…",
     excerpt: "Mətnin ilk sətirləri",
     date: "Tarix",
     titleField: "Başlıq",
@@ -243,7 +248,7 @@ export const az = {
     author: "Müəllif",
     previous: "Əvvəlki",
     next: "Növbəti",
-    backToList: "Bütün briflər",
+    backToList: "Bütün xülasələr",
     missing: "Məlumat tapılmadı.",
     detailFailed: "Məlumatı yükləmək mümkün olmadı.",
     edit: "Redaktə et",
@@ -336,6 +341,7 @@ export const az = {
     textSection: "Mətn",
     plainText: "Mətn",
     missing: "Sənəd tapılmadı.",
+    emptyContent: "Sənəd mövcuddur, lakin məzmunu hələ əlavə edilməyib.",
     delete: "Sənədi sil",
     deleteConfirm: "Sənədi və ona əlavə edilmiş bütün şəkilləri silmək istəyirsiniz?",
     deleted: "Sənəd silindi.",

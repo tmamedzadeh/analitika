@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { BriefCard } from "@/components/BriefCard";
 import { Shell } from "@/components/Shell";
+import { ZirveLoader } from "@/components/ZirveLoader";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { listBriefs } from "@/lib/briefs.functions";
@@ -178,11 +179,7 @@ function DailyBriefs() {
         </div>
       </div>
 
-      {briefsQuery.isLoading && (
-        <p role="status" className="py-12 text-center text-muted-foreground">
-          {az.briefs.loading}
-        </p>
-      )}
+      {briefsQuery.isLoading && <ZirveLoader variant="compact" label={az.briefs.loading} />}
       {briefsQuery.isError && (
         <p role="alert" className="py-8 text-center text-destructive">
           {az.briefs.listFailed}
@@ -221,6 +218,7 @@ function DailyBriefs() {
             disabled={briefsQuery.isFetchingNextPage}
             onClick={() => void briefsQuery.fetchNextPage()}
           >
+            {briefsQuery.isFetchingNextPage && <ZirveLoader variant="inline" label="" />}
             {briefsQuery.isFetchingNextPage ? az.briefs.loading : az.briefs.loadMore}
           </Button>
         </div>

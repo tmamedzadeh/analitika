@@ -4,6 +4,7 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { Shell } from "@/components/Shell";
+import { ZirveLoader } from "@/components/ZirveLoader";
 import { departmentLabel } from "@/lib/departments";
 import { az } from "@/lib/i18n/az";
 import { infoCredibilityLabels, sourceReliabilityLabels } from "@/lib/reliability";
@@ -46,6 +47,8 @@ function InfoRequestPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [updatingAnswer, setUpdatingAnswer] = useState(false);
   const [pageError, setPageError] = useState("");
   const requestQuery = useQuery({
     queryKey: ["info-request", id],
@@ -60,6 +63,7 @@ function InfoRequestPage() {
   const request = requestQuery.data;
 
   async function changeStatus(status: (typeof requestStatuses)[number]) {
+    setUpdatingStatus(true);
     setPageError("");
     try {
       await updateInfoRequestStatus({ data: { requestId: id, status } });
@@ -67,10 +71,13 @@ function InfoRequestPage() {
       await queryClient.invalidateQueries({ queryKey: ["info-requests"] });
     } catch (error) {
       setPageError(error instanceof Error ? error.message : az.requests.refreshFailed);
+    } finally {
+      setUpdatingStatus(false);
     }
   }
 
   async function changeAnswerDocument(answerDocumentId: string) {
+    setUpdatingAnswer(true);
     setPageError("");
     try {
       await setInfoRequestAnswerDocument({
@@ -81,6 +88,8 @@ function InfoRequestPage() {
     } catch (error) {
       setPageError(error instanceof Error ? error.message : az.requests.refreshFailed);
       await queryClient.invalidateQueries({ queryKey: ["info-request", id] });
+    } finally {
+      setUpdatingAnswer(false);
     }
   }
 
@@ -102,7 +111,7 @@ function InfoRequestPage() {
   if (requestQuery.isPending) {
     return (
       <Shell crumb={az.requests.title} title={az.requests.loading} badges={[]}>
-        <div className="panel p-6 label-mono">{az.requests.loading}</div>
+        <ZirveLoader variant="page" label={az.requests.loading} />
       </Shell>
     );
   }
@@ -149,6 +158,7 @@ function InfoRequestPage() {
           onClick={() => void remove()}
           className="pill !border-destructive/50 !text-destructive"
         >
+          {busy && <ZirveLoader variant="inline" label="" />}
           {az.requests.delete}
         </button>
       </div>
@@ -210,10 +220,14 @@ function InfoRequestPage() {
 
         <aside className="panel space-y-4 p-5">
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold">{az.requests.statusLabel}</span>
+            <span className="mb-2 flex items-center gap-2 text-sm font-semibold">
+              {az.requests.statusLabel}
+              {updatingStatus && <ZirveLoader variant="inline" label="" />}
+            </span>
             <select
               className="field"
               value={request.status}
+              disabled={updatingStatus}
               onChange={(event) =>
                 void changeStatus(event.currentTarget.value as (typeof requestStatuses)[number])
               }
@@ -226,10 +240,16 @@ function InfoRequestPage() {
             </select>
           </label>
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold">{az.requests.answerDocument}</span>
+            <span className="mb-2 flex items-center gap-2 text-sm font-semibold">
+              {az.requests.answerDocument}
+              {(updatingAnswer || documentsQuery.isPending) && (
+                <ZirveLoader variant="inline" label="" />
+              )}
+            </span>
             <select
               className="field"
               value={request.answerDocumentId ?? ""}
+              disabled={updatingAnswer || documentsQuery.isPending}
               onChange={(event) => void changeAnswerDocument(event.currentTarget.value)}
             >
               <option value="">{az.requests.noAnswerDocument}</option>

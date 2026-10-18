@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 
 import { Shell } from "@/components/Shell";
+import { ZirveLoader } from "@/components/ZirveLoader";
 import { BriefMarkdown } from "@/components/BriefMarkdown";
 import { departmentLabel } from "@/lib/departments";
 import { az } from "@/lib/i18n/az";
@@ -13,7 +14,7 @@ import {
   retryDocumentIndexing,
 } from "@/lib/documents.functions";
 
-export const Route = createFileRoute("/senedler/$id")({
+export const Route = createFileRoute("/senedler_/$id")({
   validateSearch: z.object({ chunk: z.string().uuid().optional() }),
   head: () => ({
     meta: [
@@ -33,11 +34,17 @@ function DocumentPage() {
   const { chunk: selectedChunkId } = Route.useSearch();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [busy, setBusy] = useState(false);
+  const parsedId = z.string().uuid().safeParse(id);
+  const [busyAction, setBusyAction] = useState<"retry" | "delete" | null>(null);
+  const busy = busyAction !== null;
   const [pageError, setPageError] = useState("");
   const documentQuery = useQuery({
     queryKey: ["document", id],
-    queryFn: () => getDocumentDetails({ data: { documentId: id } }),
+    enabled: parsedId.success,
+    queryFn: () => {
+      if (!parsedId.success) return Promise.resolve(null);
+      return getDocumentDetails({ data: { documentId: parsedId.data } });
+    },
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       return status === "queued" || status === "processing" ? 2000 : false;
@@ -56,7 +63,7 @@ function DocumentPage() {
   }, [document, selectedChunkId]);
 
   async function retry() {
-    setBusy(true);
+    setBusyAction("retry");
     setPageError("");
     try {
       await retryDocumentIndexing({ data: { documentId: id } });
@@ -64,13 +71,13 @@ function DocumentPage() {
     } catch (error) {
       setPageError(error instanceof Error ? error.message : az.documents.loadError);
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   }
 
   async function remove() {
     if (!window.confirm(az.documents.deleteConfirm)) return;
-    setBusy(true);
+    setBusyAction("delete");
     setPageError("");
     try {
       await deleteDocument({ data: { documentId: id } });
@@ -79,22 +86,53 @@ function DocumentPage() {
     } catch (error) {
       setPageError(error instanceof Error ? error.message : az.documents.loadError);
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   }
 
+  if (!parsedId.success) {
+    return (
+      <Shell crumb={az.navigation.documents} title={az.documents.missing} badges={[]}>
+        <div className="panel space-y-4 p-6">
+          <p role="status" className="text-sm text-muted-foreground">
+            {az.documents.missing}
+          </p>
+          <Link to="/senedler" className="pill w-fit">
+            {az.documents.backToList}
+          </Link>
+        </div>
+      </Shell>
+    );
+  }
   if (documentQuery.isPending) {
     return (
       <Shell crumb={az.navigation.documents} title={az.documents.loadingDocument} badges={[]}>
-        <div className="panel p-6 label-mono">{az.documents.loading}</div>
+        <ZirveLoader variant="page" label={az.loader.loading} />
       </Shell>
     );
   }
   if (documentQuery.isError) {
     return (
       <Shell crumb={az.navigation.documents} title={az.documents.loadError} badges={[]}>
-        <div role="alert" className="panel p-6 text-destructive">
-          {documentQuery.error.message}
+        <div className="panel space-y-4 p-6">
+          <p role="alert" className="text-sm text-destructive">
+            {az.documents.loadError}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={documentQuery.isFetching}
+              aria-busy={documentQuery.isFetching}
+              onClick={() => void documentQuery.refetch()}
+              className="pill"
+            >
+              {documentQuery.isFetching && <ZirveLoader variant="inline" label="" />}
+              {az.actions.retry}
+            </button>
+            <Link to="/senedler" className="pill">
+              {az.documents.backToList}
+            </Link>
+          </div>
         </div>
       </Shell>
     );
@@ -102,9 +140,14 @@ function DocumentPage() {
   if (!document) {
     return (
       <Shell crumb={az.navigation.documents} title={az.documents.missing} badges={[]}>
-        <Link to="/senedler" className="pill">
-          {az.documents.backToList}
-        </Link>
+        <div className="panel space-y-4 p-6">
+          <p role="status" className="text-sm text-muted-foreground">
+            {az.documents.missing}
+          </p>
+          <Link to="/senedler" className="pill w-fit">
+            {az.documents.backToList}
+          </Link>
+        </div>
       </Shell>
     );
   }
@@ -129,7 +172,8 @@ function DocumentPage() {
         </Link>
         {document.status === "failed" && (
           <button type="button" disabled={busy} onClick={() => void retry()} className="pill">
-            {busy ? az.documents.retrying : az.documents.retry}
+            {busyAction === "retry" && <ZirveLoader variant="inline" label="" />}
+            {busyAction === "retry" ? az.documents.retrying : az.documents.retry}
           </button>
         )}
         <button
@@ -138,6 +182,7 @@ function DocumentPage() {
           onClick={() => void remove()}
           className="pill !border-destructive/50 !text-destructive"
         >
+          {busyAction === "delete" && <ZirveLoader variant="inline" label="" />}
           {az.documents.delete}
         </button>
         {document.docDate && (
@@ -181,12 +226,21 @@ function DocumentPage() {
 
       <section className="panel p-6">
         <h2 className="mb-4 text-lg font-semibold">{az.documents.form.body}</h2>
-        <BriefMarkdown
-          markdown={document.body}
-          highlight={
-            selectedChunk ? { start: selectedChunk.charStart, end: selectedChunk.charEnd } : null
-          }
-        />
+        {document.body.trim() ? (
+          <BriefMarkdown
+            markdown={document.body}
+            highlight={
+              selectedChunk ? { start: selectedChunk.charStart, end: selectedChunk.charEnd } : null
+            }
+          />
+        ) : (
+          <p
+            role="status"
+            className="rounded-lg border border-border bg-secondary/50 p-4 text-sm text-muted-foreground"
+          >
+            {az.documents.emptyContent}
+          </p>
+        )}
         {document.chunks.length > 0 && (
           <div className="mt-6 border-t border-border pt-4">
             <p className="label-mono">
