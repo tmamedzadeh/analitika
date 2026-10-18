@@ -1,15 +1,18 @@
-import { and, asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { getRequest } from "@tanstack/react-start/server";
 
 import { departmentIdSchema } from "./departments";
 import { az } from "./i18n/az";
+import { imageMimeFromSignature } from "./briefs";
 import { documentIndexingRequested } from "../server/inngest/events";
 import { inngest } from "../server/inngest/client";
 import { getDb } from "../server/db";
 import { accessFilter } from "../server/db/access";
 import { attachments, chunks, documents } from "../server/db/schema";
 import { getStorage } from "../server/storage/s3";
+import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const documentDateSchema = z
@@ -60,6 +63,10 @@ export const createDocumentSchema = z.object({
 });
 
 const idSchema = z.object({ documentId: z.string().uuid() });
+const documentUploadSchema = imageInputSchema.extend({ key: z.string().min(1).max(600) });
+const saveDocumentSchema = createDocumentSchema
+  .omit({ photos: true })
+  .extend({ documentId: z.string().uuid(), uploads: z.array(documentUploadSchema).max(10) });
 
 function safeFileName(value: string): string {
   const name = value
@@ -104,6 +111,7 @@ export const listRecentDocuments = createServerFn({ method: "GET" }).handler(asy
       status: documents.status,
       step: documents.step,
       progress: documents.progress,
+      chunkCount: documents.chunkCount,
       error: documents.error,
       docDate: documents.docDate,
       createdAt: documents.createdAt,
@@ -112,38 +120,103 @@ export const listRecentDocuments = createServerFn({ method: "GET" }).handler(asy
     .where(accessFilter())
     .orderBy(desc(documents.createdAt))
     .limit(8);
-  const counts = await db
-    .select({ documentId: chunks.documentId, total: count() })
-    .from(chunks)
-    .innerJoin(documents, eq(chunks.documentId, documents.id))
-    .where(accessFilter())
-    .groupBy(chunks.documentId);
-  const countByDocument = new Map(counts.map((row) => [row.documentId, Number(row.total)]));
-
   return rows.map((row) => ({
     ...row,
     progress: serializeDocumentProgress(row.progress),
-    chunkCount: countByDocument.get(row.id) ?? 0,
     createdAt: row.createdAt.toISOString(),
   }));
 });
 
-export const createDocumentDraft = createServerFn({ method: "POST" })
+function validDocumentUploadKey(
+  documentId: string,
+  key: string,
+  mime: keyof typeof imageTypes,
+): boolean {
+  return new RegExp(`^documents/${documentId}/[0-9a-f-]{36}\\.${imageTypes[mime]}$`, "i").test(key);
+}
+
+export function documentUploadMatches(input: {
+  expectedMime: keyof typeof imageTypes;
+  expectedSize: number;
+  actualSize: number;
+  actualContentType?: string | undefined;
+  signature: Uint8Array;
+}): boolean {
+  return (
+    input.expectedSize > 0 &&
+    input.expectedSize <= MAX_IMAGE_SIZE &&
+    input.actualSize === input.expectedSize &&
+    (input.actualContentType === undefined || input.actualContentType === input.expectedMime) &&
+    imageMimeFromSignature(input.signature) === input.expectedMime
+  );
+}
+
+export const prepareDocumentUploads = createServerFn({ method: "POST" })
   .validator(createDocumentSchema)
   .handler(async ({ data }) => {
-    const db = getDb();
+    if (!(await consumeIpRateLimit("upload-prepare", getRequest(), 30, 10 * 60_000))) {
+      throw new Error(az.analytics.rateLimited);
+    }
     const documentId = crypto.randomUUID();
     const photos = data.photos.map((photo) => ({
-      id: crypto.randomUUID(),
+      attachmentId: crypto.randomUUID(),
       name: safeFileName(photo.name),
       mime: photo.mime,
       size: photo.size,
       key: `documents/${documentId}/${crypto.randomUUID()}.${imageTypes[photo.mime]}`,
     }));
 
+    try {
+      const storage = getStorage();
+      const uploads = await Promise.all(
+        photos.map(async (photo) => ({
+          attachmentId: photo.attachmentId,
+          name: photo.name,
+          mime: photo.mime,
+          size: photo.size,
+          key: photo.key,
+          url: await storage.getSignedUploadUrl(photo.key, photo.mime),
+        })),
+      );
+      return { documentId, uploads };
+    } catch {
+      throw new Error(az.documents.form.uploadPrepareFailed);
+    }
+  });
+
+export const saveDocument = createServerFn({ method: "POST" })
+  .validator(saveDocumentSchema)
+  .handler(async ({ data }) => {
+    const db = getDb();
+    const storage = getStorage();
+    try {
+      for (const upload of data.uploads) {
+        if (!validDocumentUploadKey(data.documentId, upload.key, upload.mime)) {
+          throw new Error(az.documents.form.uploadMetadataMismatch);
+        }
+        const [metadata, signature] = await Promise.all([
+          storage.getMetadata(upload.key),
+          storage.getPrefix(upload.key, 12),
+        ]);
+        if (
+          !documentUploadMatches({
+            expectedMime: upload.mime,
+            expectedSize: upload.size,
+            actualSize: metadata.size,
+            actualContentType: metadata.contentType,
+            signature,
+          })
+        ) {
+          throw new Error(az.documents.form.uploadMetadataMismatch);
+        }
+      }
+    } catch {
+      throw new Error(az.documents.form.uploadMetadataMismatch);
+    }
+
     await db.transaction(async (transaction) => {
       await transaction.insert(documents).values({
-        id: documentId,
+        id: data.documentId,
         title: data.title,
         body: data.body,
         docDate: data.docDate || null,
@@ -156,76 +229,19 @@ export const createDocumentDraft = createServerFn({ method: "POST" })
         step: "queued",
         progress: { percent: 0, totalChunks: 0, completedChunks: 0 },
       });
-
-      if (photos.length > 0) {
+      if (data.uploads.length > 0) {
         await transaction.insert(attachments).values(
-          photos.map((photo) => ({
-            id: photo.id,
-            documentId,
-            storageKey: photo.key,
-            mime: photo.mime,
-            size: photo.size,
-            caption: photo.name,
+          data.uploads.map((upload) => ({
+            id: crypto.randomUUID(),
+            documentId: data.documentId,
+            storageKey: upload.key,
+            mime: upload.mime,
+            size: upload.size,
+            caption: safeFileName(upload.name),
           })),
         );
       }
     });
-
-    try {
-      const storage = getStorage();
-      const uploads = await Promise.all(
-        photos.map(async (photo) => ({
-          attachmentId: photo.id,
-          url: await storage.getSignedUploadUrl(photo.key, photo.mime),
-        })),
-      );
-      return { documentId, uploads };
-    } catch {
-      await db.delete(documents).where(eq(documents.id, documentId));
-      throw new Error(az.documents.form.uploadPrepareFailed);
-    }
-  });
-
-export const completeDocumentUploads = createServerFn({ method: "POST" })
-  .validator(idSchema)
-  .handler(async ({ data }) => {
-    const db = getDb();
-    const [document] = await db
-      .select({ id: documents.id, status: documents.status })
-      .from(documents)
-      .where(and(eq(documents.id, data.documentId), accessFilter()))
-      .limit(1);
-    if (!document) throw new Error(az.documents.missing);
-    if (document.status === "ready") return { documentId: data.documentId };
-
-    const documentAttachments = await db
-      .select()
-      .from(attachments)
-      .where(eq(attachments.documentId, data.documentId));
-    const storage = getStorage();
-    let objects: Array<{
-      attachment: (typeof documentAttachments)[number];
-      metadata: Awaited<ReturnType<typeof storage.getMetadata>>;
-    }>;
-    try {
-      objects = await Promise.all(
-        documentAttachments.map(async (attachment) => ({
-          attachment,
-          metadata: await storage.getMetadata(attachment.storageKey),
-        })),
-      );
-    } catch {
-      throw new Error(az.documents.form.uploadIncomplete);
-    }
-    if (
-      objects.some(
-        ({ attachment, metadata }) =>
-          metadata.size !== attachment.size ||
-          (metadata.contentType !== undefined && metadata.contentType !== attachment.mime),
-      )
-    ) {
-      throw new Error(az.documents.form.uploadMetadataMismatch);
-    }
 
     await queueDocumentIndexing(data.documentId);
     return { documentId: data.documentId };
@@ -244,33 +260,6 @@ export const retryDocumentIndexing = createServerFn({ method: "POST" })
     if (document.status !== "failed") throw new Error(az.documents.form.retryOnlyFailed);
     await queueDocumentIndexing(data.documentId);
     return { documentId: data.documentId };
-  });
-
-export const discardDocumentDraft = createServerFn({ method: "POST" })
-  .validator(idSchema)
-  .handler(async ({ data }) => {
-    const db = getDb();
-    const draft = await db
-      .select({ id: documents.id })
-      .from(documents)
-      .where(
-        and(
-          eq(documents.id, data.documentId),
-          eq(documents.status, "queued"),
-          eq(documents.step, "queued"),
-          accessFilter(),
-        ),
-      )
-      .limit(1);
-    if (draft.length === 0) return { ok: true };
-
-    const files = await db
-      .select({ storageKey: attachments.storageKey })
-      .from(attachments)
-      .where(eq(attachments.documentId, data.documentId));
-    await Promise.all(files.map((file) => getStorage().delete(file.storageKey)));
-    await db.delete(documents).where(and(eq(documents.id, data.documentId), accessFilter()));
-    return { ok: true };
   });
 
 export const getDocumentDetails = createServerFn({ method: "GET" })

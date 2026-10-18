@@ -30,4 +30,25 @@ describe("validateCitations", () => {
     expect(result.answer).toBe("Təsdiqlənmiş məlumat [1].");
     expect(result.usedLowReliability).toBe(false);
   });
+
+  it.each(["[1, 2]", "[1,2]", "[1; 2]", "[1–2]", "[1-2]"])(
+    "normalizes citation group %s into adjacent citations",
+    (citation) => {
+      const result = validateCitations(`Fakt ${citation}.`, sources, "aşağı etibar");
+      expect(result.answer).toBe("Fakt [1][2].\n\naşağı etibar.");
+      expect(result.incomplete).toBe(false);
+      expect(result.usedLowReliability).toBe(true);
+    },
+  );
+
+  it("removes unknown numbers in groups and ranges and marks the answer incomplete", () => {
+    const result = validateCitations("Fakt [1, 7] və [1–3].", sources, "aşağı etibar");
+    expect(result.answer).toBe("Fakt [1] və [1][2].\n\naşağı etibar.");
+    expect(result.incomplete).toBe(true);
+  });
+
+  it("marks an answer without citations incomplete except for the no-sources message", () => {
+    expect(validateCitations("Cavab var.", sources, "").incomplete).toBe(true);
+    expect(validateCitations("Mənbələrdə məlumat tapılmadı.", [], "").incomplete).toBe(false);
+  });
 });

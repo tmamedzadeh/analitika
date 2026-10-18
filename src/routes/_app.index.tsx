@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { BriefCard } from "@/components/BriefCard";
 import { Shell } from "@/components/Shell";
@@ -27,25 +27,31 @@ const shortMonthsAz = [
   "Dek",
 ];
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_app/")({
   head: () => briefHead(az.briefs.title, az.briefs.description),
   component: DailyBriefs,
 });
 
 function DailyBriefs() {
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
   const [period, setPeriod] = useState<"all" | "week" | "month">("all");
   const [month, setMonth] = useState("");
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const today = getBakuDate();
   const todayYear = Number(today.slice(0, 4));
   const [monthPickerYear, setMonthPickerYear] = useState(todayYear);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
   const selectedMonthIndex = month ? Number(month.slice(5, 7)) - 1 : -1;
   const selectedMonthYear = month ? Number(month.slice(0, 4)) : undefined;
   const briefsQuery = useInfiniteQuery({
-    queryKey: ["daily-briefs", query, period, month],
+    queryKey: ["daily-briefs", debouncedQuery, period, month],
     initialPageParam: null as BriefCursor | null,
-    queryFn: ({ pageParam }) => listBriefs({ data: { query, period, month, cursor: pageParam } }),
+    queryFn: ({ pageParam }) =>
+      listBriefs({ data: { query: debouncedQuery, period, month, cursor: pageParam } }),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
   const briefs = briefsQuery.data?.pages.flatMap((page) => page.items) ?? [];

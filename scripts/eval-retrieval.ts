@@ -1,11 +1,14 @@
-import type { AnalyticsFilters, AnalyticsSource } from "../src/lib/analytics";
-import { briefRouteForSearchSource } from "../src/lib/briefs";
+import type { AnalyticsFilters } from "../src/lib/analytics";
+import { az } from "../src/lib/i18n/az";
 import { departments } from "../src/lib/departments";
 import { createGeminiProviders } from "../src/server/ai/gemini";
 import { closeDb } from "../src/server/db";
+import { validateCitations } from "../src/server/analytics/citations";
 import { searchDocumentChunks } from "../src/server/analytics/search";
+import { buildAnalyticsPrompt } from "../src/server/prompts/analytics";
+import { getAppConfig } from "../src/server/config";
 
-const query = "Rusiya Rostov vilayətində PUA buraxılış bazası və buraxılış infrastrukturu";
+const query = "Rusiya tərəfindən PUA";
 const filters: AnalyticsFilters = {
   period: "all",
   tag: "",
@@ -14,49 +17,81 @@ const filters: AnalyticsFilters = {
   minInfoCredibility: "all",
 };
 
-function citation(source: AnalyticsSource): string {
-  const href = briefRouteForSearchSource(source);
-  return [
-    `${source.sourceKind}: ${source.title}`,
-    `  route=${href ?? "unavailable"}`,
-    `  fragment=${source.charStart}-${source.charEnd}; quote=${source.quote}`,
-  ].join("\n");
+function usedCitationCount(answer: string, sourceCount: number): number {
+  const used = new Set<number>();
+  for (const match of answer.matchAll(/\[(\d+)\]/g)) {
+    const n = Number(match[1]);
+    if (n >= 1 && n <= sourceCount) used.add(n);
+  }
+  return used.size;
 }
 
-async function verifySeededSearch(): Promise<void> {
-  const embeddings = createGeminiProviders().embeddings;
-  const queryEmbedding = await embeddings.embedQuery(query, { maxAttempts: 1 });
-  if (queryEmbedding.length !== 768 || queryEmbedding.some((value) => !Number.isFinite(value))) {
-    throw new Error("The query embedding provider did not return 768 finite dimensions.");
+async function evaluateSeededSearch(): Promise<void> {
+  const providers = createGeminiProviders();
+  const sources = await searchDocumentChunks(query, filters);
+  let answer = az.analytics.noSources;
+  let incomplete = false;
+  if (sources.length > 0) {
+    const prompt = buildAnalyticsPrompt(query, sources, getAppConfig().analyticsThinkingLevel);
+    let generated = "";
+    for await (const part of await providers.analytics.streamText(prompt)) generated += part;
+    const validated = validateCitations(generated, sources, prompt.lowReliabilityWarning);
+    answer = validated.answer;
+    incomplete = validated.incomplete;
   }
-  const results = await searchDocumentChunks(query, filters, {
-    embedding: queryEmbedding,
-    embeddingModel: embeddings.model,
-    enableRerank: false,
-    maxEmbeddingAttempts: 1,
-  });
-  const document = results.find((source) => source.sourceKind === "document");
-  const brief = results.find((source) => source.sourceKind === "brief");
-  if (!document || !brief) {
-    throw new Error(
-      `Search smoke query must return both a document and a published brief; result types were ${results.map((source) => source.sourceKind).join(", ") || "none"}.`,
-    );
-  }
-  console.log(`Search smoke query: ${query}`);
-  console.log(`Embedding model: ${embeddings.model}; results=${results.length}`);
-  console.log("Citation and source fragment:");
-  console.log(citation(document));
-  console.log(citation(brief));
-  console.log(
-    "Search verification passed: documents and published briefs are retrievable with fragment routes.",
-  );
+
+  const result = {
+    status: sources.length ? "ok" : "no_sources",
+    sourceCount: sources.length,
+    sourceKinds: [...new Set(sources.map((source) => source.sourceKind))].sort(),
+    answerChars: answer.length,
+    answerWords: answer.trim() ? answer.trim().split(/\s+/u).length : 0,
+    usedSources: usedCitationCount(answer, sources.length),
+    citationsValid: !incomplete,
+  };
+  console.log(JSON.stringify(result));
+  if (sources.length === 0) process.exitCode = 1;
 }
 
 try {
-  await verifySeededSearch();
+  await evaluateSeededSearch();
 } catch (error) {
-  const message = error instanceof Error ? error.message : "unknown error";
-  console.error(`Search verification failed: ${message}`);
+  let providerStatus: number | undefined;
+  let connectionCode: string | undefined;
+  const errorTypes: string[] = [];
+  const queue: unknown[] = [error];
+  const visited = new Set<object>();
+  while (queue.length && visited.size < 8) {
+    const current = queue.shift();
+    if (!current || typeof current !== "object" || visited.has(current)) continue;
+    visited.add(current);
+    const value = current as Record<string, unknown>;
+    if (typeof value.name === "string") errorTypes.push(value.name);
+    if (providerStatus === undefined) {
+      if (typeof value.statusCode === "number") providerStatus = value.statusCode;
+      else if (typeof value.status === "number") providerStatus = value.status;
+    }
+    if (
+      connectionCode === undefined &&
+      typeof value.code === "string" &&
+      ["ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "EAI_AGAIN"].includes(value.code)
+    ) {
+      connectionCode = value.code;
+    }
+    for (const key of ["cause", "lastError", "errors", "failure"]) {
+      const nested = value[key];
+      if (Array.isArray(nested)) queue.push(...nested);
+      else if (nested && typeof nested === "object") queue.push(nested);
+    }
+  }
+  console.error(
+    JSON.stringify({
+      status: "failed",
+      errorTypes,
+      ...(providerStatus === undefined ? {} : { providerStatus }),
+      ...(connectionCode ? { connectionCode } : {}),
+    }),
+  );
   process.exitCode = 1;
 } finally {
   await closeDb();

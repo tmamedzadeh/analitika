@@ -1,5 +1,6 @@
-import { and, desc, eq, gt, lte } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, lte } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { OSINT_GEMINI_CALL_BUDGET, osintRunIdSchema, osintSearchSchema } from "./osint";
 import { az } from "./i18n/az";
 import { getDb } from "@/server/db";
@@ -9,6 +10,8 @@ import { inngest } from "@/server/inngest/client";
 import { createOsintCacheKey } from "@/server/osint/urls";
 import { getAppConfig } from "@/server/config";
 import { findPinnedOsintRun, shouldServePinnedCache } from "@/server/osint/cache";
+import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
+import { markStaleOsintRuns } from "@/server/osint/stale-runs";
 
 type OsintProgress = {
   percent: number;
@@ -63,6 +66,9 @@ function serializeProgress(value: unknown): OsintProgress {
 export const startOsintRun = createServerFn({ method: "POST" })
   .validator(osintSearchSchema)
   .handler(async ({ data }) => {
+    if (!(await consumeIpRateLimit("osint-start", getRequest(), 6, 60 * 60_000))) {
+      throw new Error(az.analytics.rateLimited);
+    }
     const languages = [...new Set(data.languages)],
       config = getAppConfig();
     const cacheKey = createOsintCacheKey(
@@ -74,6 +80,14 @@ export const startOsintRun = createServerFn({ method: "POST" })
     const db = getDb(),
       now = new Date();
     await db.delete(osintCache).where(lte(osintCache.expiresAt, now));
+    const [active] = await db
+      .select({ id: osintRuns.id })
+      .from(osintRuns)
+      .where(
+        and(eq(osintRuns.cacheKey, cacheKey), inArray(osintRuns.status, ["queued", "running"])),
+      )
+      .limit(1);
+    if (active) return { runId: active.id, cacheHit: false, pinned: false };
     if (!data.refresh) {
       const pinned = await findPinnedOsintRun(cacheKey);
       if (
@@ -100,33 +114,49 @@ export const startOsintRun = createServerFn({ method: "POST" })
         .limit(1);
       if (cached) return { runId: cached.id, cacheHit: true, pinned: false };
     }
-    const runId = crypto.randomUUID();
-    await db.insert(osintRuns).values({
-      id: runId,
-      query: data.query,
-      languages,
-      period: data.period,
-      cacheKey,
-      status: "queued",
-      step: "queued",
-      progress: {
-        percent: 0,
-        completedLanguages: 0,
-        totalLanguages: languages.length,
-        sourcesFound: 0,
-        sourcesProcessed: 0,
-        providerCalls: 0,
-        providerCallBudget: OSINT_GEMINI_CALL_BUDGET,
-        searchCalls: 0,
-        llmCalls: 0,
-        llmCallBudget: OSINT_GEMINI_CALL_BUDGET,
-        llmInputTokens: 0,
-        llmOutputTokens: 0,
-        llmUsageReportedCalls: 0,
-        fetchStatusCounts: {},
-        failedSteps: [],
-      },
-    });
+    const [inserted] = await db
+      .insert(osintRuns)
+      .values({
+        id: crypto.randomUUID(),
+        query: data.query,
+        languages,
+        period: data.period,
+        cacheKey,
+        status: "queued",
+        step: "queued",
+        heartbeatAt: now,
+        progress: {
+          percent: 0,
+          completedLanguages: 0,
+          totalLanguages: languages.length,
+          sourcesFound: 0,
+          sourcesProcessed: 0,
+          providerCalls: 0,
+          providerCallBudget: OSINT_GEMINI_CALL_BUDGET,
+          searchCalls: 0,
+          llmCalls: 0,
+          llmCallBudget: OSINT_GEMINI_CALL_BUDGET,
+          llmInputTokens: 0,
+          llmOutputTokens: 0,
+          llmUsageReportedCalls: 0,
+          fetchStatusCounts: {},
+          failedSteps: [],
+        },
+      })
+      .onConflictDoNothing()
+      .returning({ id: osintRuns.id });
+    if (!inserted) {
+      const [existing] = await db
+        .select({ id: osintRuns.id })
+        .from(osintRuns)
+        .where(
+          and(eq(osintRuns.cacheKey, cacheKey), inArray(osintRuns.status, ["queued", "running"])),
+        )
+        .limit(1);
+      if (!existing) throw new Error(az.osint.failed);
+      return { runId: existing.id, cacheHit: false, pinned: false };
+    }
+    const runId = inserted.id;
     try {
       await inngest.send(osintRunRequested.create({ runId }));
     } catch {
@@ -140,6 +170,7 @@ export const startOsintRun = createServerFn({ method: "POST" })
   });
 
 export const listOsintRuns = createServerFn({ method: "GET" }).handler(async () => {
+  await markStaleOsintRuns();
   const rows = await getDb()
     .select({
       id: osintRuns.id,
@@ -166,6 +197,7 @@ export const listOsintRuns = createServerFn({ method: "GET" }).handler(async () 
 export const getOsintRun = createServerFn({ method: "GET" })
   .validator(osintRunIdSchema)
   .handler(async ({ data }) => {
+    await markStaleOsintRuns();
     const db = getDb(),
       [run] = await db.select().from(osintRuns).where(eq(osintRuns.id, data.runId)).limit(1);
     if (!run) return null;

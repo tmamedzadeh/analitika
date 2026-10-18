@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { ExaProvider, SearchRequestBudget, SearchRequestBudgetExceededError } from "../ai/exa";
 import {
   GeminiRequestBudget,
@@ -256,7 +256,7 @@ function emptyFetchCounts(): Record<FetchStatus, number> {
 export async function runOsintJob(runId: string): Promise<void> {
   const db = getDb(),
     [run] = await db.select().from(osintRuns).where(eq(osintRuns.id, runId)).limit(1);
-  if (!run || run.status === "done") return;
+  if (!run || run.status === "done" || run.status === "failed") return;
   if (run.status === "running" && Date.now() - run.createdAt.getTime() < 300_000) return;
   const languages = OSINT_LANGUAGES.filter((language) => run.languages.includes(language)),
     period = run.period as OsintPeriod,
@@ -303,13 +303,14 @@ export async function runOsintJob(runId: string): Promise<void> {
       fetchStatusCounts: { ...progress.fetchStatusCounts },
       failedSteps: [...progress.failedSteps],
     };
-    queue = queue.then(() =>
-      db
+    queue = queue.then(async () => {
+      const updated = await db
         .update(osintRuns)
-        .set({ status: "running", step: next, progress: snap })
-        .where(eq(osintRuns.id, runId))
-        .then(() => undefined),
-    );
+        .set({ status: "running", step: next, progress: snap, heartbeatAt: new Date() })
+        .where(and(eq(osintRuns.id, runId), inArray(osintRuns.status, ["queued", "running"])))
+        .returning({ id: osintRuns.id });
+      if (!updated.length) throw new Error("OSINT run is already closed.");
+    });
     return queue;
   };
   const fail = (name: string, error?: unknown) => {
@@ -566,7 +567,7 @@ export async function runOsintJob(runId: string): Promise<void> {
     } else if (available.length) fail("synthesizing:deadline");
     sync();
     await queue;
-    await db
+    const completed = await db
       .update(osintRuns)
       .set({
         status: "done",
@@ -581,7 +582,9 @@ export async function runOsintJob(runId: string): Promise<void> {
         error: null,
         finishedAt: new Date(),
       })
-      .where(eq(osintRuns.id, runId));
+      .where(and(eq(osintRuns.id, runId), inArray(osintRuns.status, ["queued", "running"])))
+      .returning({ id: osintRuns.id });
+    if (!completed.length) return;
     if (run.cacheKey)
       await db
         .insert(osintCache)
@@ -595,6 +598,12 @@ export async function runOsintJob(runId: string): Promise<void> {
           set: { runId, expiresAt: new Date(Date.now() + 6 * 60 * 60_000) },
         });
   } catch (error) {
+    const [current] = await db
+      .select({ status: osintRuns.status })
+      .from(osintRuns)
+      .where(eq(osintRuns.id, runId))
+      .limit(1);
+    if (!current || current.status === "done" || current.status === "failed") return;
     console.error("OSINT background job failed.");
     sync();
     if (!progress.failedSteps.includes(step)) fail(step, error);
@@ -624,7 +633,7 @@ export async function runOsintJob(runId: string): Promise<void> {
           error: message,
           finishedAt: new Date(),
         })
-        .where(eq(osintRuns.id, runId));
+        .where(and(eq(osintRuns.id, runId), inArray(osintRuns.status, ["queued", "running"])));
     else
       await db
         .update(osintRuns)
@@ -635,7 +644,7 @@ export async function runOsintJob(runId: string): Promise<void> {
           error: message,
           finishedAt: new Date(),
         })
-        .where(eq(osintRuns.id, runId));
+        .where(and(eq(osintRuns.id, runId), inArray(osintRuns.status, ["queued", "running"])));
   } finally {
     clearTimeout(timer);
   }

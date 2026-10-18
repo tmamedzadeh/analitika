@@ -33,6 +33,7 @@ const detail = {
   ownerId: "admin",
   status: "ready",
   step: "ready",
+  chunkCount: 1,
   progress: { percent: 100, completedChunks: 1, totalChunks: 1 },
   error: null,
   createdAt: "2026-10-18T10:00:00.000Z",

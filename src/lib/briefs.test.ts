@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   briefCanAppearInSearch,
   briefExcerpt,
-  briefIndexAction,
+  briefStatuses,
   briefSearchLabel,
   briefRouteForSearchSource,
   formatBriefEmbeddingText,
@@ -75,9 +75,8 @@ describe("brief photo safety", () => {
 });
 
 describe("brief indexing and search mapping", () => {
-  it("queues published briefs and removes draft chunks", () => {
-    expect(briefIndexAction("published")).toBe("index");
-    expect(briefIndexAction("draft")).toBe("remove");
+  it("allows only published briefs", () => {
+    expect(briefStatuses).toEqual(["published"]);
   });
 
   it("prefixes brief embeddings with the title and date", () => {

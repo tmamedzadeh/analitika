@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { getRequest } from "@tanstack/react-start/server";
 
 import {
-  briefIndexAction,
   briefIdSchema,
   briefInputSchema,
   briefPhotoMetadataSchema,
@@ -16,6 +16,7 @@ import { briefAttachments, chunks, dailyBriefs } from "@/server/db/schema";
 import { briefIndexingRequested } from "@/server/inngest/events";
 import { inngest } from "@/server/inngest/client";
 import { getStorage } from "@/server/storage/s3";
+import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 
 const photoListSchema = z.array(briefPhotoMetadataSchema).max(MAX_BRIEF_PHOTOS);
 const idListSchema = z
@@ -89,6 +90,9 @@ export async function prepareBriefUploadUrls(
   }>;
 }> {
   const parsed = prepareBriefUploadsSchema.parse(input);
+  if (!(await consumeIpRateLimit("upload-prepare", getRequest(), 30, 10 * 60_000))) {
+    throw new Error(az.analytics.rateLimited);
+  }
   const db = getDb();
   const briefId = parsed.briefId ?? crypto.randomUUID();
   const isNew = parsed.briefId === undefined;
@@ -196,8 +200,6 @@ export async function saveBriefRecord(
       .filter((file) => !parsed.keepAttachmentIds.includes(file.id))
       .map((file) => file.storageKey);
     const now = new Date();
-    const publish = briefIndexAction(parsed.status) === "index";
-
     await db.transaction(async (transaction) => {
       if (parsed.isNew) {
         await transaction.insert(dailyBriefs).values({
@@ -205,10 +207,10 @@ export async function saveBriefRecord(
           briefDate: parsed.date,
           title: parsed.title,
           body: parsed.body,
-          status: parsed.status,
-          indexStatus: publish ? "queued" : "none",
+          status: "published",
+          indexStatus: "queued",
           indexProgress: { percent: 0, totalChunks: 0, completedChunks: 0 },
-          publishedAt: publish ? now : null,
+          publishedAt: now,
           updatedAt: now,
         });
       } else {
@@ -218,10 +220,10 @@ export async function saveBriefRecord(
             briefDate: parsed.date,
             title: parsed.title,
             body: parsed.body,
-            status: parsed.status,
-            indexStatus: publish ? "queued" : "none",
+            status: "published",
+            indexStatus: "queued",
             indexProgress: { percent: 0, totalChunks: 0, completedChunks: 0 },
-            publishedAt: publish ? (existingBrief!.publishedAt ?? now) : null,
+            publishedAt: existingBrief!.publishedAt ?? now,
             updatedAt: now,
           })
           .where(and(eq(dailyBriefs.id, parsed.briefId), accessFilter()));
@@ -261,16 +263,14 @@ export async function saveBriefRecord(
     }
 
     let queueFailed = false;
-    if (publish) {
-      try {
-        await inngest.send(briefIndexingRequested.create({ briefId: parsed.briefId }));
-      } catch {
-        queueFailed = true;
-        await db
-          .update(dailyBriefs)
-          .set({ indexStatus: "failed", updatedAt: new Date() })
-          .where(and(eq(dailyBriefs.id, parsed.briefId), accessFilter()));
-      }
+    try {
+      await inngest.send(briefIndexingRequested.create({ briefId: parsed.briefId }));
+    } catch {
+      queueFailed = true;
+      await db
+        .update(dailyBriefs)
+        .set({ indexStatus: "failed", updatedAt: new Date() })
+        .where(and(eq(dailyBriefs.id, parsed.briefId), accessFilter()));
     }
     return { ok: true, briefId: parsed.briefId, queueFailed, cleanupIncomplete };
   } catch (error) {

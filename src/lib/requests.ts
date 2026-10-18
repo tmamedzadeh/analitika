@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { departmentIds } from "./departments";
 import { az } from "./i18n/az";
+import { imageMimeFromSignature } from "./briefs";
 
 export const requestUrgencies = ["normal", "urgent", "critical"] as const;
 export const requestStatuses = ["new", "in_progress", "answered", "rejected"] as const;
@@ -21,6 +22,38 @@ export const requestMimeByExtension = {
 
 export type RequestMime = (typeof requestMimeByExtension)[keyof typeof requestMimeByExtension];
 
+export function requestMimeFromSignature(bytes: Uint8Array): RequestMime | null {
+  if (bytes.length >= 5 && String.fromCharCode(...bytes.slice(0, 5)) === "%PDF-") {
+    return "application/pdf";
+  }
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x50 &&
+    bytes[1] === 0x4b &&
+    bytes[2] === 0x03 &&
+    bytes[3] === 0x04
+  ) {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  }
+  return imageMimeFromSignature(bytes);
+}
+
+export function requestUploadMatches(input: {
+  expectedMime: RequestMime;
+  expectedSize: number;
+  actualSize: number;
+  actualContentType?: string | undefined;
+  signature: Uint8Array;
+}): boolean {
+  return (
+    input.expectedSize > 0 &&
+    input.expectedSize <= requestMaxAttachmentSize &&
+    input.actualSize === input.expectedSize &&
+    (input.actualContentType === undefined || input.actualContentType === input.expectedMime) &&
+    requestMimeFromSignature(input.signature) === input.expectedMime
+  );
+}
+
 export function requestMimeFromName(name: string): RequestMime | null {
   const extension = name.split(".").at(-1)?.toLocaleLowerCase();
   if (!extension) return null;
@@ -35,21 +68,24 @@ const requestDateSchema = z
     return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
   }, az.requests.validation.date);
 
-export const requestAttachmentInputSchema = z
-  .object({
-    name: z.string().trim().min(1, az.requests.validation.fileName).max(255),
-    mime: z.enum(Object.values(requestMimeByExtension) as [RequestMime, ...RequestMime[]], {
-      message: az.requests.validation.fileType,
-    }),
-    size: z
-      .number()
-      .int()
-      .min(1, az.requests.validation.fileSize)
-      .max(requestMaxAttachmentSize, az.requests.validation.fileSize),
-  })
-  .refine((file) => requestMimeFromName(file.name) === file.mime, {
+export const requestAttachmentMetadataSchema = z.object({
+  name: z.string().trim().min(1, az.requests.validation.fileName).max(255),
+  mime: z.enum(Object.values(requestMimeByExtension) as [RequestMime, ...RequestMime[]], {
     message: az.requests.validation.fileType,
-  });
+  }),
+  size: z
+    .number()
+    .int()
+    .min(1, az.requests.validation.fileSize)
+    .max(requestMaxAttachmentSize, az.requests.validation.fileSize),
+});
+
+export const requestAttachmentInputSchema = requestAttachmentMetadataSchema.refine(
+  (file) => requestMimeFromName(file.name) === file.mime,
+  {
+    message: az.requests.validation.fileType,
+  },
+);
 
 export const infoRequestInputSchema = z.object({
   department: z.enum(departmentIds, { message: az.requests.validation.department }),

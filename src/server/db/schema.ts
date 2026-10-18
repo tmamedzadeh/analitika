@@ -16,6 +16,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   vector,
 } from "drizzle-orm/pg-core";
@@ -56,6 +57,7 @@ export const documents = pgTable(
     infoCredibility: smallint("info_credibility").notNull().default(6),
     ownerId: text("owner_id").notNull().default("admin"),
     status: documentStatus("status").notNull().default("queued"),
+    chunkCount: integer("chunk_count").notNull().default(0),
     step: text("step").notNull().default("queued"),
     progress: jsonb("progress").notNull().default(emptyJsonObject),
     error: text("error"),
@@ -70,6 +72,7 @@ export const documents = pgTable(
       "documents_department_check",
       sql.raw("department IS NULL OR department IN ('d1', 'd2', 'd3', 'd4', 'd5')"),
     ),
+    check("documents_chunk_count_nonnegative", sql.raw("chunk_count >= 0")),
     check(
       "documents_classification_check",
       sql.raw("classification IN ('open', 'secret', 'top_secret', 'special')"),
@@ -89,7 +92,7 @@ export const dailyBriefs = pgTable(
     briefDate: date("brief_date").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
-    status: text("status").notNull().default("draft"),
+    status: text("status").notNull().default("published"),
     authorId: text("author_id").notNull().default("admin"),
     indexStatus: text("index_status").notNull().default("none"),
     indexProgress: jsonb("index_progress").notNull().default(emptyJsonObject),
@@ -102,7 +105,7 @@ export const dailyBriefs = pgTable(
     index("daily_briefs_title_trgm_idx").using("gin", table.title.op("gin_trgm_ops")),
     index("daily_briefs_body_trgm_idx").using("gin", table.body.op("gin_trgm_ops")),
     check("daily_briefs_body_length_check", sql.raw("char_length(body) <= 200000")),
-    check("daily_briefs_status_check", sql.raw("status IN ('draft', 'published')")),
+    check("daily_briefs_status_check", sql.raw("status = 'published'")),
     check(
       "daily_briefs_index_status_check",
       sql.raw("index_status IN ('none', 'queued', 'processing', 'ready', 'failed')"),
@@ -186,7 +189,9 @@ export const infoRequests = pgTable(
     infoCredibility: smallint("info_credibility").notNull().default(6),
     note: text("note"),
     status: text("status").notNull().default("new"),
-    answerDocumentId: uuid("answer_document_id").references(() => documents.id),
+    answerDocumentId: uuid("answer_document_id").references(() => documents.id, {
+      onDelete: "set null",
+    }),
     requesterId: text("requester_id").notNull().default("admin"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -267,12 +272,32 @@ export const osintRuns = pgTable(
     error: text("error"),
     cacheKey: text("cache_key"),
     pinned: boolean("pinned").notNull().default(false),
+    heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
   },
   (table) => [
     index("osint_runs_created_idx").on(table.createdAt),
     index("osint_runs_pinned_cache_idx").on(table.cacheKey, table.createdAt),
+    index("osint_runs_active_heartbeat_idx")
+      .on(table.heartbeatAt)
+      .where(sql.raw("status IN ('queued', 'running')")),
+    uniqueIndex("osint_runs_active_cache_key_unique_idx")
+      .on(table.cacheKey)
+      .where(sql.raw("cache_key IS NOT NULL AND status IN ('queued', 'running')")),
+  ],
+);
+
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    key: text("key").primaryKey(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (table) => [
+    index("rate_limits_window_start_idx").on(table.windowStart),
+    check("rate_limits_count_nonnegative", sql.raw("count >= 0")),
   ],
 );
 

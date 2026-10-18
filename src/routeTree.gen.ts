@@ -9,131 +9,137 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AxtarisRouteImport } from './routes/axtaris'
-import { Route as AyarlarRouteImport } from './routes/ayarlar'
-import { Route as OsintRouteImport } from './routes/osint'
-import { Route as SenedlerRouteImport } from './routes/senedler'
-import { Route as SorguRouteImport } from './routes/sorgu'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppAxtarisRouteImport } from './routes/_app.axtaris'
+import { Route as AppAyarlarRouteImport } from './routes/_app.ayarlar'
+import { Route as AppOsintRouteImport } from './routes/_app.osint'
+import { Route as AppSenedlerRouteImport } from './routes/_app.senedler'
+import { Route as AppSorguRouteImport } from './routes/_app.sorgu'
 import { Route as ApiInngestRouteImport } from './routes/api.inngest'
-import { Route as BriflerIdRouteImport } from './routes/brifler.$id'
-import { Route as BriflerYeniRouteImport } from './routes/brifler.yeni'
-import { Route as SenedlerIdRouteImport } from './routes/senedler_.$id'
-import { Route as SorguIdRouteImport } from './routes/sorgu.$id'
+import { Route as AppBriflerIdRouteImport } from './routes/_app.brifler.$id'
+import { Route as AppBriflerYeniRouteImport } from './routes/_app.brifler.yeni'
+import { Route as AppSenedlerIdRouteImport } from './routes/_app.senedler_.$id'
+import { Route as AppSorguIdRouteImport } from './routes/_app.sorgu.$id'
 import { Route as ApiAnalyticsSearchRouteImport } from './routes/api.analytics.search'
-import { Route as BriflerIdRedakteRouteImport } from './routes/brifler.$id_.redakte'
+import { Route as AppBriflerIdRedakteRouteImport } from './routes/_app.brifler.$id_.redakte'
 
-const IndexRoute = IndexRouteImport.update({
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const AxtarisRoute = AxtarisRouteImport.update({
+const AppAxtarisRoute = AppAxtarisRouteImport.update({
   id: '/axtaris',
   path: '/axtaris',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const AyarlarRoute = AyarlarRouteImport.update({
+const AppAyarlarRoute = AppAyarlarRouteImport.update({
   id: '/ayarlar',
   path: '/ayarlar',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const OsintRoute = OsintRouteImport.update({
+const AppOsintRoute = AppOsintRouteImport.update({
   id: '/osint',
   path: '/osint',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const SenedlerRoute = SenedlerRouteImport.update({
+const AppSenedlerRoute = AppSenedlerRouteImport.update({
   id: '/senedler',
   path: '/senedler',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const SorguRoute = SorguRouteImport.update({
+const AppSorguRoute = AppSorguRouteImport.update({
   id: '/sorgu',
   path: '/sorgu',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
 const ApiInngestRoute = ApiInngestRouteImport.update({
   id: '/api/inngest',
   path: '/api/inngest',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BriflerIdRoute = BriflerIdRouteImport.update({
+const AppBriflerIdRoute = AppBriflerIdRouteImport.update({
   id: '/brifler/$id',
   path: '/brifler/$id',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const BriflerYeniRoute = BriflerYeniRouteImport.update({
+const AppBriflerYeniRoute = AppBriflerYeniRouteImport.update({
   id: '/brifler/yeni',
   path: '/brifler/yeni',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const SenedlerIdRoute = SenedlerIdRouteImport.update({
+const AppSenedlerIdRoute = AppSenedlerIdRouteImport.update({
   id: '/senedler_/$id',
   path: '/senedler/$id',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
-const SorguIdRoute = SorguIdRouteImport.update({
+const AppSorguIdRoute = AppSorguIdRouteImport.update({
   id: '/$id',
   path: '/$id',
-  getParentRoute: () => SorguRoute,
+  getParentRoute: () => AppSorguRoute,
 } as any)
 const ApiAnalyticsSearchRoute = ApiAnalyticsSearchRouteImport.update({
   id: '/api/analytics/search',
   path: '/api/analytics/search',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BriflerIdRedakteRoute = BriflerIdRedakteRouteImport.update({
+const AppBriflerIdRedakteRoute = AppBriflerIdRedakteRouteImport.update({
   id: '/brifler/$id_/redakte',
   path: '/brifler/$id/redakte',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/axtaris': typeof AxtarisRoute
-  '/ayarlar': typeof AyarlarRoute
-  '/osint': typeof OsintRoute
-  '/senedler': typeof SenedlerRoute
-  '/sorgu': typeof SorguRouteWithChildren
+  '/': typeof AppIndexRoute
+  '/axtaris': typeof AppAxtarisRoute
+  '/ayarlar': typeof AppAyarlarRoute
+  '/osint': typeof AppOsintRoute
+  '/senedler': typeof AppSenedlerRoute
+  '/sorgu': typeof AppSorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
-  '/brifler/$id': typeof BriflerIdRoute
-  '/brifler/yeni': typeof BriflerYeniRoute
-  '/senedler/$id': typeof SenedlerIdRoute
-  '/sorgu/$id': typeof SorguIdRoute
+  '/brifler/$id': typeof AppBriflerIdRoute
+  '/brifler/yeni': typeof AppBriflerYeniRoute
+  '/senedler/$id': typeof AppSenedlerIdRoute
+  '/sorgu/$id': typeof AppSorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
-  '/brifler/$id/redakte': typeof BriflerIdRedakteRoute
+  '/brifler/$id/redakte': typeof AppBriflerIdRedakteRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/axtaris': typeof AxtarisRoute
-  '/ayarlar': typeof AyarlarRoute
-  '/osint': typeof OsintRoute
-  '/senedler': typeof SenedlerRoute
-  '/sorgu': typeof SorguRouteWithChildren
+  '/axtaris': typeof AppAxtarisRoute
+  '/ayarlar': typeof AppAyarlarRoute
+  '/osint': typeof AppOsintRoute
+  '/senedler': typeof AppSenedlerRoute
+  '/sorgu': typeof AppSorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
-  '/brifler/$id': typeof BriflerIdRoute
-  '/brifler/yeni': typeof BriflerYeniRoute
-  '/senedler/$id': typeof SenedlerIdRoute
-  '/sorgu/$id': typeof SorguIdRoute
+  '/': typeof AppIndexRoute
+  '/brifler/$id': typeof AppBriflerIdRoute
+  '/brifler/yeni': typeof AppBriflerYeniRoute
+  '/senedler/$id': typeof AppSenedlerIdRoute
+  '/sorgu/$id': typeof AppSorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
-  '/brifler/$id/redakte': typeof BriflerIdRedakteRoute
+  '/brifler/$id/redakte': typeof AppBriflerIdRedakteRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/axtaris': typeof AxtarisRoute
-  '/ayarlar': typeof AyarlarRoute
-  '/osint': typeof OsintRoute
-  '/senedler': typeof SenedlerRoute
-  '/sorgu': typeof SorguRouteWithChildren
+  '/_app': typeof AppRouteWithChildren
+  '/_app/axtaris': typeof AppAxtarisRoute
+  '/_app/ayarlar': typeof AppAyarlarRoute
+  '/_app/osint': typeof AppOsintRoute
+  '/_app/senedler': typeof AppSenedlerRoute
+  '/_app/sorgu': typeof AppSorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
-  '/brifler/$id': typeof BriflerIdRoute
-  '/brifler/yeni': typeof BriflerYeniRoute
-  '/senedler_/$id': typeof SenedlerIdRoute
-  '/sorgu/$id': typeof SorguIdRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/brifler/$id': typeof AppBriflerIdRoute
+  '/_app/brifler/yeni': typeof AppBriflerYeniRoute
+  '/_app/senedler_/$id': typeof AppSenedlerIdRoute
+  '/_app/sorgu/$id': typeof AppSorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
-  '/brifler/$id_/redakte': typeof BriflerIdRedakteRoute
+  '/_app/brifler/$id_/redakte': typeof AppBriflerIdRedakteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -153,13 +159,13 @@ export interface FileRouteTypes {
     | '/brifler/$id/redakte'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/axtaris'
     | '/ayarlar'
     | '/osint'
     | '/senedler'
     | '/sorgu'
     | '/api/inngest'
+    | '/'
     | '/brifler/$id'
     | '/brifler/yeni'
     | '/senedler/$id'
@@ -168,79 +174,78 @@ export interface FileRouteTypes {
     | '/brifler/$id/redakte'
   id:
     | '__root__'
-    | '/'
-    | '/axtaris'
-    | '/ayarlar'
-    | '/osint'
-    | '/senedler'
-    | '/sorgu'
+    | '/_app'
+    | '/_app/axtaris'
+    | '/_app/ayarlar'
+    | '/_app/osint'
+    | '/_app/senedler'
+    | '/_app/sorgu'
     | '/api/inngest'
-    | '/brifler/$id'
-    | '/brifler/yeni'
-    | '/senedler_/$id'
-    | '/sorgu/$id'
+    | '/_app/'
+    | '/_app/brifler/$id'
+    | '/_app/brifler/yeni'
+    | '/_app/senedler_/$id'
+    | '/_app/sorgu/$id'
     | '/api/analytics/search'
-    | '/brifler/$id_/redakte'
+    | '/_app/brifler/$id_/redakte'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AxtarisRoute: typeof AxtarisRoute
-  AyarlarRoute: typeof AyarlarRoute
-  OsintRoute: typeof OsintRoute
-  SenedlerRoute: typeof SenedlerRoute
-  SorguRoute: typeof SorguRouteWithChildren
+  AppRoute: typeof AppRouteWithChildren
   ApiInngestRoute: typeof ApiInngestRoute
-  BriflerIdRoute: typeof BriflerIdRoute
-  BriflerYeniRoute: typeof BriflerYeniRoute
-  SenedlerIdRoute: typeof SenedlerIdRoute
   ApiAnalyticsSearchRoute: typeof ApiAnalyticsSearchRoute
-  BriflerIdRedakteRoute: typeof BriflerIdRedakteRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/axtaris': {
-      id: '/axtaris'
+    '/_app/axtaris': {
+      id: '/_app/axtaris'
       path: '/axtaris'
       fullPath: '/axtaris'
-      preLoaderRoute: typeof AxtarisRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppAxtarisRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/ayarlar': {
-      id: '/ayarlar'
+    '/_app/ayarlar': {
+      id: '/_app/ayarlar'
       path: '/ayarlar'
       fullPath: '/ayarlar'
-      preLoaderRoute: typeof AyarlarRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppAyarlarRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/osint': {
-      id: '/osint'
+    '/_app/osint': {
+      id: '/_app/osint'
       path: '/osint'
       fullPath: '/osint'
-      preLoaderRoute: typeof OsintRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppOsintRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/senedler': {
-      id: '/senedler'
+    '/_app/senedler': {
+      id: '/_app/senedler'
       path: '/senedler'
       fullPath: '/senedler'
-      preLoaderRoute: typeof SenedlerRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppSenedlerRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/sorgu': {
-      id: '/sorgu'
+    '/_app/sorgu': {
+      id: '/_app/sorgu'
       path: '/sorgu'
       fullPath: '/sorgu'
-      preLoaderRoute: typeof SorguRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppSorguRouteImport
+      parentRoute: typeof AppRoute
     }
     '/api/inngest': {
       id: '/api/inngest'
@@ -249,33 +254,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInngestRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/brifler/$id': {
-      id: '/brifler/$id'
+    '/_app/brifler/$id': {
+      id: '/_app/brifler/$id'
       path: '/brifler/$id'
       fullPath: '/brifler/$id'
-      preLoaderRoute: typeof BriflerIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppBriflerIdRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/brifler/yeni': {
-      id: '/brifler/yeni'
+    '/_app/brifler/yeni': {
+      id: '/_app/brifler/yeni'
       path: '/brifler/yeni'
       fullPath: '/brifler/yeni'
-      preLoaderRoute: typeof BriflerYeniRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppBriflerYeniRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/senedler_/$id': {
-      id: '/senedler_/$id'
+    '/_app/senedler_/$id': {
+      id: '/_app/senedler_/$id'
       path: '/senedler/$id'
       fullPath: '/senedler/$id'
-      preLoaderRoute: typeof SenedlerIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppSenedlerIdRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/sorgu/$id': {
-      id: '/sorgu/$id'
+    '/_app/sorgu/$id': {
+      id: '/_app/sorgu/$id'
       path: '/$id'
       fullPath: '/sorgu/$id'
-      preLoaderRoute: typeof SorguIdRouteImport
-      parentRoute: typeof SorguRoute
+      preLoaderRoute: typeof AppSorguIdRouteImport
+      parentRoute: typeof AppSorguRoute
     }
     '/api/analytics/search': {
       id: '/api/analytics/search'
@@ -284,39 +289,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAnalyticsSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/brifler/$id_/redakte': {
-      id: '/brifler/$id_/redakte'
+    '/_app/brifler/$id_/redakte': {
+      id: '/_app/brifler/$id_/redakte'
       path: '/brifler/$id/redakte'
       fullPath: '/brifler/$id/redakte'
-      preLoaderRoute: typeof BriflerIdRedakteRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppBriflerIdRedakteRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
 
-interface SorguRouteChildren {
-  SorguIdRoute: typeof SorguIdRoute
+interface AppSorguRouteChildren {
+  AppSorguIdRoute: typeof AppSorguIdRoute
 }
 
-const SorguRouteChildren: SorguRouteChildren = {
-  SorguIdRoute: SorguIdRoute,
+const AppSorguRouteChildren: AppSorguRouteChildren = {
+  AppSorguIdRoute: AppSorguIdRoute,
 }
 
-const SorguRouteWithChildren = SorguRoute._addFileChildren(SorguRouteChildren)
+const AppSorguRouteWithChildren = AppSorguRoute._addFileChildren(
+  AppSorguRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppAxtarisRoute: typeof AppAxtarisRoute
+  AppAyarlarRoute: typeof AppAyarlarRoute
+  AppOsintRoute: typeof AppOsintRoute
+  AppSenedlerRoute: typeof AppSenedlerRoute
+  AppSorguRoute: typeof AppSorguRouteWithChildren
+  AppIndexRoute: typeof AppIndexRoute
+  AppBriflerIdRoute: typeof AppBriflerIdRoute
+  AppBriflerYeniRoute: typeof AppBriflerYeniRoute
+  AppSenedlerIdRoute: typeof AppSenedlerIdRoute
+  AppBriflerIdRedakteRoute: typeof AppBriflerIdRedakteRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAxtarisRoute: AppAxtarisRoute,
+  AppAyarlarRoute: AppAyarlarRoute,
+  AppOsintRoute: AppOsintRoute,
+  AppSenedlerRoute: AppSenedlerRoute,
+  AppSorguRoute: AppSorguRouteWithChildren,
+  AppIndexRoute: AppIndexRoute,
+  AppBriflerIdRoute: AppBriflerIdRoute,
+  AppBriflerYeniRoute: AppBriflerYeniRoute,
+  AppSenedlerIdRoute: AppSenedlerIdRoute,
+  AppBriflerIdRedakteRoute: AppBriflerIdRedakteRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AxtarisRoute: AxtarisRoute,
-  AyarlarRoute: AyarlarRoute,
-  OsintRoute: OsintRoute,
-  SenedlerRoute: SenedlerRoute,
-  SorguRoute: SorguRouteWithChildren,
+  AppRoute: AppRouteWithChildren,
   ApiInngestRoute: ApiInngestRoute,
-  BriflerIdRoute: BriflerIdRoute,
-  BriflerYeniRoute: BriflerYeniRoute,
-  SenedlerIdRoute: SenedlerIdRoute,
   ApiAnalyticsSearchRoute: ApiAnalyticsSearchRoute,
-  BriflerIdRedakteRoute: BriflerIdRedakteRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

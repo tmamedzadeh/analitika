@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Search,
   Globe,
@@ -76,6 +76,45 @@ export function Shell({
   children: ReactNode;
 }) {
   return (
+    <>
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-x-5 gap-y-4 border-b border-border pb-5 md:mb-8">
+        <div className="min-w-0 flex-1">
+          {crumb !== title && (
+            <p className="mb-1 text-xs font-semibold tracking-[0.1em] text-muted-foreground">
+              {crumb}
+            </p>
+          )}
+          <h1 className="text-[1.55rem] font-semibold leading-tight tracking-[-0.025em] text-foreground sm:text-3xl">
+            {title}
+          </h1>
+        </div>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+          {badges.map((badge) => (
+            <span
+              key={badge}
+              className="inline-flex min-h-8 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground"
+            >
+              {badge}
+            </span>
+          ))}
+          {actions}
+        </div>
+      </header>
+      <div>{children}</div>
+    </>
+  );
+}
+
+function navItemIsActive(pathname: string, to: (typeof nav)[number]["to"]): boolean {
+  if (to === "/") return pathname === "/" || pathname.startsWith("/brifler/");
+  if (to === "/senedler") return pathname === to || pathname.startsWith(`${to}/`);
+  if (to === "/sorgu") return pathname === to || pathname.startsWith(`${to}/`);
+  return pathname === to;
+}
+
+export function ShellLayout({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  return (
     <div className="min-h-screen md:flex">
       <aside className="flex w-full flex-col border-b border-border bg-card px-4 py-3 md:min-h-screen md:w-58 md:shrink-0 md:border-b-0 md:border-r md:px-5 md:py-6">
         <div className="flex items-center justify-between gap-3 md:flex-col md:justify-start md:gap-0">
@@ -97,20 +136,25 @@ export function Shell({
           aria-label={az.navigation.primary}
           className="mt-4 flex gap-1 overflow-x-auto pb-1 md:mt-7 md:block md:space-y-1.5 md:overflow-visible md:pb-0"
         >
-          {nav.map(({ to, icon: Icon, label }) => (
-            <Link
-              key={to}
-              to={to}
-              aria-label={label}
-              title={label}
-              className="flex h-10 min-w-max items-center gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:h-11 md:w-full md:min-w-0 md:gap-3 md:px-3.5"
-              activeProps={{ className: "bg-accent text-primary" }}
-              activeOptions={{ exact: true }}
-            >
-              <Icon size={18} className="shrink-0" aria-hidden="true" />
-              <span>{label}</span>
-            </Link>
-          ))}
+          {nav.map(({ to, icon: Icon, label }) => {
+            const active = navItemIsActive(pathname, to);
+            return (
+              <Link
+                key={to}
+                to={to}
+                aria-label={label}
+                title={label}
+                className={
+                  "flex h-10 min-w-max items-center gap-2.5 rounded-lg px-3 text-sm font-medium transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:h-11 md:w-full md:min-w-0 md:gap-3 md:px-3.5 " +
+                  (active ? "bg-accent text-primary" : "text-muted-foreground")
+                }
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon size={18} className="shrink-0" aria-hidden="true" />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="mt-auto hidden md:block">
@@ -125,32 +169,7 @@ export function Shell({
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 md:px-9 md:py-8">
-        <header className="mb-6 flex flex-wrap items-center justify-between gap-x-5 gap-y-4 border-b border-border pb-5 md:mb-8">
-          <div className="min-w-0 flex-1">
-            {crumb !== title && (
-              <p className="mb-1 text-xs font-semibold tracking-[0.1em] text-muted-foreground">
-                {crumb}
-              </p>
-            )}
-            <h1 className="text-[1.55rem] font-semibold leading-tight tracking-[-0.025em] text-foreground sm:text-3xl">
-              {title}
-            </h1>
-          </div>
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-            {badges.map((badge, index) => (
-              <span
-                key={badge}
-                className="inline-flex min-h-8 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground"
-              >
-                {badge}
-              </span>
-            ))}
-            {actions}
-          </div>
-        </header>
-        <div>{children}</div>
-      </main>
+      <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 md:px-9 md:py-8">{children}</main>
     </div>
   );
 }

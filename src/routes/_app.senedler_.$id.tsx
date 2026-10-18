@@ -14,7 +14,7 @@ import {
   retryDocumentIndexing,
 } from "@/lib/documents.functions";
 
-export const Route = createFileRoute("/senedler_/$id")({
+export const Route = createFileRoute("/_app/senedler_/$id")({
   validateSearch: z.object({ chunk: z.string().uuid().optional() }),
   head: () => ({
     meta: [

@@ -17,7 +17,7 @@ import {
 } from "@/lib/requests.functions";
 import { requestStatuses } from "@/lib/requests";
 
-export const Route = createFileRoute("/sorgu/$id")({
+export const Route = createFileRoute("/_app/sorgu/$id")({
   validateSearch: z.object({}),
   head: () => ({
     meta: [

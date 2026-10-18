@@ -49,6 +49,28 @@ describe("chunkDocument", () => {
     expect(chunks.every((chunk) => chunk.sectionTitle === "Cədvəl")).toBe(true);
   });
 
+  it("does not classify a lone vertical bar as a table", () => {
+    const chunks = chunkDocument(
+      "A normal sentence with one | vertical bar.\n| A single wrapped line |",
+      "Qeyd",
+    );
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]?.isTable).toBe(false);
+    expect(chunks[0]?.text).toContain("vertical bar");
+    expect(chunks[0]?.text).toContain("A single wrapped line");
+  });
+
+  it("recognizes consecutive pipe-wrapped rows and a separator row as tables", () => {
+    const rows = chunkDocument("| A | B |\n| 1 | 2 |", "Qeyd");
+    const separator = chunkDocument("| --- | --- |", "Qeyd");
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.isTable).toBe(true);
+    expect(separator).toHaveLength(1);
+    expect(separator[0]?.isTable).toBe(true);
+  });
+
   it("splits long prose into overlapping ranges", () => {
     const body = Array.from({ length: 90 }, (_, index) => `söz${index}`).join(" ");
     const chunks = chunkDocument(body, "Uzun", { targetChars: 160, overlapChars: 24 });

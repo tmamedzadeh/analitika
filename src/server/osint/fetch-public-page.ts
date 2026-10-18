@@ -7,6 +7,8 @@ import { parseHTML } from "linkedom";
 import robotsParser from "robots-parser";
 
 import { resolvePublicHost } from "./ssrf";
+import { decodeHtmlBytes } from "./charset";
+import { createPinnedLookup } from "./pinned-lookup";
 
 const MAX_PAGE_BYTES = 2 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
@@ -59,7 +61,7 @@ async function requestOnce(url: URL, timeoutMs: number, byteLimit: number): Prom
     },
     timeout: remaining,
     ...(url.protocol === "https:" ? { servername: url.hostname.replace(/^\[|\]$/g, "") } : {}),
-    lookup: (_hostname, _options, callback) => callback(null, resolved.address, resolved.family),
+    lookup: createPinnedLookup(resolved.address, resolved.family),
   };
   return new Promise((resolve, reject) => {
     const request = (url.protocol === "https:" ? httpsRequest : httpRequest)(
@@ -255,7 +257,9 @@ export async function fetchPublicPage(url: string, timeoutMs = 8000): Promise<Pu
     return { fetched: false, text: "", fetchStatus: "non_html" };
   }
 
-  const window = parseHTML(response.body.toString("utf8"));
+  const window = parseHTML(
+    decodeHtmlBytes(response.body, String(response.headers["content-type"] ?? "")),
+  );
   const document = window.document;
   const publishedAt = publicationDate(document);
   const title =

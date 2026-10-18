@@ -1,11 +1,16 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
-import { requireServerEnv } from "../env";
+import { readServerEnv, requireServerEnv } from "../env";
 import * as schema from "./schema";
 
 function createConnection() {
-  const client = postgres(requireServerEnv("DATABASE_URL"), { prepare: false });
+  const client = postgres(requireServerEnv("DATABASE_URL"), {
+    prepare: false,
+    max: readServerEnv().DATABASE_POOL_MAX,
+    idle_timeout: 20,
+    connect_timeout: 10,
+  });
   return { client, database: drizzle(client, { schema }) };
 }
 

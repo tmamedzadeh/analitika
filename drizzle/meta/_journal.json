@@ -43,6 +43,34 @@
       "when": 1792327370547,
       "tag": "0005_allow_duplicate_brief_dates",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792340000000,
+      "tag": "0006_published_briefs",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792341000000,
+      "tag": "0007_rate_limits_and_osint_dedupe",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792342000000,
+      "tag": "0008_osint_heartbeats",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792343000000,
+      "tag": "0009_document_counts_and_request_fk",
+      "breakpoints": true
     }
   ]
 }

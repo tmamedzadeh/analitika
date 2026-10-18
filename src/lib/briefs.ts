@@ -7,7 +7,7 @@ export const MAX_BRIEF_PHOTO_BYTES = 10 * 1024 * 1024;
 export const MAX_BRIEF_BODY_LENGTH = 200_000;
 export const BRIEF_PAGE_SIZE = 12;
 
-export const briefStatuses = ["draft", "published"] as const;
+export const briefStatuses = ["published"] as const;
 export const briefIndexStatuses = ["none", "queued", "processing", "ready", "failed"] as const;
 
 export type BriefStatus = (typeof briefStatuses)[number];
@@ -190,10 +190,6 @@ export function briefRoute(briefId: string): string {
 
 export function briefChunkRoute(briefId: string, chunkId: string): string {
   return `${briefRoute(briefId)}?chunk=${encodeURIComponent(chunkId)}`;
-}
-
-export function briefIndexAction(status: BriefStatus): "index" | "remove" {
-  return status === "published" ? "index" : "remove";
 }
 
 export function formatBriefEmbeddingText(title: string, date: string, chunkText: string): string {

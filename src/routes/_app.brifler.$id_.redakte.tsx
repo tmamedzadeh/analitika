@@ -6,7 +6,7 @@ import { getBrief } from "@/lib/briefs.functions";
 import { briefHead } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
 
-export const Route = createFileRoute("/brifler/$id_/redakte")({
+export const Route = createFileRoute("/_app/brifler/$id_/redakte")({
   loader: ({ params }) => getBrief({ data: { briefId: params.id } }),
   head: () => briefHead(az.briefs.editTitle, az.briefs.description),
   component: EditBrief,

@@ -6,6 +6,8 @@ import {
   requestMaxAttachmentSize,
   requestMaxAttachments,
   requestMimeFromName,
+  requestMimeFromSignature,
+  requestUploadMatches,
 } from "./requests";
 
 const validRequest = {
@@ -71,6 +73,52 @@ describe("information request validation", () => {
           size: 1024,
         })),
       }).success,
+    ).toBe(false);
+  });
+
+  it("detects request attachment types from file signatures", () => {
+    expect(requestMimeFromSignature(new TextEncoder().encode("%PDF-1.7"))).toBe("application/pdf");
+    expect(requestMimeFromSignature(new Uint8Array([0x50, 0x4b, 0x03, 0x04]))).toBe(
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    );
+    expect(requestMimeFromSignature(new Uint8Array([0xff, 0xd8, 0xff, 0x00]))).toBe("image/jpeg");
+    expect(
+      requestMimeFromSignature(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+    ).toBe("image/png");
+    const webp = new Uint8Array(12);
+    webp.set([0x52, 0x49, 0x46, 0x46], 0);
+    webp.set([0x57, 0x45, 0x42, 0x50], 8);
+    expect(requestMimeFromSignature(webp)).toBe("image/webp");
+    expect(requestMimeFromSignature(new Uint8Array([0x47, 0x49, 0x46, 0x38]))).toBeNull();
+  });
+
+  it("checks request upload size, content type, and detected signature", () => {
+    const pdf = new TextEncoder().encode("%PDF-1.7");
+    expect(
+      requestUploadMatches({
+        expectedMime: "application/pdf",
+        expectedSize: pdf.length,
+        actualSize: pdf.length,
+        actualContentType: "application/pdf",
+        signature: pdf,
+      }),
+    ).toBe(true);
+    expect(
+      requestUploadMatches({
+        expectedMime: "application/pdf",
+        expectedSize: requestMaxAttachmentSize + 1,
+        actualSize: requestMaxAttachmentSize + 1,
+        signature: pdf,
+      }),
+    ).toBe(false);
+    expect(
+      requestUploadMatches({
+        expectedMime: "application/pdf",
+        expectedSize: pdf.length,
+        actualSize: pdf.length,
+        actualContentType: "image/png",
+        signature: pdf,
+      }),
     ).toBe(false);
   });
 });

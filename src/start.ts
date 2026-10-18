@@ -4,6 +4,7 @@ import process from "node:process";
 
 import { renderErrorPage } from "./lib/error-page";
 import { readServerEnv } from "./server/env";
+import { basicAuthCredentialsMatch, demoAuthUnavailableResponse } from "./server/basic-auth";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -31,8 +32,11 @@ const basicAuthMiddleware = createMiddleware().server(async ({ next, request }) 
   const credentials = readServerEnv().DEMO_BASIC_AUTH;
   const pathname = new URL(request.url).pathname;
 
-  if (!credentials || pathname === "/api/inngest" || pathname.startsWith("/api/inngest/")) {
+  if (pathname === "/api/inngest" || pathname.startsWith("/api/inngest/")) {
     return next();
+  }
+  if (!credentials) {
+    return process.env["NODE_ENV"] === "production" ? demoAuthUnavailableResponse() : next();
   }
 
   const authorization = request.headers.get("authorization");
@@ -47,7 +51,10 @@ const basicAuthMiddleware = createMiddleware().server(async ({ next, request }) 
     }
   }
 
-  if (!suppliedCredentials || suppliedCredentials !== credentials) {
+  if (
+    scheme?.toLowerCase() !== "basic" ||
+    !basicAuthCredentialsMatch(credentials, suppliedCredentials)
+  ) {
     return new Response("Kimlik doğrulaması tələb olunur.", {
       status: 401,
       headers: {

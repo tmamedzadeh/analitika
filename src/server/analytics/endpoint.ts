@@ -3,9 +3,10 @@ import type { AnalyticsSource, AnalyticsSourcePreview } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
 import { createGeminiProviders } from "@/server/ai/gemini";
 import { validateCitations } from "./citations";
-import { consumeAnalyticsRateLimit, getAnalyticsClientKey } from "./rate-limit";
+import { consumeAnalyticsRateLimit } from "./rate-limit";
 import { searchDocumentChunks } from "./search";
 import { buildAnalyticsPrompt } from "../prompts/analytics";
+import { getAppConfig } from "@/server/config";
 
 const encoder = new TextEncoder();
 
@@ -25,7 +26,7 @@ function eventStream(body: ReadableStream<Uint8Array>): Response {
 }
 
 export async function handleAnalyticsSearchRequest(request: Request): Promise<Response> {
-  if (!consumeAnalyticsRateLimit(getAnalyticsClientKey(request))) {
+  if (!(await consumeAnalyticsRateLimit(request))) {
     return jsonError(429, az.analytics.rateLimited);
   }
 
@@ -51,11 +52,26 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
     return jsonError(500, az.analytics.searchFailed);
   }
 
+  let heartbeat: ReturnType<typeof setInterval> | undefined;
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
+      let closed = false;
+      const close = () => {
+        if (closed) return;
+        closed = true;
+        if (heartbeat) clearInterval(heartbeat);
+        controller.close();
+      };
       const send = (event: Record<string, unknown>) => {
         controller.enqueue(encoder.encode("data: " + JSON.stringify(event) + "\n\n"));
       };
+      heartbeat = setInterval(() => {
+        if (controller.desiredSize === null) {
+          if (heartbeat) clearInterval(heartbeat);
+          return;
+        }
+        controller.enqueue(encoder.encode(": keepalive\n\n"));
+      }, 15_000);
       const sourcePreviews: AnalyticsSourcePreview[] = sources.map(
         ({ text: _text, charStart: _charStart, charEnd: _charEnd, ...source }) => source,
       );
@@ -70,7 +86,7 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
             durationMs: Date.now() - startedAt,
             model,
           });
-          controller.close();
+          close();
           return;
         }
 
@@ -82,14 +98,18 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
             durationMs: Date.now() - startedAt,
             model,
           });
-          controller.close();
+          close();
           return;
         }
 
         let generated = "";
         try {
           const providers = createGeminiProviders();
-          const prompt = buildAnalyticsPrompt(query, sources);
+          const prompt = buildAnalyticsPrompt(
+            query,
+            sources,
+            getAppConfig().analyticsThinkingLevel,
+          );
           const chunks = await providers.analytics.streamText(prompt);
           for await (const part of chunks) {
             generated += part;
@@ -107,11 +127,15 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
         } catch {
           send({ type: "error", message: az.analytics.answerFailed });
         } finally {
-          controller.close();
+          close();
         }
       })().catch(() => {
+        if (heartbeat) clearInterval(heartbeat);
         controller.error(new Error(az.analytics.answerFailed));
       });
+    },
+    cancel() {
+      if (heartbeat) clearInterval(heartbeat);
     },
   });
 

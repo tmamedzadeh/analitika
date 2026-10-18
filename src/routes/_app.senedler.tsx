@@ -17,12 +17,11 @@ import {
 import { departments } from "@/lib/departments";
 import { az } from "@/lib/i18n/az";
 import {
-  completeDocumentUploads,
-  createDocumentDraft,
+  prepareDocumentUploads,
   createDocumentSchema,
-  discardDocumentDraft,
   listRecentDocuments,
   retryDocumentIndexing,
+  saveDocument,
 } from "@/lib/documents.functions";
 
 const classifications = ["open", "secret", "top_secret", "special"] as const;
@@ -31,7 +30,7 @@ const maxImageSize = 10 * 1024 * 1024;
 
 type DocumentSummary = Awaited<ReturnType<typeof listRecentDocuments>>[number];
 
-export const Route = createFileRoute("/senedler")({
+export const Route = createFileRoute("/_app/senedler")({
   head: () => ({
     meta: [
       { title: "Analitik məlumatlar · Analitika" },
@@ -132,12 +131,10 @@ function AddDoc() {
     }
 
     setSaving(true);
-    let documentId: string | null = null;
     try {
-      const draft = await createDocumentDraft({ data: input.data });
-      documentId = draft.documentId;
+      const prepared = await prepareDocumentUploads({ data: input.data });
 
-      for (const [index, upload] of draft.uploads.entries()) {
+      for (const [index, upload] of prepared.uploads.entries()) {
         const file = photos[index];
         if (!file) throw new Error(az.documents.form.invalidPhotos);
         let response: Response;
@@ -153,7 +150,15 @@ function AddDoc() {
         if (!response.ok) throw new Error(az.documents.form.photoUploadFailed);
       }
 
-      await completeDocumentUploads({ data: { documentId: draft.documentId } });
+      await saveDocument({
+        data: {
+          ...input.data,
+          documentId: prepared.documentId,
+          uploads: prepared.uploads.map(
+            ({ url: _url, attachmentId: _attachmentId, ...upload }) => upload,
+          ),
+        },
+      });
       setSaved(true);
       formRef.current?.reset();
       setDocDate("");
@@ -167,13 +172,6 @@ function AddDoc() {
     } catch (error) {
       console.error("Document upload request failed.");
       setFormError(error instanceof Error ? error.message : az.documents.loadError);
-      if (documentId) {
-        try {
-          await discardDocumentDraft({ data: { documentId } });
-        } catch {
-          console.error("Document draft cleanup failed.");
-        }
-      }
       await queryClient.invalidateQueries({ queryKey: ["documents", "recent"] });
     } finally {
       setSaving(false);

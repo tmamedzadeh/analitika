@@ -7,6 +7,7 @@ import { getDb } from "@/server/db";
 import { chunks, dailyBriefs } from "@/server/db/schema";
 import { createGeminiProviders } from "@/server/ai/gemini";
 import { chunkDocument } from "@/server/ingest/chunker";
+import { isTemporaryWorkerFailure, nonRetriableJobError } from "./failure-policy";
 
 const EMBEDDING_BATCH_SIZE = 32;
 
@@ -112,7 +113,7 @@ export async function indexBriefJob(briefId: string): Promise<void> {
         updatedAt: new Date(),
       })
       .where(and(eq(dailyBriefs.id, briefId), accessFilter()));
-  } catch {
+  } catch (error) {
     await db
       .update(dailyBriefs)
       .set({
@@ -120,6 +121,7 @@ export async function indexBriefJob(briefId: string): Promise<void> {
         updatedAt: new Date(),
       })
       .where(and(eq(dailyBriefs.id, briefId), accessFilter()));
-    throw new Error(az.briefs.indexStatus.failed);
+    if (isTemporaryWorkerFailure(error)) throw error;
+    throw nonRetriableJobError("Brief indexing failed.");
   }
 }

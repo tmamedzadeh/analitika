@@ -1,4 +1,7 @@
 export const az = {
+  security: {
+    demoAuthUnavailable: "Demo mühitinin autentifikasiyası konfiqurasiya edilməyib.",
+  },
   loader: {
     loading: "Məlumat yüklənir…",
     processing: "Məlumatlar emal olunur…",
@@ -91,6 +94,8 @@ export const az = {
     sources: "Mənbələr",
     optionsFailed: "Filtrləri yükləmək mümkün olmadı.",
     noSources: "Mənbələrdə məlumat tapılmadı.",
+    usedSources: "Cavabda istifadə olunan mənbələr: {used} / {total}",
+    sourceUnused: "istifadə olunmayıb",
     emptyState: "Sual verin; cavab tapılmış sənəd fraqmentlərinə əsaslanacaq.",
     sourcesHint: "Axtarış nəticəsində uyğun sənəd fraqmentləri burada görünəcək.",
     sectionUnknown: "Bölmə göstərilməyib",
@@ -100,9 +105,10 @@ export const az = {
     photos: "şəkil",
     openSource: "{n} nömrəli mənbəni aç",
     invalidRequest: "Sorğu düzgün deyil. Sualı yoxlayıb yenidən cəhd edin.",
-    rateLimited: "Çox tez-tez sorğu göndərilir. Bir dəqiqə sonra yenidən cəhd edin.",
+    rateLimited: "Sorğu limitinə çatdınız. Bir müddət sonra yenidən cəhd edin.",
     searchFailed: "Axtarışı yerinə yetirmək mümkün olmadı.",
     answerFailed: "Cavabı yaratmaq mümkün olmadı. Yenidən cəhd edin.",
+    timeout: "Axtarış 100 saniyə ərzində cavab vermədi. Yenidən cəhd edin.",
     quotaExceeded:
       "AI provayder kvotası ({quota}) bitib və ya sorğu limiti aşılıb. Seçilmiş provayder panelində planı və istifadəni yoxlayın, sonra yenidən cəhd edin.",
   },
@@ -231,8 +237,7 @@ export const az = {
     addPhoto: "Foto əlavə edin",
     removePhoto: "{name} sil",
     preview: "Kartın görünüşü",
-    publish: "Təsdiqlə və dərc et",
-    saveDraft: "Yadda saxla",
+    save: "Yadda saxla",
     cancel: "Ləğv et",
     saveFailed: "Brifi yadda saxlamaq mümkün olmadı. Yenidən cəhd edin.",
     uploadFailed: "Foto Storage-a yüklənmədi. Yenidən cəhd edin.",

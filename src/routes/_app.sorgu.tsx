@@ -16,9 +16,8 @@ import {
   type SourceReliability,
 } from "@/lib/reliability";
 import {
-  completeInfoRequestUploads,
-  createInfoRequestDraft,
-  discardInfoRequestDraft,
+  prepareInfoRequestUploads,
+  saveInfoRequest,
   listAnswerDocuments,
   listInfoRequests,
   setInfoRequestAnswerDocument,
@@ -33,7 +32,7 @@ import {
   requestUrgencies,
 } from "@/lib/requests";
 
-export const Route = createFileRoute("/sorgu")({
+export const Route = createFileRoute("/_app/sorgu")({
   head: () => ({
     meta: [
       { title: `${az.requests.title} · Analitika` },
@@ -82,7 +81,12 @@ function Sorgu() {
   const requestsQuery = useQuery({
     queryKey: ["info-requests"],
     queryFn: () => listInfoRequests(),
-    refetchInterval: 5000,
+    refetchInterval: (queryState) =>
+      queryState.state.data?.some(
+        (request) => request.status === "new" || request.status === "in_progress",
+      )
+        ? 5000
+        : false,
   });
   const documentsQuery = useQuery({
     queryKey: ["documents", "answer-options"],
@@ -156,33 +160,33 @@ function Sorgu() {
     }
 
     setSaving(true);
-    let requestId: string | null = null;
     try {
-      const draft = await createInfoRequestDraft({
+      const prepared = await prepareInfoRequestUploads({
         data: { ...parsed.data, note: parsed.data.note ?? "" },
       });
-      requestId = draft.requestId;
-      try {
-        for (const [index, upload] of draft.uploads.entries()) {
-          const file = files[index];
-          if (!file) throw new Error(az.requests.form.fileUploadFailed);
-          let response: Response;
-          try {
-            response = await fetch(upload.url, {
-              method: "PUT",
-              headers: { "content-type": upload.mime },
-              body: file,
-            });
-          } catch {
-            throw new Error(az.requests.form.fileUploadFailed);
-          }
-          if (!response.ok) throw new Error(az.requests.form.fileUploadFailed);
+      for (const [index, upload] of prepared.uploads.entries()) {
+        const file = files[index];
+        if (!file) throw new Error(az.requests.form.fileUploadFailed);
+        let response: Response;
+        try {
+          response = await fetch(upload.url, {
+            method: "PUT",
+            headers: { "content-type": upload.mime },
+            body: file,
+          });
+        } catch {
+          throw new Error(az.requests.form.fileUploadFailed);
         }
-        await completeInfoRequestUploads({ data: { requestId } });
-      } catch (error) {
-        await discardInfoRequestDraft({ data: { requestId } }).catch(() => undefined);
-        throw error;
+        if (!response.ok) throw new Error(az.requests.form.fileUploadFailed);
       }
+      await saveInfoRequest({
+        data: {
+          ...parsed.data,
+          note: parsed.data.note ?? "",
+          requestId: prepared.requestId,
+          uploads: prepared.uploads.map(({ url: _url, ...upload }) => upload),
+        },
+      });
 
       resetForm();
       setSuccess(true);

@@ -7,6 +7,7 @@ import { getDb } from "../db";
 import { accessFilter } from "../db/access";
 import { chunkDocument } from "../ingest/chunker";
 import { az } from "@/lib/i18n/az";
+import { isTemporaryWorkerFailure, nonRetriableJobError } from "./failure-policy";
 
 const EMBEDDING_BATCH_SIZE = 32;
 
@@ -41,6 +42,7 @@ export async function processDocumentJob(documentId: string): Promise<void> {
       .set({
         status: "processing",
         step: "chunking",
+        chunkCount: 0,
         progress: { percent: 10, totalChunks: 0, completedChunks: 0 } satisfies DocumentProgress,
         error: null,
         updatedAt: now,
@@ -94,6 +96,7 @@ export async function processDocumentJob(documentId: string): Promise<void> {
         .update(documents)
         .set({
           step: "embedding",
+          chunkCount: completedChunks,
           progress: {
             percent,
             totalChunks: sourceChunks.length,
@@ -109,6 +112,7 @@ export async function processDocumentJob(documentId: string): Promise<void> {
       .set({
         status: "ready",
         step: "ready",
+        chunkCount: sourceChunks.length,
         progress: {
           percent: 100,
           totalChunks: sourceChunks.length,
@@ -128,6 +132,7 @@ export async function processDocumentJob(documentId: string): Promise<void> {
         updatedAt: new Date(),
       })
       .where(eq(documents.id, documentId));
-    throw error;
+    if (isTemporaryWorkerFailure(error)) throw error;
+    throw nonRetriableJobError("Document indexing failed.");
   }
 }

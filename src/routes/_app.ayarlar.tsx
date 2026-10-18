@@ -3,7 +3,7 @@ import { useState } from "react";
 import { UserPlus } from "lucide-react";
 import { Shell } from "@/components/Shell";
 
-export const Route = createFileRoute("/ayarlar")({
+export const Route = createFileRoute("/_app/ayarlar")({
   head: () => ({
     meta: [
       { title: "Ayarlar · İstifadəçilər" },

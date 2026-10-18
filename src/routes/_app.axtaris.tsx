@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 
@@ -20,7 +20,7 @@ const initialFilters: AnalyticsFilters = {
   minInfoCredibility: "all",
 };
 
-export const Route = createFileRoute("/axtaris")({
+export const Route = createFileRoute("/_app/axtaris")({
   head: () => ({
     meta: [
       { title: "Analitika üzrə axtarış" },
@@ -40,6 +40,10 @@ function sourceUrl(source: AnalyticsSourcePreview): string {
 
 function citationMarkdown(answer: string) {
   return answer.replace(/\[(\d+)\](?!\()/g, "[$1](citation:$1)");
+}
+
+function citedSourceNumbers(answer: string): Set<number> {
+  return new Set([...answer.matchAll(/\[(\d+)\]/g)].map((match) => Number(match[1])));
 }
 
 function ReliabilityBadges({ source }: { source: AnalyticsSourcePreview }) {
@@ -91,6 +95,7 @@ function Analytics() {
   const [pageError, setPageError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [sourceOnly, setSourceOnly] = useState(false);
+  const usedSourceNumbers = citedSourceNumbers(answer);
 
   const optionsQuery = useQuery({
     queryKey: ["analytics", "options"],
@@ -109,11 +114,14 @@ function Analytics() {
     setIncomplete(false);
     setElapsedMs(null);
 
+    const abortController = new AbortController();
+    const timeoutId = window.setTimeout(() => abortController.abort(), 100_000);
     try {
       const response = await fetch("/api/analytics/search", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "text/event-stream" },
         body: JSON.stringify({ query: normalizedQuestion, filters, mode }),
+        signal: abortController.signal,
       });
       if (!response.ok) {
         const data = (await response.json().catch(() => null)) as { message?: string } | null;
@@ -163,8 +171,15 @@ function Analytics() {
       }
       if (buffer.trim()) readEvent(buffer);
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : az.analytics.searchFailed);
+      setPageError(
+        abortController.signal.aborted
+          ? az.analytics.timeout
+          : error instanceof Error
+            ? error.message
+            : az.analytics.searchFailed,
+      );
     } finally {
+      window.clearTimeout(timeoutId);
       setBusy(false);
     }
   }
@@ -406,11 +421,22 @@ function Analytics() {
         <aside>
           <div className="mb-3 flex items-center justify-between gap-2">
             <p className="label-mono">{az.analytics.sources}</p>
-            <span className="label-mono">
-              {hasSearched
-                ? az.analytics.sourcesCount.replace("{count}", String(sources.length))
-                : ""}
-            </span>
+            {hasSearched && !sourceOnly ? (
+              <span className="label-mono">
+                {az.analytics.usedSources
+                  .replace(
+                    "{used}",
+                    String(sources.filter((source) => usedSourceNumbers.has(source.n)).length),
+                  )
+                  .replace("{total}", String(sources.length))}
+              </span>
+            ) : (
+              <span className="label-mono">
+                {hasSearched
+                  ? az.analytics.sourcesCount.replace("{count}", String(sources.length))
+                  : ""}
+              </span>
+            )}
           </div>
           {optionsQuery.isError && (
             <p role="alert" className="mb-3 text-sm text-destructive">
@@ -419,7 +445,13 @@ function Analytics() {
           )}
           <div className="space-y-3">
             {sources.map((source) => (
-              <article key={source.chunkId} className="panel p-5">
+              <article
+                key={source.chunkId}
+                id={`source-${source.n}`}
+                className={
+                  "panel p-5 " + (usedSourceNumbers.has(source.n) || sourceOnly ? "" : "opacity-50")
+                }
+              >
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="font-semibold">
                     <span className="cite !ml-0 mr-1">{source.n}</span>
@@ -445,6 +477,9 @@ function Analytics() {
                   {source.isTable ? " · " + az.analytics.table : ""}
                 </p>
                 {source.quote && <p className="mt-2 text-sm">«{source.quote}»</p>}
+                {!sourceOnly && !usedSourceNumbers.has(source.n) && (
+                  <span className="label-mono mt-2 inline-block">{az.analytics.sourceUnused}</span>
+                )}
                 <a className="pill mt-3 inline-flex" href={sourceUrl(source)}>
                   {source.sourceKind === "brief"
                     ? briefSearchLabel(source.briefDate ?? "")

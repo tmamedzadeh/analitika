@@ -1,19 +1,40 @@
-const WINDOW_MS = 60_000;
-const MAX_REQUESTS_PER_WINDOW = 20;
+import { sql } from "drizzle-orm";
 
-type Bucket = { startedAt: number; count: number };
+import { getDb } from "@/server/db";
+import { rateLimits } from "@/server/db/schema";
 
-const buckets = new Map<string, Bucket>();
+const ANALYTICS_WINDOW_MS = 60_000;
 
-export function consumeAnalyticsRateLimit(key: string, now = Date.now()): boolean {
-  const existing = buckets.get(key);
-  if (!existing || now - existing.startedAt >= WINDOW_MS) {
-    buckets.set(key, { startedAt: now, count: 1 });
-    return true;
-  }
-  if (existing.count >= MAX_REQUESTS_PER_WINDOW) return false;
-  existing.count += 1;
-  return true;
+export function rateLimitWindowStart(now: number, windowMs: number): Date {
+  return new Date(Math.floor(now / windowMs) * windowMs);
+}
+
+export async function consumeIpRateLimit(
+  scope: string,
+  request: Request,
+  limit: number,
+  windowMs: number,
+  now = Date.now(),
+): Promise<boolean> {
+  const key = `${scope}:${getAnalyticsClientKey(request)}`;
+  const windowStart = rateLimitWindowStart(now, windowMs);
+  const [bucket] = await getDb()
+    .insert(rateLimits)
+    .values({ key, windowStart, count: 1 })
+    .onConflictDoUpdate({
+      target: rateLimits.key,
+      set: {
+        windowStart: sql`CASE WHEN ${rateLimits.windowStart} < ${windowStart} THEN ${windowStart} ELSE ${rateLimits.windowStart} END`,
+        count: sql`CASE WHEN ${rateLimits.windowStart} < ${windowStart} THEN 1 ELSE ${rateLimits.count} + 1 END`,
+      },
+    })
+    .returning({ count: rateLimits.count });
+  if (!bucket) return false;
+  return bucket.count <= limit;
+}
+
+export function consumeAnalyticsRateLimit(request: Request): Promise<boolean> {
+  return consumeIpRateLimit("analytics-search", request, 20, ANALYTICS_WINDOW_MS);
 }
 
 export function getAnalyticsClientKey(request: Request): string {

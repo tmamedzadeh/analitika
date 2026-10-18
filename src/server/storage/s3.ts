@@ -2,13 +2,14 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl as presignUrl } from "@aws-sdk/s3-request-presigner";
 
 import { requireServerEnv } from "../env";
-import type { StorageObject, StorageProvider } from "./types";
+import type { StorageObject, StorageProvider, StoredObjectSummary } from "./types";
 
 export class S3Storage implements StorageProvider {
   private readonly client: S3Client;
@@ -89,6 +90,27 @@ export class S3Storage implements StorageProvider {
     if (!result.Body) throw new Error("Storage faylın məzmununu qaytarmadı.");
     const bytes = await result.Body.transformToByteArray();
     return bytes.slice(0, byteCount);
+  }
+
+  async listObjects(prefix: string): Promise<StoredObjectSummary[]> {
+    const objects: StoredObjectSummary[] = [];
+    let continuationToken: string | undefined;
+    do {
+      const page = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ...(continuationToken ? { ContinuationToken: continuationToken } : {}),
+        }),
+      );
+      for (const object of page.Contents ?? []) {
+        if (object.Key && object.LastModified) {
+          objects.push({ key: object.Key, lastModified: object.LastModified });
+        }
+      }
+      continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (continuationToken);
+    return objects;
   }
 
   async delete(key: string): Promise<void> {

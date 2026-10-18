@@ -40,7 +40,6 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [checkingPhotos, setCheckingPhotos] = useState(false);
-  const [intent, setIntent] = useState<"draft" | "published">("published");
   const existingPhotos = photos.filter((photo) => photo.id);
   const newPhotos = photos.flatMap((photo) => (photo.file ? [photo.file] : []));
   const preview: BriefListItem = {
@@ -48,7 +47,7 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
     date,
     title: title.trim() || az.briefs.titlePlaceholder,
     excerpt: briefExcerpt(body) || az.briefs.bodyPlaceholder,
-    status: "draft",
+    status: "published",
     indexStatus: "none",
     indexProgress: { percent: 0, totalChunks: 0, completedChunks: 0 },
     author: existing?.author ?? "admin",
@@ -85,7 +84,7 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
     event.preventDefault();
     if (busy) return;
     setError("");
-    const parsed = briefInputSchema.safeParse({ date, title, body, status: intent });
+    const parsed = briefInputSchema.safeParse({ date, title, body, status: "published" });
     if (!parsed.success) {
       setError(validationMessage(String(parsed.error.issues[0]?.path[0] ?? "")));
       return;
@@ -274,27 +273,9 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
             </p>
           )}
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              type="submit"
-              name="intent"
-              value="published"
-              disabled={busy}
-              onClick={() => setIntent("published")}
-            >
-              {busy && intent === "published" && <ZirveLoader variant="inline" label="" />}
-              {busy && intent === "published" ? az.briefs.loading : az.briefs.publish}
-            </Button>
-            <Button
-              type="submit"
-              name="intent"
-              value="draft"
-              variant="outline"
-              className="rounded-full"
-              disabled={busy}
-              onClick={() => setIntent("draft")}
-            >
-              {busy && intent === "draft" && <ZirveLoader variant="inline" label="" />}
-              {busy && intent === "draft" ? az.briefs.loading : az.briefs.saveDraft}
+            <Button type="submit" disabled={busy}>
+              {busy && <ZirveLoader variant="inline" label="" />}
+              {busy ? az.briefs.loading : az.briefs.save}
             </Button>
             <Button asChild variant="outline" className="rounded-full" disabled={busy}>
               <Link

@@ -13,16 +13,22 @@ const optionalBasicAuth = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z
     .string()
+    .max(1024)
     .regex(/^[^:]+:.+$/)
     .optional(),
 );
 
 export const serverEnvSchema = z.object({
   DATABASE_URL: optionalValue,
+  DATABASE_POOL_MAX: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.coerce.number().int().min(1).max(50).default(3),
+  ),
   GOOGLE_GENERATIVE_AI_API_KEY: optionalValue,
   GEMINI_CHAT_MODEL: optionalValue,
   GEMINI_LIGHT_MODEL: optionalValue,
   GEMINI_EMBED_MODEL: optionalValue,
+  ANALYTICS_THINKING_LEVEL: z.enum(["low", "medium", "high"]).default("medium"),
   EXA_API_KEY: optionalValue,
   SEARCH_PROVIDER: z.enum(["exa", "gemini_grounding"]).default("exa"),
   S3_ENDPOINT: optionalValue,

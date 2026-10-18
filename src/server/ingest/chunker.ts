@@ -85,14 +85,27 @@ function splitRange(
   return chunks;
 }
 
-function isTableLine(line: string): boolean {
-  return line.includes("|");
+function isPipeWrappedLine(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith("|") && trimmed.endsWith("|");
 }
 
 function isSeparatorRow(line: string): boolean {
   const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
   const cells = trimmed.split("|");
   return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell.trim()));
+}
+
+function markdownTableBlockLength(lines: Line[], start: number): number {
+  if (!isPipeWrappedLine(lines[start]?.text ?? "")) return 0;
+  let end = start;
+  let hasSeparator = false;
+  while (end < lines.length && isPipeWrappedLine(lines[end]?.text ?? "")) {
+    if (isSeparatorRow(lines[end]?.text ?? "")) hasSeparator = true;
+    end += 1;
+  }
+  const length = end - start;
+  return length >= 2 || hasSeparator ? length : 0;
 }
 
 function makeTableChunks(
@@ -171,13 +184,10 @@ export function chunkDocument(
       continue;
     }
 
-    if (isTableLine(line.text)) {
-      const tableLines: Line[] = [];
-      while (cursor < lines.length && isTableLine(lines[cursor]?.text ?? "")) {
-        const tableLine = lines[cursor];
-        if (tableLine) tableLines.push(tableLine);
-        cursor += 1;
-      }
+    const tableLength = markdownTableBlockLength(lines, cursor);
+    if (tableLength > 0) {
+      const tableLines = lines.slice(cursor, cursor + tableLength);
+      cursor += tableLength;
       chunks.push(...makeTableChunks(body, tableLines, sectionTitle, title, targetChars));
       continue;
     }
@@ -186,7 +196,11 @@ export function chunkDocument(
     cursor += 1;
     while (cursor < lines.length) {
       const nextLine = lines[cursor];
-      if (!nextLine || isTableLine(nextLine.text) || /^\s*#{1,6}\s+/.test(nextLine.text)) {
+      if (
+        !nextLine ||
+        markdownTableBlockLength(lines, cursor) > 0 ||
+        /^\s*#{1,6}\s+/.test(nextLine.text)
+      ) {
         break;
       }
       blockLines.push(nextLine);

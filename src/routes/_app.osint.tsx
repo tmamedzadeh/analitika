@@ -15,7 +15,7 @@ import {
   type OsintPeriod,
 } from "@/lib/osint";
 
-export const Route = createFileRoute("/osint")({
+export const Route = createFileRoute("/_app/osint")({
   head: () => ({
     meta: [
       { title: `${az.osint.title} · Analitika` },
@@ -53,7 +53,10 @@ function Osint() {
   const historyQuery = useQuery({
     queryKey: ["osint-runs"],
     queryFn: () => listOsintRuns(),
-    refetchInterval: 5000,
+    refetchInterval: (queryState) =>
+      queryState.state.data?.some((run) => run.status === "queued" || run.status === "running")
+        ? 5000
+        : false,
   });
   const runQuery = useQuery({
     queryKey: ["osint-run", selectedRunId],

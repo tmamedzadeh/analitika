@@ -69,6 +69,9 @@ export class GeminiLLMProvider implements LLMProvider {
           ...(input.system ? { system: input.system } : {}),
           prompt: input.prompt,
           ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+          ...(input.maxOutputTokens === undefined
+            ? {}
+            : { maxOutputTokens: input.maxOutputTokens }),
           ...requestOptionsFor(input, this.model),
         });
         this.recordUsage(response.usage);
@@ -95,6 +98,9 @@ export class GeminiLLMProvider implements LLMProvider {
           prompt: input.prompt,
           output: Output.object({ schema }),
           ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+          ...(input.maxOutputTokens === undefined
+            ? {}
+            : { maxOutputTokens: input.maxOutputTokens }),
           ...requestOptionsFor(input, this.model),
         });
         this.recordUsage(response.usage);
@@ -118,6 +124,9 @@ export class GeminiLLMProvider implements LLMProvider {
           ...(input.system ? { system: input.system } : {}),
           prompt: input.prompt,
           ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+          ...(input.maxOutputTokens === undefined
+            ? {}
+            : { maxOutputTokens: input.maxOutputTokens }),
           ...requestOptionsFor(input, this.model),
         }).textStream
       ),

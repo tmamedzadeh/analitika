@@ -21,6 +21,39 @@ const CANDIDATE_LIMIT = 50;
 const RESULT_LIMIT = 10;
 const RERANK_CANDIDATE_LIMIT = 30;
 const MAX_VECTOR_DISTANCE = 0.4;
+const AZERBAIJANI_STOP_WORDS = new Set([
+  "amma",
+  "barədə",
+  "belə",
+  "bir",
+  "bu",
+  "da",
+  "də",
+  "ilə",
+  "kimi",
+  "nə",
+  "olan",
+  "olaraq",
+  "üçün",
+  "və",
+  "ya",
+  "yaxud",
+  "tərəfindən",
+]);
+
+export function buildFullTextQuery(query: string): string {
+  const tokens = [
+    ...new Set(
+      query
+        .normalize("NFKC")
+        .toLocaleLowerCase("az")
+        .match(/[\p{L}\p{N}]+/gu) ?? [],
+    ),
+  ]
+    .filter((token) => token.length >= 3 && !AZERBAIJANI_STOP_WORDS.has(token))
+    .slice(0, 12);
+  return tokens.map((token) => (token.length > 5 ? `${token}:*` : token)).join(" | ");
+}
 
 export type SearchDocumentChunksOptions = {
   embedding?: number[];
@@ -106,18 +139,9 @@ export async function searchDocumentChunks(
     sql.param(vectorLiteral),
     sql.raw("::vector"),
   ]) as SQL<number>;
-  const tsQuery = sql.join([
-    sql.raw("plainto_tsquery('simple'::regconfig, "),
-    sql.param(query),
-    sql.raw(")"),
-  ]);
-  const textScore = sql.join([
-    sql.raw("ts_rank("),
-    chunks.tsv,
-    sql.raw(", "),
-    tsQuery,
-    sql.raw(")"),
-  ]) as SQL<number>;
+  const fullTextQuery = buildFullTextQuery(query);
+  const tsQuery = sql`to_tsquery('simple'::regconfig, ${fullTextQuery})`;
+  const textScore = sql`ts_rank_cd(${chunks.tsv}, ${tsQuery})` as SQL<number>;
   const similarity = sql.join([
     sql.raw("similarity("),
     chunks.text,
@@ -125,7 +149,7 @@ export async function searchDocumentChunks(
     sql.param(query),
     sql.raw(")"),
   ]) as SQL<number>;
-  const textMatch = sql.join([chunks.tsv, sql.raw(" @@ "), tsQuery]);
+  const textMatch = fullTextQuery ? sql`${chunks.tsv} @@ ${tsQuery}` : sql`false`;
   const trigramMatch = sql.join([chunks.text, sql.raw(" % "), sql.param(query)]);
   const sourceCondition = searchSourceConditions(filters);
   const modelCondition = eq(chunks.embeddingModel, embeddingModel);

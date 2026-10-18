@@ -24,7 +24,7 @@ import { deleteBrief, getBrief } from "@/lib/briefs.functions";
 import { briefDate, briefHead } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
 
-export const Route = createFileRoute("/brifler/$id")({
+export const Route = createFileRoute("/_app/brifler/$id")({
   validateSearch: z.object({ chunk: z.string().uuid().optional() }),
   loaderDeps: ({ search }) => ({ chunk: search.chunk }),
   loader: ({ params, deps }) =>

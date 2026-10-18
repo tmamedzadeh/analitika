@@ -50,6 +50,7 @@ export type TextGenerationInput = {
   system?: string;
   prompt: string;
   temperature?: number;
+  maxOutputTokens?: number;
   thinkingLevel?: "low" | "medium" | "high";
   timeoutMs?: number;
   signal?: AbortSignal;

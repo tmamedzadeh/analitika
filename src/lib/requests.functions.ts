@@ -1,16 +1,25 @@
 import { and, desc, eq } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { getRequest } from "@tanstack/react-start/server";
 
 import { getCurrentUser, accessFilter } from "../server/db/access";
 import { getDb } from "../server/db";
 import { documents, infoRequests, requestAttachments } from "../server/db/schema";
 import { getStorage } from "../server/storage/s3";
+import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 import { az } from "./i18n/az";
 import {
   infoRequestInputSchema,
   requestAnswerDocumentInputSchema,
   requestIdSchema,
   requestStatusInputSchema,
+  requestAttachmentInputSchema,
+  requestAttachmentMetadataSchema,
+  requestMaxAttachments,
+  requestUploadMatches,
+  requestMimeFromName,
+  type RequestMime,
 } from "./requests";
 
 function safeFileName(value: string): string {
@@ -27,6 +36,28 @@ function safeFileName(value: string): string {
 
 function requestForCurrentUser(requestId: string) {
   return and(eq(infoRequests.id, requestId), eq(infoRequests.requesterId, getCurrentUser().id));
+}
+
+const requestUploadSchema = requestAttachmentMetadataSchema
+  .extend({ key: z.string().min(1).max(600) })
+  .refine((file) => requestMimeFromName(file.name) === file.mime);
+const saveInfoRequestSchema = infoRequestInputSchema.omit({ attachments: true }).extend({
+  requestId: z.string().uuid(),
+  uploads: z.array(requestUploadSchema).max(requestMaxAttachments),
+});
+
+const extensionForMime: Record<RequestMime, string> = {
+  "application/pdf": "pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+function validRequestUploadKey(requestId: string, key: string, mime: RequestMime): boolean {
+  return new RegExp(`^requests/${requestId}/[0-9a-f-]{36}\\.${extensionForMime[mime]}$`, "i").test(
+    key,
+  );
 }
 
 export const listInfoRequests = createServerFn({ method: "GET" }).handler(async () => {
@@ -123,25 +154,71 @@ export const getInfoRequestDetails = createServerFn({ method: "GET" })
     };
   });
 
-export const createInfoRequestDraft = createServerFn({ method: "POST" })
+export const prepareInfoRequestUploads = createServerFn({ method: "POST" })
   .validator(infoRequestInputSchema)
   .handler(async ({ data }) => {
-    const db = getDb();
+    if (!(await consumeIpRateLimit("upload-prepare", getRequest(), 30, 10 * 60_000))) {
+      throw new Error(az.analytics.rateLimited);
+    }
     const requestId = crypto.randomUUID();
     const files = data.attachments.map((file) => {
-      const extension = file.name.split(".").at(-1)?.toLocaleLowerCase() ?? "";
       return {
-        id: crypto.randomUUID(),
         name: safeFileName(file.name),
         mime: file.mime,
         size: file.size,
-        storageKey: `requests/${requestId}/${crypto.randomUUID()}.${extension}`,
+        key: `requests/${requestId}/${crypto.randomUUID()}.${extensionForMime[file.mime]}`,
       };
     });
+    try {
+      const storage = getStorage();
+      const uploads = await Promise.all(
+        files.map(async (file) => ({
+          ...file,
+          url: await storage.getSignedUploadUrl(file.key, file.mime),
+          mime: file.mime,
+        })),
+      );
+      return { requestId, uploads };
+    } catch {
+      throw new Error(az.requests.form.uploadPrepareFailed);
+    }
+  });
+
+export const saveInfoRequest = createServerFn({ method: "POST" })
+  .validator(saveInfoRequestSchema)
+  .handler(async ({ data }) => {
+    const db = getDb();
+    const storage = getStorage();
+    try {
+      for (const upload of data.uploads) {
+        if (!validRequestUploadKey(data.requestId, upload.key, upload.mime)) {
+          throw new Error(az.requests.form.uploadMetadataMismatch);
+        }
+        const [metadata, signature] = await Promise.all([
+          storage.getMetadata(upload.key),
+          storage.getPrefix(upload.key, 16),
+        ]);
+        if (
+          !requestUploadMatches({
+            expectedMime: upload.mime,
+            expectedSize: upload.size,
+            actualSize: metadata.size,
+            actualContentType: metadata.contentType,
+            signature,
+          })
+        ) {
+          throw new Error(az.requests.form.uploadMetadataMismatch);
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message === az.requests.form.uploadMetadataMismatch)
+        throw error;
+      throw new Error(az.requests.form.uploadIncomplete);
+    }
 
     await db.transaction(async (transaction) => {
       await transaction.insert(infoRequests).values({
-        id: requestId,
+        id: data.requestId,
         department: data.department,
         requestDate: data.requestDate,
         urgency: data.urgency,
@@ -152,98 +229,20 @@ export const createInfoRequestDraft = createServerFn({ method: "POST" })
         note: data.note || null,
         requesterId: getCurrentUser().id,
       });
-      if (files.length > 0) {
+      if (data.uploads.length > 0) {
         await transaction.insert(requestAttachments).values(
-          files.map((file) => ({
-            id: file.id,
-            requestId,
-            storageKey: file.storageKey,
-            name: file.name,
-            mime: file.mime,
-            size: file.size,
+          data.uploads.map((upload) => ({
+            id: crypto.randomUUID(),
+            requestId: data.requestId,
+            storageKey: upload.key,
+            name: safeFileName(upload.name),
+            mime: upload.mime,
+            size: upload.size,
           })),
         );
       }
     });
-
-    try {
-      const storage = getStorage();
-      const uploads = await Promise.all(
-        files.map(async (file) => ({
-          attachmentId: file.id,
-          url: await storage.getSignedUploadUrl(file.storageKey, file.mime),
-          mime: file.mime,
-        })),
-      );
-      return { requestId, uploads };
-    } catch {
-      await db.delete(infoRequests).where(requestForCurrentUser(requestId));
-      throw new Error(az.requests.form.uploadPrepareFailed);
-    }
-  });
-
-export const completeInfoRequestUploads = createServerFn({ method: "POST" })
-  .validator(requestIdSchema)
-  .handler(async ({ data }) => {
-    const db = getDb();
-    const [request] = await db
-      .select({ id: infoRequests.id })
-      .from(infoRequests)
-      .where(requestForCurrentUser(data.requestId))
-      .limit(1);
-    if (!request) throw new Error(az.requests.missing);
-
-    const files = await db
-      .select({
-        storageKey: requestAttachments.storageKey,
-        mime: requestAttachments.mime,
-        size: requestAttachments.size,
-      })
-      .from(requestAttachments)
-      .where(eq(requestAttachments.requestId, data.requestId));
-    const storage = getStorage();
-    try {
-      const metadata = await Promise.all(
-        files.map(async (file) => ({
-          file,
-          metadata: await storage.getMetadata(file.storageKey),
-        })),
-      );
-      if (
-        metadata.some(
-          ({ file, metadata: stored }) =>
-            file.size !== stored.size ||
-            (stored.contentType !== undefined && file.mime !== stored.contentType),
-        )
-      ) {
-        throw new Error(az.requests.form.uploadMetadataMismatch);
-      }
-    } catch (error) {
-      if (error instanceof Error && error.message === az.requests.form.uploadMetadataMismatch)
-        throw error;
-      throw new Error(az.requests.form.uploadIncomplete);
-    }
     return { requestId: data.requestId };
-  });
-
-export const discardInfoRequestDraft = createServerFn({ method: "POST" })
-  .validator(requestIdSchema)
-  .handler(async ({ data }) => {
-    const db = getDb();
-    const [request] = await db
-      .select({ id: infoRequests.id, status: infoRequests.status })
-      .from(infoRequests)
-      .where(requestForCurrentUser(data.requestId))
-      .limit(1);
-    if (!request || request.status !== "new") return { ok: true };
-
-    const files = await db
-      .select({ storageKey: requestAttachments.storageKey })
-      .from(requestAttachments)
-      .where(eq(requestAttachments.requestId, data.requestId));
-    await Promise.all(files.map((file) => getStorage().delete(file.storageKey)));
-    await db.delete(infoRequests).where(requestForCurrentUser(data.requestId));
-    return { ok: true };
   });
 
 export const updateInfoRequestStatus = createServerFn({ method: "POST" })
