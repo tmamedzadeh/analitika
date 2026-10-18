@@ -1,14 +1,30 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CalendarDays, Plus, Search } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { useState } from "react";
 
 import { BriefCard } from "@/components/BriefCard";
 import { Shell } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { listBriefs } from "@/lib/briefs.functions";
 import { getBakuDate, briefHead } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
+
+const shortMonthsAz = [
+  "Yan",
+  "Fev",
+  "Mar",
+  "Apr",
+  "May",
+  "İyn",
+  "İyl",
+  "Avq",
+  "Sen",
+  "Okt",
+  "Noy",
+  "Dek",
+];
 
 export const Route = createFileRoute("/")({
   head: () => briefHead(az.briefs.title, az.briefs.description),
@@ -19,7 +35,12 @@ function DailyBriefs() {
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<"all" | "week" | "month">("all");
   const [month, setMonth] = useState("");
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const today = getBakuDate();
+  const todayYear = Number(today.slice(0, 4));
+  const [monthPickerYear, setMonthPickerYear] = useState(todayYear);
+  const selectedMonthIndex = month ? Number(month.slice(5, 7)) - 1 : -1;
+  const selectedMonthYear = month ? Number(month.slice(0, 4)) : undefined;
   const briefsQuery = useInfiniteQuery({
     queryKey: ["daily-briefs", query, period, month],
     initialPageParam: null as string | null,
@@ -82,20 +103,79 @@ function DailyBriefs() {
             </Button>
           ))}
         </div>
-        <label className="flex min-w-0 items-center gap-2 text-sm font-medium text-muted-foreground sm:ml-auto">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-muted-foreground sm:ml-auto">
           <CalendarDays size={16} aria-hidden="true" />
           <span>{az.briefs.month}</span>
-          <input
-            className="field !w-40"
-            type="month"
-            aria-label={az.briefs.chooseMonth}
-            value={month}
-            onChange={(event) => {
-              setMonth(event.target.value);
-              setPeriod("all");
+          <Popover
+            open={monthPickerOpen}
+            onOpenChange={(open) => {
+              setMonthPickerOpen(open);
+              if (open) setMonthPickerYear(selectedMonthYear ?? todayYear);
             }}
-          />
-        </label>
+          >
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="field !w-40 justify-start px-3 font-normal"
+                aria-label={
+                  selectedMonthIndex >= 0
+                    ? `${shortMonthsAz[selectedMonthIndex]} ${selectedMonthYear}`
+                    : az.briefs.chooseMonth
+                }
+              >
+                {selectedMonthIndex >= 0
+                  ? `${shortMonthsAz[selectedMonthIndex]} ${selectedMonthYear}`
+                  : az.briefs.chooseMonth}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72 p-3">
+              <div className="mb-3 flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={az.briefs.previousYear}
+                  onClick={() => setMonthPickerYear((year) => year - 1)}
+                >
+                  <ChevronLeft aria-hidden="true" />
+                </Button>
+                <span className="text-sm font-semibold">{monthPickerYear}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={az.briefs.nextYear}
+                  onClick={() => setMonthPickerYear((year) => year + 1)}
+                >
+                  <ChevronRight aria-hidden="true" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {shortMonthsAz.map((monthName, index) => {
+                  const isSelected =
+                    selectedMonthYear === monthPickerYear && selectedMonthIndex === index;
+                  return (
+                    <Button
+                      key={monthName}
+                      type="button"
+                      variant={isSelected ? "secondary" : "ghost"}
+                      className="h-10 px-2"
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        setMonth(`${monthPickerYear}-${String(index + 1).padStart(2, "0")}`);
+                        setPeriod("all");
+                        setMonthPickerOpen(false);
+                      }}
+                    >
+                      {monthName}
+                    </Button>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {briefsQuery.isLoading && (
@@ -106,11 +186,6 @@ function DailyBriefs() {
       {briefsQuery.isError && (
         <p role="alert" className="py-8 text-center text-destructive">
           {az.briefs.listFailed}
-        </p>
-      )}
-      {todayBrief && !briefsQuery.isLoading && (
-        <p className="mb-3 text-xs font-semibold tracking-[0.08em] text-primary">
-          {az.briefs.today}
         </p>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

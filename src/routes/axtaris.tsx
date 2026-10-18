@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 
+import { BriefMarkdown } from "@/components/BriefMarkdown";
 import { Shell } from "@/components/Shell";
 import type { AnalyticsFilters, AnalyticsSourcePreview } from "@/lib/analytics";
 import { getAnalyticsOptions } from "@/lib/analytics.functions";
@@ -36,27 +37,8 @@ function sourceUrl(source: AnalyticsSourcePreview): string {
   return briefRouteForSearchSource(source) ?? "#";
 }
 
-function inlineAnswer(answer: string, sources: AnalyticsSourcePreview[]) {
-  return answer.split(/(\[\d+\])/g).map((part, index) => {
-    const match = /^\[(\d+)\]$/.exec(part);
-    if (!match) return <span key={index}>{part}</span>;
-    const source = sources.find((candidate) => candidate.n === Number(match[1]));
-    const href = source ? sourceUrl(source) : null;
-    return source && href ? (
-      <a
-        key={index}
-        className="cite"
-        href={sourceUrl(source)}
-        aria-label={az.analytics.openSource.replace("{n}", String(source.n))}
-      >
-        {match[1]}
-      </a>
-    ) : (
-      <span key={index} className="cite">
-        {match[1]}
-      </span>
-    );
-  });
+function citationMarkdown(answer: string) {
+  return answer.replace(/\[(\d+)\](?!\()/g, "[$1](citation:$1)");
 }
 
 function ReliabilityBadges({ source }: { source: AnalyticsSourcePreview }) {
@@ -364,9 +346,27 @@ function Analytics() {
               {az.analytics.incompleteAnswer}
             </p>
           )}
-          <div aria-live="polite" className="mt-4 whitespace-pre-wrap">
+          <div aria-live="polite" className="mt-4">
             {answer ? (
-              inlineAnswer(answer, sources)
+              <BriefMarkdown
+                markdown={citationMarkdown(answer)}
+                linkRenderer={(href, children) => {
+                  const match = /^citation:(\d+)$/.exec(href ?? "");
+                  if (!match) return undefined;
+                  const source = sources.find((candidate) => candidate.n === Number(match[1]));
+                  return source ? (
+                    <a
+                      className="cite"
+                      href={sourceUrl(source)}
+                      aria-label={az.analytics.openSource.replace("{n}", String(source.n))}
+                    >
+                      {children}
+                    </a>
+                  ) : (
+                    <span className="cite">{children}</span>
+                  );
+                }}
+              />
             ) : busy ? (
               <p className="text-muted-foreground">{az.analytics.generating}</p>
             ) : sourceOnly && sources.length > 0 ? (

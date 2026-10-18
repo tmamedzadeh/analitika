@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { z } from "zod";
 
@@ -58,6 +58,16 @@ function BriefDetail() {
   const [deleting, setDeleting] = useState(false);
   const brief = data?.brief;
   const photo = photoIndex === null ? undefined : brief?.photos[photoIndex];
+
+  useEffect(() => {
+    if (!search.chunk || !data?.brief.highlight) return;
+    const frame = requestAnimationFrame(() => {
+      globalThis.document
+        .querySelector('[data-chunk-highlight="true"]')
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [search.chunk, data?.brief.highlight]);
 
   if (!brief || !data) {
     return (

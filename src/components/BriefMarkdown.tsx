@@ -44,12 +44,20 @@ function highlightedBlock(
 export function BriefMarkdown({
   markdown,
   highlight = null,
+  linkRenderer,
 }: {
   markdown: string;
   highlight?: MarkdownHighlight;
+  linkRenderer?: (
+    href: string | undefined,
+    children: React.ReactNode,
+  ) => React.ReactNode | undefined;
 }) {
   const components: Components = {
     a: ({ href, children }) => {
+      const customLink = linkRenderer?.(href, children);
+      if (customLink !== undefined) return customLink;
+
       const url = safeHref(href);
       return url ? (
         <a href={url} target="_blank" rel="noopener noreferrer">

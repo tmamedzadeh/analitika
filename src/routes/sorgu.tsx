@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
 
+import { LocalizedDatePicker } from "@/components/LocalizedDatePicker";
 import { Shell } from "@/components/Shell";
 import { departments, departmentLabel } from "@/lib/departments";
 import { az } from "@/lib/i18n/az";
@@ -66,6 +67,7 @@ function Sorgu() {
   const [urgency, setUrgency] = useState<(typeof requestUrgencies)[number]>("normal");
   const [sourceReliability, setSourceReliability] = useState<SourceReliability>("F");
   const [infoCredibility, setInfoCredibility] = useState<InfoCredibility>(6);
+  const [requestDate, setRequestDate] = useState(() => localToday());
   const [files, setFiles] = useState<File[]>([]);
   const [formError, setFormError] = useState("");
   const [pageError, setPageError] = useState("");
@@ -113,6 +115,7 @@ function Sorgu() {
     setUrgency("normal");
     setSourceReliability("F");
     setInfoCredibility(6);
+    setRequestDate(localToday());
     setFiles([]);
     setFormError("");
     setPageError("");
@@ -250,11 +253,11 @@ function Sorgu() {
               </label>
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold">{az.requests.form.date}</span>
-                <input
+                <LocalizedDatePicker
                   name="requestDate"
-                  type="date"
-                  className="field"
-                  defaultValue={localToday()}
+                  value={requestDate}
+                  onChange={setRequestDate}
+                  placeholder={az.requests.form.datePlaceholder}
                   required
                 />
               </label>

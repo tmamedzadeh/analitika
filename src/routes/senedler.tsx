@@ -2,6 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
 
+import { LocalizedDatePicker } from "@/components/LocalizedDatePicker";
+import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Shell } from "@/components/Shell";
 import {
   infoCredibilityLabels,
@@ -31,9 +33,9 @@ type DocumentSummary = Awaited<ReturnType<typeof listRecentDocuments>>[number];
 export const Route = createFileRoute("/senedler")({
   head: () => ({
     meta: [
-      { title: "Sənədlər · Analitika" },
+      { title: "Analitik məlumatlar · Analitika" },
       { name: "description", content: "Yeni sənəd əlavə edin və indeksləmə vəziyyətini izləyin." },
-      { property: "og:title", content: "Sənədlər · Analitika" },
+      { property: "og:title", content: "Analitik məlumatlar · Analitika" },
       {
         property: "og:description",
         content: "Yeni sənəd əlavə edin və indeksləmə vəziyyətini izləyin.",
@@ -62,6 +64,8 @@ function AddDoc() {
   const [classification, setClassification] = useState<(typeof classifications)[number][0]>("open");
   const [sourceReliability, setSourceReliability] = useState<SourceReliability>("F");
   const [infoCredibility, setInfoCredibility] = useState<InfoCredibility>(6);
+  const [docDate, setDocDate] = useState("");
+  const [body, setBody] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoError, setPhotoError] = useState("");
   const [formError, setFormError] = useState("");
@@ -151,6 +155,8 @@ function AddDoc() {
       await completeDocumentUploads({ data: { documentId: draft.documentId } });
       setSaved(true);
       formRef.current?.reset();
+      setDocDate("");
+      setBody("");
       setPhotos([]);
       setClassification("open");
       setSourceReliability("F");
@@ -188,8 +194,8 @@ function AddDoc() {
 
   return (
     <Shell
-      crumb="Sənədlər"
-      title="Sənəd əlavə et"
+      crumb={az.navigation.documents}
+      title="Analitik məlumat əlavə et"
       badges={["Sistem aktivdir", "İndeksləmə: fonda"]}
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_352px]">
@@ -204,17 +210,18 @@ function AddDoc() {
               placeholder={az.documents.form.titlePlaceholder}
             />
           </label>
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold">{az.documents.form.body}</span>
-            <textarea
+          <div className="block">
+            <span className="block text-sm font-semibold">{az.documents.form.body}</span>
+            <MarkdownEditor
               name="body"
-              rows={7}
               required
               maxLength={500_000}
-              className="field"
+              className="min-h-56"
               placeholder={az.documents.form.bodyPlaceholder}
+              value={body}
+              onChange={setBody}
             />
-          </label>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="mb-2 block text-sm font-semibold">
@@ -233,7 +240,14 @@ function AddDoc() {
             </label>
             <label className="block">
               <span className="mb-2 block text-sm font-semibold">{az.documents.form.date}</span>
-              <input name="docDate" type="date" className="field" />
+              <LocalizedDatePicker
+                name="docDate"
+                value={docDate}
+                onChange={setDocDate}
+                placeholder={az.documents.form.datePlaceholder}
+                clearable
+                clearLabel={az.actions.clearDate}
+              />
             </label>
             <label className="block">
               <span className="mb-2 block text-sm font-semibold">{az.documents.form.tags}</span>
@@ -355,6 +369,8 @@ function AddDoc() {
                 setPhotoError("");
                 setFormError("");
                 setSaved(false);
+                setDocDate("");
+                setBody("");
                 setClassification("open");
                 setSourceReliability("F");
                 setInfoCredibility(6);

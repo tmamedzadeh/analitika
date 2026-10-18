@@ -3,6 +3,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { Upload, X } from "lucide-react";
 
 import { BriefCard } from "@/components/BriefCard";
+import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Shell } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { discardBriefUploads, prepareBriefUploads, saveBrief } from "@/lib/briefs.functions";
@@ -214,17 +215,16 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
             </div>
           )}
 
-          <label className="mt-5 block text-sm font-medium">
-            {az.briefs.body}
-            <textarea
+          <div className="mt-5 block text-sm font-medium">
+            <p>{az.briefs.body}</p>
+            <MarkdownEditor
               required
-              className="field mt-2 min-h-80 resize-y"
               maxLength={200_000}
               placeholder={az.briefs.bodyPlaceholder}
               value={body}
-              onChange={(event) => setBody(event.target.value)}
+              onChange={setBody}
             />
-          </label>
+          </div>
           <input
             ref={inputRef}
             type="file"

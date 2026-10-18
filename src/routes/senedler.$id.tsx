@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 
 import { Shell } from "@/components/Shell";
+import { BriefMarkdown } from "@/components/BriefMarkdown";
 import { departmentLabel } from "@/lib/departments";
 import { az } from "@/lib/i18n/az";
 import {
@@ -44,47 +45,14 @@ function DocumentPage() {
   });
 
   const document = documentQuery.data;
-  const bodyParts = useMemo(() => {
-    if (!document) return [];
-    const markers = new Map<number, string[]>();
-    const boundaries = new Set<number>([0, document.body.length]);
-    for (const item of document.chunks) {
-      if (
-        item.charStart < 0 ||
-        item.charEnd > document.body.length ||
-        item.charStart > item.charEnd
-      )
-        continue;
-      boundaries.add(item.charStart);
-      boundaries.add(item.charEnd);
-      markers.set(item.charStart, [...(markers.get(item.charStart) ?? []), item.id]);
-    }
-    const offsets = [...boundaries].sort((left, right) => left - right);
-    const parts: Array<{ key: string; text?: string; anchor?: string; highlighted?: boolean }> = [];
-    for (let index = 0; index < offsets.length; index += 1) {
-      const start = offsets[index];
-      if (start === undefined) continue;
-      for (const marker of markers.get(start) ?? []) {
-        parts.push({ key: `anchor-${marker}`, anchor: marker });
-      }
-      const end = offsets[index + 1];
-      if (end === undefined || end <= start) continue;
-      const text = document.body.slice(start, end);
-      const selected = document.chunks.find((item) => item.id === selectedChunkId);
-      parts.push({
-        key: `text-${start}`,
-        text,
-        highlighted: Boolean(selected && start >= selected.charStart && start < selected.charEnd),
-      });
-    }
-    return parts;
-  }, [document, selectedChunkId]);
-
   useEffect(() => {
     if (!selectedChunkId || !document) return;
-    globalThis.document
-      .getElementById(selectedChunkId)
-      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const frame = requestAnimationFrame(() => {
+      globalThis.document
+        .querySelector('[data-chunk-highlight="true"]')
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [document, selectedChunkId]);
 
   async function retry() {
@@ -117,14 +85,14 @@ function DocumentPage() {
 
   if (documentQuery.isPending) {
     return (
-      <Shell crumb="Sənədlər" title={az.documents.loadingDocument} badges={[]}>
+      <Shell crumb={az.navigation.documents} title={az.documents.loadingDocument} badges={[]}>
         <div className="panel p-6 label-mono">{az.documents.loading}</div>
       </Shell>
     );
   }
   if (documentQuery.isError) {
     return (
-      <Shell crumb="Sənədlər" title={az.documents.loadError} badges={[]}>
+      <Shell crumb={az.navigation.documents} title={az.documents.loadError} badges={[]}>
         <div role="alert" className="panel p-6 text-destructive">
           {documentQuery.error.message}
         </div>
@@ -133,7 +101,7 @@ function DocumentPage() {
   }
   if (!document) {
     return (
-      <Shell crumb="Sənədlər" title={az.documents.missing} badges={[]}>
+      <Shell crumb={az.navigation.documents} title={az.documents.missing} badges={[]}>
         <Link to="/senedler" className="pill">
           {az.documents.backToList}
         </Link>
@@ -141,9 +109,11 @@ function DocumentPage() {
     );
   }
 
+  const selectedChunk = document.chunks.find((item) => item.id === selectedChunkId);
+
   return (
     <Shell
-      crumb="Sənədlər"
+      crumb={az.navigation.documents}
       title={document.title}
       badges={[
         az.documents.status[document.status],
@@ -211,34 +181,35 @@ function DocumentPage() {
 
       <section className="panel p-6">
         <h2 className="mb-4 text-lg font-semibold">{az.documents.form.body}</h2>
-        <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7 text-foreground">
-          {bodyParts.map((part) =>
-            part.anchor ? (
-              <span key={part.key} id={part.anchor} className="scroll-mt-24" />
-            ) : part.highlighted ? (
-              <mark key={part.key} className="rounded bg-primary/25 text-inherit">
-                {part.text}
-              </mark>
-            ) : (
-              <span key={part.key}>{part.text}</span>
-            ),
-          )}
-        </pre>
+        <BriefMarkdown
+          markdown={document.body}
+          highlight={
+            selectedChunk ? { start: selectedChunk.charStart, end: selectedChunk.charEnd } : null
+          }
+        />
         {document.chunks.length > 0 && (
           <div className="mt-6 border-t border-border pt-4">
             <p className="label-mono">
               {document.chunks.length} {az.documents.chunks}
             </p>
+            <p className="mt-2 text-sm text-muted-foreground">{az.documents.chunkHelp}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {document.chunks.map((item) => (
-                <a
+                <button
                   key={item.id}
-                  href={`#${item.id}`}
+                  type="button"
+                  onClick={() =>
+                    void navigate({
+                      to: "/senedler/$id",
+                      params: { id },
+                      search: { chunk: item.id },
+                    })
+                  }
                   className={`pill !py-1 ${item.id === selectedChunkId ? "pill-active" : ""}`}
                 >
                   {item.ord + 1}. {item.sectionTitle || az.documents.plainText}
                   {item.isTable ? ` · ${az.documents.table}` : ""}
-                </a>
+                </button>
               ))}
             </div>
           </div>

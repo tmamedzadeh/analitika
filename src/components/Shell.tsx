@@ -27,8 +27,8 @@ const nav = [
   { to: "/", icon: PanelsTopLeft, label: az.navigation.dailyBriefs },
   { to: "/axtaris", icon: Search, label: az.navigation.analyticsSearch },
   { to: "/osint", icon: Globe, label: az.navigation.osint },
-  { to: "/sorgu", icon: MessageSquareText, label: az.navigation.requests },
   { to: "/senedler", icon: FileText, label: az.navigation.documents },
+  { to: "/sorgu", icon: MessageSquareText, label: az.navigation.requests },
   { to: "/ayarlar", icon: SlidersHorizontal, label: az.navigation.settings },
 ] as const;
 
@@ -77,7 +77,7 @@ export function Shell({
 }) {
   return (
     <div className="min-h-screen md:flex">
-      <aside className="flex w-full flex-col border-b border-border bg-card px-4 py-3 md:min-h-screen md:w-55 md:shrink-0 md:border-b-0 md:border-r md:px-5 md:py-6">
+      <aside className="flex w-full flex-col border-b border-border bg-card px-4 py-3 md:min-h-screen md:w-58 md:shrink-0 md:border-b-0 md:border-r md:px-5 md:py-6">
         <div className="flex items-center justify-between gap-3 md:flex-col md:justify-start md:gap-0">
           <Link to="/" className="flex min-w-0 items-center gap-2 md:flex-col md:gap-3">
             <img

@@ -37,17 +37,9 @@ export function BriefCard({
           </p>
           <p className="mt-2 text-xs font-medium capitalize leading-5 text-muted-foreground">
             {date.monthName}
-            <br />
-            {date.weekday}
           </p>
         </div>
         <div className="min-w-0 flex-1">
-          {!featured && (
-            <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Images size={14} aria-hidden="true" />
-              {az.briefs.photoCount.replace("{count}", String(brief.photoCount))}
-            </div>
-          )}
           <h2
             className={
               featured
@@ -62,31 +54,6 @@ export function BriefCard({
           </p>
         </div>
       </div>
-      {featured && (
-        <div className="relative flex min-h-24 w-full shrink-0 items-center justify-center gap-3 overflow-hidden rounded-xl border border-primary/10 bg-accent/70 p-4 text-primary sm:min-h-36 sm:w-36 sm:flex-col sm:gap-2">
-          {brief.coverUrl ? (
-            <>
-              <img
-                src={brief.coverUrl}
-                alt=""
-                loading="eager"
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              <span className="absolute bottom-2 right-2 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-foreground shadow-sm">
-                <Images size={14} aria-hidden="true" />
-                {az.briefs.photoCount.replace("{count}", String(brief.photoCount))}
-              </span>
-            </>
-          ) : (
-            <>
-              <Images size={26} strokeWidth={1.5} aria-hidden="true" />
-              <span className="text-sm font-medium">
-                {az.briefs.photoCount.replace("{count}", String(brief.photoCount))}
-              </span>
-            </>
-          )}
-        </div>
-      )}
     </>
   );
   const className = `panel flex h-full flex-col gap-5 p-4 sm:p-5 ${

@@ -97,6 +97,19 @@
 - Brif mətnləri və imzalı Storage URL-ləri tətbiq loglarına yazılmır. Route xətası üçün ümumi error boundary yalnız sabit, payload-siz mesaj yazır; DB parametrli xəta obyektlərini loglamır.
 - `bun run db:seed:demo` altı sintetik brif yaradır (son altı Bakı tarixi, bir qaralama, süni fotoşəkillər də daxil). `bun run db:seed:demo --clean` həmin demo brifləri, şəkilləri, sənədləri və fraqmentlərini silir.
 
+## 2026-10-18 — UI adları və görünən statuslar
+
+- Naviqasiyadakı `Sənədlər` bölməsinin görünən adı `Analitik məlumatlar` olur. Mövcud `/senedler` marşrutları, sənəd modeli və sənədlə bağlı əməliyyat adları dəyişmir.
+- Tətbiq yalnız açıq rəng sxemindən istifadə edir; tema dəyişdiricisi, seçim yaddaşı və qaranlıq tema sinifləri yoxdur.
+- Briflərin `draft` və `published` statusları DB, API və indeksləmə iş axınında qalır, UI-də status nişanları və mətnləri göstərilmir. Qaralama saxlama əməliyyatı neytral `Yadda saxla` etiketi ilə işləyir.
+- Gündəlik briflər siyahısında `Bu gün` etiketi göstərilmir; cari tarixli brif varsa, siyahıda birinci qalır.
+- Gündəlik briflərdə ay filtri yalnız ay və ili seçən 12 aylıq seçim şəbəkəsidir; düymədə `Okt 2026` formatı göstərilir, sorğu dəyəri `YYYY-MM` olaraq saxlanır.
+- Sənəd və məlumat sorğusu formalarında gün seçimi tətbiqin `az` lokallı təqvimindən istifadə edir; seçilmiş tarix sabit `28 Okt 2026` formatında göstərilir.
+- Gündəlik brif və sənəd mətnləri alətlər paneli ilə minimal Markdown formatlamasını (qalın, kursiv, markerli və nömrəli siyahı, sitat) dəstəkləyir. Markdown verilənlərdə saxlanır və material səhifələrində formatlanmış şəkildə göstərilir.
+- OSINT xülasələri, mənbə xülasələri və analitika sintezi Markdown kimi render olunur; analitika sintezindəki `[n]` istinadları mənbələrə keçid olaraq qalır.
+- Analitika axtarışından seçilmiş fraqment UID-si sənəd və brif səhifəsində müvafiq mətn hissəsini vurğulayır və ona avtomatik sürüşdürür. Sənəd səhifəsində fraqment sayı axtarış indeksi üçün mətn hissələrinin sayını göstərir.
+- OSINT nəticələrinin saxlanması backend-də dəyişməz qalır, UI isə demo/sabitləmə göstəricisini göstərmir; keşlənmiş nəticə üçün ümumi bildiriş istifadə olunur.
+
 ## 2026-10-18 — V1 kod auditi
 
 - V1 tək `admin` istifadəçisi ilə işləyir: `getCurrentUser()` sabit identifikator qaytarır, `accessFilter()` hazırda əlavə SQL məhdudiyyəti yaratmır. `DEMO_BASIC_AUTH` sayt səviyyəsində giriş qapısıdır, fərdi istifadəçi kimliyi və ACL deyil. Bu model yalnız sintetik demo üçün uyğundur; real və ya məxfi məlumatdan əvvəl autentifikasiya, sətir səviyyəli giriş qaydaları və təsnifat tətbiq olunmalıdır.

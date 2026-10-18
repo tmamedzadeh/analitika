@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 
+import { BriefMarkdown } from "@/components/BriefMarkdown";
 import { Shell } from "@/components/Shell";
 import { az } from "@/lib/i18n/az";
 import { getOsintRun, listOsintRuns, startOsintRun } from "@/lib/osint.functions";
@@ -78,7 +79,7 @@ function Osint() {
     try {
       const result = await startOsintRun({ data: { query, languages, period, refresh } });
       setSelectedRunId(result.runId);
-      if (result.cacheHit) setCacheNotice(result.pinned ? az.osint.pinnedCached : az.osint.cached);
+      if (result.cacheHit) setCacheNotice(az.osint.cached);
       await queryClient.invalidateQueries({ queryKey: ["osint-runs"] });
     } catch (error) {
       setFormError(error instanceof Error ? error.message : az.osint.failed);
@@ -190,7 +191,6 @@ function Osint() {
           <section className="panel p-5 sm:p-6" aria-live="polite">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="label-mono !text-primary">{az.osint.progress}</p>
-              {run?.pinned ? <span className="pill pill-active">{az.osint.pinned}</span> : null}
               {run && !isActive ? (
                 <button
                   type="button"
@@ -261,7 +261,9 @@ function Osint() {
           <section className="panel p-5 sm:p-6">
             <p className="label-mono !text-primary">{az.osint.summary}</p>
             {run?.summary ? (
-              <p className="mt-4 whitespace-pre-wrap text-base leading-7">{run.summary}</p>
+              <div className="mt-4 text-base leading-7">
+                <BriefMarkdown markdown={run.summary} />
+              </div>
             ) : (
               <p className="mt-4 text-muted-foreground">
                 {isActive ? az.osint.waitingSummary : az.osint.noSummary}
@@ -294,9 +296,11 @@ function Osint() {
                         source.fetchStatus as keyof typeof az.osint.fetchStatus
                       ] ?? source.fetchStatus}
                     </p>
-                    <p className="mt-3 line-clamp-5 text-sm leading-6">
-                      {source.summary || source.snippet || az.osint.fetchingFailed}
-                    </p>
+                    <div className="mt-3 line-clamp-5 text-sm leading-6">
+                      <BriefMarkdown
+                        markdown={source.summary || source.snippet || az.osint.fetchingFailed}
+                      />
+                    </div>
                     {source.publishedAt ? (
                       <p className="mt-2 text-xs text-muted-foreground">
                         {az.osint.date}: {new Date(source.publishedAt).toLocaleDateString("az-AZ")}
@@ -350,7 +354,6 @@ function Osint() {
                     <span>
                       {az.osint.step[item.step as keyof typeof az.osint.step] ?? item.step}
                     </span>
-                    {item.pinned ? <span className="text-primary">· {az.osint.pinned}</span> : null}
                     <span>· {new Date(item.createdAt).toLocaleString("az-AZ")}</span>
                   </span>
                 </button>
