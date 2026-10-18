@@ -11,7 +11,9 @@ export function minimumDocDate(
 ): string | null {
   if (period === "all") return null;
   const date = new Date(now);
-  if (period === "30d") date.setUTCDate(date.getUTCDate() - 30);
+  if (period === "7d") date.setUTCDate(date.getUTCDate() - 7);
+  else if (period === "30d") date.setUTCDate(date.getUTCDate() - 30);
+  else if (period === "90d") date.setUTCDate(date.getUTCDate() - 90);
   else date.setUTCMonth(date.getUTCMonth() - 12);
   return date.toISOString().slice(0, 10);
 }

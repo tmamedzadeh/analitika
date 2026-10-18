@@ -9,10 +9,10 @@ export const az = {
   },
   navigation: {
     dailyBriefs: "Gündəlik xülasələr",
-    analyticsSearch: "Analitika axtarışı",
+    analyticsSearch: "Analitika",
     osint: "OSINT",
     requests: "Məlumat sorğusu",
-    documents: "Analitik məlumatlar",
+    documents: "Məlumat bazası",
     settings: "Ayarlar",
     primary: "Əsas naviqasiya",
   },
@@ -74,8 +74,10 @@ export const az = {
     searchButton: "Axtar",
     searching: "Axtarılır…",
     periodLabel: "Dövr",
-    period12m: "Son 12 ay",
-    period30d: "Son 30 gün",
+    period7d: "Son həftə",
+    period30d: "Son ay",
+    period90d: "Son rüb",
+    period12m: "Son il",
     briefSearchNote:
       "Gündəlik xülasələr seçilmiş dövr üzrə axtarışa daxildir; şöbə və etibarlılıq filtrləri yalnız sənədlərə tətbiq olunur.",
     tagLabel: "Teqlər",
@@ -108,6 +110,7 @@ export const az = {
     rateLimited: "Sorğu limitinə çatdınız. Bir müddət sonra yenidən cəhd edin.",
     searchFailed: "Axtarışı yerinə yetirmək mümkün olmadı.",
     answerFailed: "Cavabı yaratmaq mümkün olmadı. Yenidən cəhd edin.",
+    errorReference: "Sorğu ID-si:",
     timeout: "Axtarış 100 saniyə ərzində cavab vermədi. Yenidən cəhd edin.",
     quotaExceeded:
       "AI provayder kvotası ({quota}) bitib və ya sorğu limiti aşılıb. Seçilmiş provayder panelində planı və istifadəni yoxlayın, sonra yenidən cəhd edin.",
@@ -115,7 +118,7 @@ export const az = {
   requests: {
     title: "Məlumat sorğusu",
     description:
-      "Axtardığınız analitika tapılmadısa, buradan sorğu göndərin. Sorğu cavablandırıldıqdan sonra nəticə Analitik məlumatlar bölməsinə əlavə olunur.",
+      "Axtardığınız analitika tapılmadısa, buradan sorğu göndərin. Sorğu cavablandırıldıqdan sonra nəticə Məlumat bazası bölməsinə əlavə olunur.",
     formTitle: "Yeni sorğu",
     form: {
       department: "İdarə",
@@ -340,7 +343,7 @@ export const az = {
     retrying: "Yenidən növbəyə göndərilir…",
     detail: "Sənədə bax",
     images: "Şəkillər",
-    backToList: "Analitik məlumatlara qayıt",
+    backToList: "Məlumat bazasına qayıt",
     loading: "Yüklənir…",
     loadingDocument: "Sənəd yüklənir",
     textSection: "Mətn",

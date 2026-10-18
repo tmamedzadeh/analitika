@@ -44,7 +44,7 @@ function Osint() {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [languages, setLanguages] = useState<OsintLanguage[]>([...OSINT_LANGUAGES]);
-  const [period, setPeriod] = useState<OsintPeriod>("30d");
+  const [period, setPeriod] = useState<OsintPeriod>("24h");
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);

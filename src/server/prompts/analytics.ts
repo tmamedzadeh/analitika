@@ -51,7 +51,7 @@ export function buildAnalyticsPrompt(
       "\n",
     ),
     thinkingLevel,
-    maxOutputTokens: 1200,
+    maxOutputTokens: 4096,
     lowReliabilityWarning: az.reliability.lowReliabilityWarning,
   };
 }

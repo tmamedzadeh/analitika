@@ -13,7 +13,7 @@ import { az } from "@/lib/i18n/az";
 import { infoCredibilityValues, sourceReliabilityValues } from "@/lib/reliability";
 
 const initialFilters: AnalyticsFilters = {
-  period: "12m",
+  period: "7d",
   tag: "",
   departmentIds: [...departmentIds],
   minSourceReliability: "all",
@@ -39,7 +39,7 @@ function sourceUrl(source: AnalyticsSourcePreview): string {
 }
 
 function citationMarkdown(answer: string) {
-  return answer.replace(/\[(\d+)\](?!\()/g, "[$1](citation:$1)");
+  return answer.replace(/\[(\d+)\](?!\()/g, "[$1](#citation-$1)");
 }
 
 function citedSourceNumbers(answer: string): Set<number> {
@@ -93,6 +93,7 @@ function Analytics() {
   const [elapsedMs, setElapsedMs] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [pageError, setPageError] = useState("");
+  const [errorReference, setErrorReference] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [sourceOnly, setSourceOnly] = useState(false);
   const usedSourceNumbers = citedSourceNumbers(answer);
@@ -112,6 +113,7 @@ function Analytics() {
     setHasSearched(true);
     setSourceOnly(mode === "sources");
     setPageError("");
+    setErrorReference("");
     setAnswer("");
     setSources([]);
     setIncomplete(false);
@@ -119,6 +121,7 @@ function Analytics() {
 
     const abortController = new AbortController();
     const timeoutId = window.setTimeout(() => abortController.abort(), 100_000);
+    let requestId = "";
     try {
       const response = await fetch("/api/analytics/search", {
         method: "POST",
@@ -126,8 +129,13 @@ function Analytics() {
         body: JSON.stringify({ query: normalizedQuestion, filters, mode }),
         signal: abortController.signal,
       });
+      requestId = response.headers.get("x-analytics-request-id") ?? "";
       if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { message?: string } | null;
+        const data = (await response.json().catch(() => null)) as {
+          message?: string;
+          requestId?: string;
+        } | null;
+        requestId = data?.requestId ?? requestId;
         throw new Error(data?.message || az.analytics.searchFailed);
       }
       if (!response.body) throw new Error(az.analytics.searchFailed);
@@ -151,6 +159,7 @@ function Analytics() {
           incomplete?: boolean;
           durationMs?: number;
           message?: string;
+          requestId?: string;
         };
         if (event.type === "sources") setSources(event.sources ?? []);
         if (event.type === "delta") setAnswer((current) => current + (event.text ?? ""));
@@ -167,6 +176,7 @@ function Analytics() {
           setIncomplete(false);
           setElapsedMs(null);
           setPageError(event.message || az.analytics.answerFailed);
+          setErrorReference(event.requestId || requestId);
         }
       };
 
@@ -188,6 +198,7 @@ function Analytics() {
         setIncomplete(false);
         setElapsedMs(null);
         setPageError(az.analytics.answerFailed);
+        setErrorReference(requestId);
       }
     } catch (error) {
       setAnswer("");
@@ -201,6 +212,7 @@ function Analytics() {
             ? error.message
             : az.analytics.searchFailed,
       );
+      setErrorReference(requestId);
     } finally {
       window.clearTimeout(timeoutId);
       setBusy(false);
@@ -233,7 +245,7 @@ function Analytics() {
         </button>
       </form>
 
-      <section className="panel mt-4 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="panel mt-4 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5">
         <label className="flex flex-col gap-1.5 text-sm">
           <span>{az.analytics.periodLabel}</span>
           <select
@@ -247,8 +259,10 @@ function Analytics() {
               }));
             }}
           >
-            <option value="12m">{az.analytics.period12m}</option>
+            <option value="7d">{az.analytics.period7d}</option>
             <option value="30d">{az.analytics.period30d}</option>
+            <option value="90d">{az.analytics.period90d}</option>
+            <option value="12m">{az.analytics.period12m}</option>
             <option value="all">{az.analytics.all}</option>
           </select>
         </label>
@@ -275,21 +289,7 @@ function Analytics() {
         </label>
         <fieldset className="min-w-0 border-0 p-0 text-sm">
           <legend className="mb-1.5">{az.analytics.departmentFilter}</legend>
-          <div className="flex flex-wrap gap-x-3 gap-y-2">
-            <label className="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={filters.departmentIds.length === departments.length}
-                onChange={(event) => {
-                  const checked = event.currentTarget.checked;
-                  setFilters((current) => ({
-                    ...current,
-                    departmentIds: checked ? [...departmentIds] : [departmentIds[0]],
-                  }));
-                }}
-              />
-              {az.analytics.all}
-            </label>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
             {departments.map(({ id, label }) => (
               <label key={id} className="flex items-center gap-1.5">
                 <input
@@ -313,53 +313,53 @@ function Analytics() {
             ))}
           </div>
         </fieldset>
-        <fieldset className="min-w-0 border-0 p-0 text-sm">
-          <div className="grid grid-cols-2 gap-2">
-            <label className="flex min-w-0 flex-col gap-1.5">
-              <span className="">{az.analytics.sourceReliabilityFilter}</span>
-              <select
-                className="field"
-                value={filters.minSourceReliability}
-                onChange={(event) => {
-                  const value = event.currentTarget
-                    .value as AnalyticsFilters["minSourceReliability"];
-                  setFilters((current) => ({ ...current, minSourceReliability: value }));
-                }}
-              >
-                <option value="all">{az.analytics.all}</option>
-                {sourceReliabilityValues.map((value) => (
-                  <option key={value} value={value}>
-                    {value} · {az.reliability.source[value]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-col gap-1.5">
-              <span className="">{az.analytics.infoReliabilityFilter}</span>
-              <select
-                className="field"
-                value={filters.minInfoCredibility}
-                onChange={(event) => {
-                  const value = event.currentTarget.value as AnalyticsFilters["minInfoCredibility"];
-                  setFilters((current) => ({ ...current, minInfoCredibility: value }));
-                }}
-              >
-                <option value="all">{az.analytics.all}</option>
-                {infoCredibilityValues.map((value) => (
-                  <option key={value} value={value}>
-                    {value} · {az.reliability.information[value]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </fieldset>
+        <label className="flex min-w-0 flex-col gap-1.5">
+          <span className="">{az.analytics.sourceReliabilityFilter}</span>
+          <select
+            className="field"
+            value={filters.minSourceReliability}
+            onChange={(event) => {
+              const value = event.currentTarget.value as AnalyticsFilters["minSourceReliability"];
+              setFilters((current) => ({ ...current, minSourceReliability: value }));
+            }}
+          >
+            <option value="all">{az.analytics.all}</option>
+            {sourceReliabilityValues.map((value) => (
+              <option key={value} value={value}>
+                {value} · {az.reliability.source[value]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex min-w-0 flex-col gap-1.5">
+          <span className="">{az.analytics.infoReliabilityFilter}</span>
+          <select
+            className="field"
+            value={filters.minInfoCredibility}
+            onChange={(event) => {
+              const value = event.currentTarget.value as AnalyticsFilters["minInfoCredibility"];
+              setFilters((current) => ({ ...current, minInfoCredibility: value }));
+            }}
+          >
+            <option value="all">{az.analytics.all}</option>
+            {infoCredibilityValues.map((value) => (
+              <option key={value} value={value}>
+                {value} · {az.reliability.information[value]}
+              </option>
+            ))}
+          </select>
+        </label>
       </section>
       <p className="mt-2 text-sm text-muted-foreground">{az.analytics.briefSearchNote}</p>
 
       {pageError && (
         <div role="alert" className="mt-4 rounded-xl border border-destructive/40 p-4 text-sm">
           {pageError}
+          {errorReference && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {az.analytics.errorReference} {errorReference}
+            </p>
+          )}
         </div>
       )}
 
@@ -396,19 +396,19 @@ function Analytics() {
               <BriefMarkdown
                 markdown={citationMarkdown(answer)}
                 linkRenderer={(href, children) => {
-                  const match = /^citation:(\d+)$/.exec(href ?? "");
+                  const match = /^#citation-(\d+)$/.exec(href ?? "");
                   if (!match) return undefined;
                   const source = sources.find((candidate) => candidate.n === Number(match[1]));
                   return source ? (
                     <a
                       className="cite"
-                      href={sourceUrl(source)}
+                      href={`#source-${source.n}`}
                       aria-label={az.analytics.openSource.replace("{n}", String(source.n))}
                     >
-                      {children}
+                      [{children}]
                     </a>
                   ) : (
-                    <span className="cite">{children}</span>
+                    <span className="cite">[{children}]</span>
                   );
                 }}
               />
@@ -458,7 +458,12 @@ function Analytics() {
           )}
           <div className="space-y-3">
             {visibleSources.map((source) => (
-              <article key={source.chunkId} id={`source-${source.n}`} className="panel p-5">
+              <article
+                key={source.chunkId}
+                id={`source-${source.n}`}
+                className="panel scroll-mt-6 p-5"
+                tabIndex={-1}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="font-semibold">
                     <span className="cite ml-0! mr-1">{source.n}</span>
@@ -484,7 +489,12 @@ function Analytics() {
                   {source.isTable ? " · " + az.analytics.table : ""}
                 </p>
                 {source.quote && <p className="mt-2 text-sm">«{source.quote}»</p>}
-                <a className="pill mt-3 inline-flex" href={sourceUrl(source)}>
+                <a
+                  className="pill mt-3 inline-flex"
+                  href={sourceUrl(source)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {source.sourceKind === "brief"
                     ? briefSearchLabel(source.briefDate ?? "")
                     : az.analytics.openDocument}

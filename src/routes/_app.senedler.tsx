@@ -33,9 +33,9 @@ type DocumentSummary = Awaited<ReturnType<typeof listRecentDocuments>>[number];
 export const Route = createFileRoute("/_app/senedler")({
   head: () => ({
     meta: [
-      { title: "Analitik məlumatlar · Analitika" },
+      { title: "Məlumat bazası · Analitika" },
       { name: "description", content: "Yeni sənəd əlavə edin və indeksləmə vəziyyətini izləyin." },
-      { property: "og:title", content: "Analitik məlumatlar · Analitika" },
+      { property: "og:title", content: "Məlumat bazası · Analitika" },
       {
         property: "og:description",
         content: "Yeni sənəd əlavə edin və indeksləmə vəziyyətini izləyin.",
@@ -194,7 +194,7 @@ function AddDoc() {
   return (
     <Shell
       crumb={az.navigation.documents}
-      title="Analitik məlumat əlavə et"
+      title="Məlumat bazasına əlavə et"
       badges={["Sistem aktivdir", "İndeksləmə: fonda"]}
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_352px]">

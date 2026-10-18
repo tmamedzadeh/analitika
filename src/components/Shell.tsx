@@ -116,7 +116,7 @@ export function ShellLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   return (
     <div className="min-h-screen md:flex">
-      <aside className="flex w-full flex-col border-b border-border bg-card px-4 py-3 md:min-h-screen md:w-58 md:shrink-0 md:border-b-0 md:border-r md:px-5 md:py-6">
+      <aside className="flex w-full flex-col border-b border-border bg-card px-4 py-3 md:min-h-screen md:w-55 md:shrink-0 md:border-b-0 md:border-r md:px-5 md:py-6">
         <div className="flex items-center justify-between gap-3 md:flex-col md:justify-start md:gap-0">
           <Link to="/" className="flex min-w-0 items-center gap-2 md:flex-col md:gap-3">
             <img

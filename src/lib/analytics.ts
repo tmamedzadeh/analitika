@@ -4,7 +4,7 @@ import type { InfoCredibility, SourceReliability } from "./reliability";
 import { departmentIdSchema, departmentIds } from "./departments";
 
 export const analyticsFiltersSchema = z.object({
-  period: z.enum(["12m", "30d", "all"]),
+  period: z.enum(["7d", "30d", "90d", "12m", "all"]),
   tag: z.string().max(64),
   departmentIds: z
     .array(departmentIdSchema)

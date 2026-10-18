@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 export const departments = [
-  { id: "d1", label: "İdarə 1" },
-  { id: "d2", label: "İdarə 2" },
-  { id: "d3", label: "İdarə 3" },
-  { id: "d4", label: "İdarə 4" },
-  { id: "d5", label: "İdarə 5" },
+  { id: "d1", label: "1" },
+  { id: "d2", label: "2" },
+  { id: "d3", label: "3" },
+  { id: "d4", label: "4" },
+  { id: "d5", label: "5" },
 ] as const;
 
 export type DepartmentId = (typeof departments)[number]["id"];

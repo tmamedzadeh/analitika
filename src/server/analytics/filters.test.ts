@@ -50,4 +50,13 @@ describe("analytics department filters", () => {
     expect(query.params).toContain("2026-09-18");
     expect(query.params).toContain("2026-09-18T00:00:00.000Z");
   });
+
+  it("calculates week, quarter, and year period boundaries", () => {
+    const now = new Date("2026-10-18T18:00:00.000Z");
+
+    expect(minimumDocDate("7d", now)).toBe("2026-10-11");
+    expect(minimumDocDate("30d", now)).toBe("2026-09-18");
+    expect(minimumDocDate("90d", now)).toBe("2026-07-20");
+    expect(minimumDocDate("12m", now)).toBe("2025-10-18");
+  });
 });
