@@ -14,6 +14,16 @@ export type ValidatedAnswer = {
   usedLowReliability: boolean;
 };
 
+export function canPublishAnalyticsAnswer(
+  answer: string,
+  finishReason: string,
+  validation: Pick<ValidatedAnswer, "incomplete">,
+): boolean {
+  const text = answer.trim();
+  if (!text || finishReason !== "stop" || validation.incomplete) return false;
+  return text.lastIndexOf("[") <= text.lastIndexOf("]");
+}
+
 export function validateCitations(
   answer: string,
   sources: readonly CitationSource[],

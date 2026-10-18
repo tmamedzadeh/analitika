@@ -2,7 +2,7 @@ import { analyticsSearchRequestSchema } from "@/lib/analytics";
 import type { AnalyticsSource, AnalyticsSourcePreview } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
 import { createGeminiProviders } from "@/server/ai/gemini";
-import { validateCitations } from "./citations";
+import { canPublishAnalyticsAnswer, validateCitations } from "./citations";
 import { consumeAnalyticsRateLimit } from "./rate-limit";
 import { searchDocumentChunks } from "./search";
 import { buildAnalyticsPrompt } from "../prompts/analytics";
@@ -102,7 +102,6 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
           return;
         }
 
-        let generated = "";
         try {
           const providers = createGeminiProviders();
           const prompt = buildAnalyticsPrompt(
@@ -110,17 +109,43 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
             sources,
             getAppConfig().analyticsThinkingLevel,
           );
-          const chunks = await providers.analytics.streamText(prompt);
-          for await (const part of chunks) {
-            generated += part;
-            send({ type: "delta", text: part });
+          let validatedAnswer: ReturnType<typeof validateCitations> | null = null;
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            const generationPrompt =
+              attempt === 0
+                ? prompt
+                : {
+                    ...prompt,
+                    maxOutputTokens: 1800,
+                    system:
+                      prompt.system +
+                      "\nƏvvəlki cavab tam və düzgün istinadlarla bitmədi. Tam cavab yaz, hər istinadı bağla və fikri yarımçıq saxlamadan yekunlaşdır.",
+                    prompt:
+                      prompt.prompt +
+                      "\n\nXüsusi tələb: Cavabın sonunda açıq mötərizə və ya yarımçıq istinad qoyma; bütün istinadları mənbələr siyahısı ilə yoxla.",
+                  };
+            const generated = await providers.analytics.generateTextWithMetadata(generationPrompt);
+            const validated = validateCitations(
+              generated.text,
+              sources,
+              prompt.lowReliabilityWarning,
+            );
+            if (canPublishAnalyticsAnswer(generated.text, generated.finishReason, validated)) {
+              validatedAnswer = validated;
+              break;
+            }
           }
 
-          const validated = validateCitations(generated, sources, prompt.lowReliabilityWarning);
+          if (!validatedAnswer) {
+            send({ type: "error", message: az.analytics.answerFailed });
+            close();
+            return;
+          }
+
           send({
             type: "final",
-            answer: validated.answer,
-            incomplete: validated.incomplete,
+            answer: validatedAnswer.answer,
+            incomplete: false,
             durationMs: Date.now() - startedAt,
             model,
           });

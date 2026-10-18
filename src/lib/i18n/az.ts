@@ -76,6 +76,8 @@ export const az = {
     periodLabel: "Dövr",
     period12m: "Son 12 ay",
     period30d: "Son 30 gün",
+    briefSearchNote:
+      "Gündəlik xülasələr seçilmiş dövr üzrə axtarışa daxildir; şöbə və etibarlılıq filtrləri yalnız sənədlərə tətbiq olunur.",
     tagLabel: "Teqlər",
     departmentFilter: "İdarə",
     sourceReliabilityFilter: "Mənbə etibarlılığı",
@@ -94,8 +96,6 @@ export const az = {
     sources: "Mənbələr",
     optionsFailed: "Filtrləri yükləmək mümkün olmadı.",
     noSources: "Mənbələrdə məlumat tapılmadı.",
-    usedSources: "Cavabda istifadə olunan mənbələr: {used} / {total}",
-    sourceUnused: "istifadə olunmayıb",
     emptyState: "Sual verin; cavab tapılmış sənəd fraqmentlərinə əsaslanacaq.",
     sourcesHint: "Axtarış nəticəsində uyğun sənəd fraqmentləri burada görünəcək.",
     sectionUnknown: "Bölmə göstərilməyib",

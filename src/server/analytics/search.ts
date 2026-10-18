@@ -1,8 +1,6 @@
 import { and, asc, count, desc, eq, inArray, isNotNull, lt, or, sql, type SQL } from "drizzle-orm";
 
-import { briefCanAppearInSearch } from "@/lib/briefs";
 import type { AnalyticsFilters, AnalyticsSource } from "@/lib/analytics";
-import { departments } from "@/lib/departments";
 import { getAppConfig } from "@/server/config";
 import {
   GeminiRerankProvider,
@@ -87,18 +85,8 @@ function sourceProjection() {
   };
 }
 
-export function searchSourceConditions(filters: AnalyticsFilters) {
-  const documentSource = and(isNotNull(chunks.documentId), ...documentConditions(filters));
-  if (
-    !briefCanAppearInSearch({
-      departmentIds: filters.departmentIds,
-      allDepartmentIds: departments.map(({ id }) => id),
-      minSourceReliability: filters.minSourceReliability,
-      minInfoCredibility: filters.minInfoCredibility,
-    })
-  ) {
-    return documentSource;
-  }
+export function searchSourceConditions(filters: AnalyticsFilters, now = new Date()) {
+  const documentSource = and(isNotNull(chunks.documentId), ...documentConditions(filters, now));
 
   const briefConditions = [
     isNotNull(chunks.briefId),
@@ -106,7 +94,7 @@ export function searchSourceConditions(filters: AnalyticsFilters) {
     eq(dailyBriefs.indexStatus, "ready"),
     accessFilter(),
   ];
-  const fromDate = minimumDocDate(filters.period);
+  const fromDate = minimumDocDate(filters.period, now);
   if (fromDate) briefConditions.push(sql`${dailyBriefs.briefDate} >= ${fromDate}`);
   return or(documentSource, and(...briefConditions));
 }
@@ -154,15 +142,25 @@ export async function searchDocumentChunks(
   const sourceCondition = searchSourceConditions(filters);
   const modelCondition = eq(chunks.embeddingModel, embeddingModel);
 
-  const queryCandidates = (kind: "vector" | "text" | "trigram") => {
+  const queryCandidates = (
+    kind: "vector" | "text" | "trigram",
+    sourceKind: "document" | "brief",
+  ) => {
     const builder = db
       .select(sourceProjection())
       .from(chunks)
       .leftJoin(documents, eq(chunks.documentId, documents.id))
       .leftJoin(dailyBriefs, eq(chunks.briefId, dailyBriefs.id));
-    const conditions = [sourceCondition, modelCondition];
-    if (kind === "vector")
-      conditions.push(isNotNull(chunks.embedding), lt(vectorDistance, MAX_VECTOR_DISTANCE));
+    const sourceKindCondition =
+      sourceKind === "document" ? isNotNull(chunks.documentId) : isNotNull(chunks.briefId);
+    const conditions = [sourceCondition, sourceKindCondition];
+    if (kind === "vector") {
+      conditions.push(
+        modelCondition,
+        isNotNull(chunks.embedding),
+        lt(vectorDistance, MAX_VECTOR_DISTANCE),
+      );
+    }
     if (kind === "text") conditions.push(textMatch);
     if (kind === "trigram") conditions.push(trigramMatch);
     const selected = builder.where(and(...conditions));
@@ -171,14 +169,34 @@ export async function searchDocumentChunks(
     return selected.orderBy(desc(similarity)).limit(CANDIDATE_LIMIT);
   };
 
-  const [vectorRows, fullTextRows, trigramRows] = await Promise.all([
-    queryCandidates("vector"),
-    queryCandidates("text"),
-    queryCandidates("trigram"),
+  const [
+    documentVectorRows,
+    documentFullTextRows,
+    documentTrigramRows,
+    briefVectorRows,
+    briefFullTextRows,
+    briefTrigramRows,
+  ] = await Promise.all([
+    queryCandidates("vector", "document"),
+    queryCandidates("text", "document"),
+    queryCandidates("trigram", "document"),
+    queryCandidates("vector", "brief"),
+    queryCandidates("text", "brief"),
+    queryCandidates("trigram", "brief"),
   ]);
 
   const seenSources = new Set<string>();
-  const candidates = reciprocalRankFusion([vectorRows, fullTextRows, trigramRows], 60)
+  const candidates = reciprocalRankFusion(
+    [
+      documentVectorRows,
+      documentFullTextRows,
+      documentTrigramRows,
+      briefVectorRows,
+      briefFullTextRows,
+      briefTrigramRows,
+    ],
+    60,
+  )
     .filter(({ item }) => {
       const sourceKey =
         item.sourceKind === "brief"

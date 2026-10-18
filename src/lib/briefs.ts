@@ -196,19 +196,6 @@ export function formatBriefEmbeddingText(title: string, date: string, chunkText:
   return `${title} / ${date}\n${chunkText}`;
 }
 
-export function briefCanAppearInSearch(filters: {
-  departmentIds: readonly string[];
-  allDepartmentIds: readonly string[];
-  minSourceReliability: string;
-  minInfoCredibility: string;
-}): boolean {
-  return (
-    filters.departmentIds.length === filters.allDepartmentIds.length &&
-    filters.minSourceReliability === "all" &&
-    filters.minInfoCredibility === "all"
-  );
-}
-
 export function briefRouteForSearchSource(source: {
   sourceKind: "document" | "brief";
   documentId: string | null;

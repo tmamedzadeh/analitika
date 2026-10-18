@@ -34,18 +34,20 @@ describe("daily brief retrieval filters", () => {
     expect(query.sql).toContain('"daily_briefs"."brief_date" >=');
   });
 
-  it("keeps briefs when tags are active, but excludes them for department and reliability filters", () => {
+  it("keeps briefs alongside documents when document-only filters are active", () => {
     const byTag = compile(analyticsFiltersSchema.parse({ ...defaults, tag: "demo-synthetic" }));
     expect(byTag.sql).toContain('"daily_briefs"."status" =');
 
     const byDepartment = compile(
       analyticsFiltersSchema.parse({ ...defaults, departmentIds: ["d1"] }),
     );
-    expect(byDepartment.sql).not.toContain('"daily_briefs"."status"');
+    expect(byDepartment.sql).toContain('"daily_briefs"."status"');
+    expect(byDepartment.sql).toContain('"documents"."department" in');
 
     const byReliability = compile(
       analyticsFiltersSchema.parse({ ...defaults, minInfoCredibility: "4" }),
     );
-    expect(byReliability.sql).not.toContain('"daily_briefs"."status"');
+    expect(byReliability.sql).toContain('"daily_briefs"."status"');
+    expect(byReliability.sql).toContain('"documents"."info_credibility" <=');
   });
 });

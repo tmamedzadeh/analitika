@@ -96,6 +96,9 @@ function Analytics() {
   const [hasSearched, setHasSearched] = useState(false);
   const [sourceOnly, setSourceOnly] = useState(false);
   const usedSourceNumbers = citedSourceNumbers(answer);
+  const visibleSources = sourceOnly
+    ? sources
+    : sources.filter((source) => usedSourceNumbers.has(source.n));
 
   const optionsQuery = useQuery({
     queryKey: ["analytics", "options"],
@@ -132,6 +135,7 @@ function Analytics() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let receivedTerminalEvent = false;
       const readEvent = (frame: string) => {
         const data = frame
           .split(/\r?\n/)
@@ -151,11 +155,19 @@ function Analytics() {
         if (event.type === "sources") setSources(event.sources ?? []);
         if (event.type === "delta") setAnswer((current) => current + (event.text ?? ""));
         if (event.type === "final") {
+          receivedTerminalEvent = true;
           setAnswer(event.answer ?? "");
           setIncomplete(Boolean(event.incomplete));
           setElapsedMs(event.durationMs ?? null);
         }
-        if (event.type === "error") setPageError(event.message || az.analytics.answerFailed);
+        if (event.type === "error") {
+          receivedTerminalEvent = true;
+          setAnswer("");
+          setSources([]);
+          setIncomplete(false);
+          setElapsedMs(null);
+          setPageError(event.message || az.analytics.answerFailed);
+        }
       };
 
       while (true) {
@@ -170,7 +182,18 @@ function Analytics() {
         if (done) break;
       }
       if (buffer.trim()) readEvent(buffer);
+      if (!receivedTerminalEvent) {
+        setAnswer("");
+        setSources([]);
+        setIncomplete(false);
+        setElapsedMs(null);
+        setPageError(az.analytics.answerFailed);
+      }
     } catch (error) {
+      setAnswer("");
+      setSources([]);
+      setIncomplete(false);
+      setElapsedMs(null);
       setPageError(
         abortController.signal.aborted
           ? az.analytics.timeout
@@ -332,6 +355,7 @@ function Analytics() {
           </div>
         </fieldset>
       </section>
+      <p className="mt-2 text-sm text-muted-foreground">{az.analytics.briefSearchNote}</p>
 
       {pageError && (
         <div role="alert" className="mt-4 rounded-xl border border-destructive/40 p-4 text-sm">
@@ -351,14 +375,14 @@ function Analytics() {
                 </span>
               ) : elapsedMs === null ? (
                 hasSearched ? (
-                  az.analytics.sourcesCount.replace("{count}", String(sources.length))
+                  az.analytics.sourcesCount.replace("{count}", String(visibleSources.length))
                 ) : (
                   az.analytics.waiting
                 )
               ) : (
                 az.analytics.timing
                   .replace("{seconds}", (elapsedMs / 1000).toFixed(1))
-                  .replace("{count}", String(sources.length))
+                  .replace("{count}", String(visibleSources.length))
               )}
             </span>
           </div>
@@ -421,22 +445,11 @@ function Analytics() {
         <aside>
           <div className="mb-3 flex items-center justify-between gap-2">
             <p className="label-mono">{az.analytics.sources}</p>
-            {hasSearched && !sourceOnly ? (
+            {hasSearched && (!busy || sourceOnly) ? (
               <span className="label-mono">
-                {az.analytics.usedSources
-                  .replace(
-                    "{used}",
-                    String(sources.filter((source) => usedSourceNumbers.has(source.n)).length),
-                  )
-                  .replace("{total}", String(sources.length))}
+                {az.analytics.sourcesCount.replace("{count}", String(visibleSources.length))}
               </span>
-            ) : (
-              <span className="label-mono">
-                {hasSearched
-                  ? az.analytics.sourcesCount.replace("{count}", String(sources.length))
-                  : ""}
-              </span>
-            )}
+            ) : null}
           </div>
           {optionsQuery.isError && (
             <p role="alert" className="mb-3 text-sm text-destructive">
@@ -444,14 +457,8 @@ function Analytics() {
             </p>
           )}
           <div className="space-y-3">
-            {sources.map((source) => (
-              <article
-                key={source.chunkId}
-                id={`source-${source.n}`}
-                className={
-                  "panel p-5 " + (usedSourceNumbers.has(source.n) || sourceOnly ? "" : "opacity-50")
-                }
-              >
+            {visibleSources.map((source) => (
+              <article key={source.chunkId} id={`source-${source.n}`} className="panel p-5">
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="font-semibold">
                     <span className="cite ml-0! mr-1">{source.n}</span>
@@ -477,9 +484,6 @@ function Analytics() {
                   {source.isTable ? " · " + az.analytics.table : ""}
                 </p>
                 {source.quote && <p className="mt-2 text-sm">«{source.quote}»</p>}
-                {!sourceOnly && !usedSourceNumbers.has(source.n) && (
-                  <span className="label-mono mt-2 inline-block">{az.analytics.sourceUnused}</span>
-                )}
                 <a className="pill mt-3 inline-flex" href={sourceUrl(source)}>
                   {source.sourceKind === "brief"
                     ? briefSearchLabel(source.briefDate ?? "")
@@ -490,7 +494,7 @@ function Analytics() {
                 </a>
               </article>
             ))}
-            {hasSearched && sources.length === 0 && !busy && (
+            {hasSearched && visibleSources.length === 0 && !busy && !pageError && (
               <div className="panel p-5 text-sm text-muted-foreground">
                 {az.analytics.noSources}
               </div>

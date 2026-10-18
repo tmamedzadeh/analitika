@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  briefCanAppearInSearch,
   briefExcerpt,
   briefStatuses,
   briefSearchLabel,
@@ -95,17 +94,5 @@ describe("brief indexing and search mapping", () => {
         chunkId: "chunk id",
       }),
     ).toBe("/brifler/brief%2Fid?chunk=chunk%20id");
-  });
-
-  it("excludes briefs only when department or reliability filters are active", () => {
-    const common = {
-      departmentIds: ["d1", "d2", "d3", "d4", "d5"],
-      allDepartmentIds: ["d1", "d2", "d3", "d4", "d5"],
-      minSourceReliability: "all",
-      minInfoCredibility: "all",
-    };
-    expect(briefCanAppearInSearch(common)).toBe(true);
-    expect(briefCanAppearInSearch({ ...common, departmentIds: ["d1"] })).toBe(false);
-    expect(briefCanAppearInSearch({ ...common, minInfoCredibility: "4" })).toBe(false);
   });
 });

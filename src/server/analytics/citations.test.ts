@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateCitations } from "./citations";
+import { canPublishAnalyticsAnswer, validateCitations } from "./citations";
 
 const sources = [
   { n: 1, sourceReliability: "A", infoCredibility: 1 },
@@ -50,5 +50,17 @@ describe("validateCitations", () => {
   it("marks an answer without citations incomplete except for the no-sources message", () => {
     expect(validateCitations("Cavab var.", sources, "").incomplete).toBe(true);
     expect(validateCitations("Mənbələrdə məlumat tapılmadı.", [], "").incomplete).toBe(false);
+  });
+});
+
+describe("canPublishAnalyticsAnswer", () => {
+  it("accepts a completed answer with validated citations", () => {
+    expect(canPublishAnalyticsAnswer("Nəticə [1].", "stop", { incomplete: false })).toBe(true);
+  });
+
+  it("rejects truncated output and incomplete citations", () => {
+    expect(canPublishAnalyticsAnswer("Nəticə [", "stop", { incomplete: false })).toBe(false);
+    expect(canPublishAnalyticsAnswer("Nəticə [1].", "length", { incomplete: false })).toBe(false);
+    expect(canPublishAnalyticsAnswer("Nəticə [7].", "stop", { incomplete: true })).toBe(false);
   });
 });

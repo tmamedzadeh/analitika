@@ -58,7 +58,9 @@ export class GeminiLLMProvider implements LLMProvider {
     }
   }
 
-  async generateText(input: TextGenerationInput): Promise<string> {
+  async generateTextWithMetadata(
+    input: TextGenerationInput,
+  ): Promise<{ text: string; finishReason: string }> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
     const result = await withGeminiRequest(
       this.quotaKey,
@@ -80,7 +82,11 @@ export class GeminiLLMProvider implements LLMProvider {
       input.requestBudget,
       input.maxAttempts,
     );
-    return result.text;
+    return { text: result.text, finishReason: result.finishReason };
+  }
+
+  async generateText(input: TextGenerationInput): Promise<string> {
+    return (await this.generateTextWithMetadata(input)).text;
   }
 
   async generateObject<TSchema extends z.ZodType>(
