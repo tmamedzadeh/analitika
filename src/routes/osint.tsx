@@ -18,6 +18,10 @@ export const Route = createFileRoute("/osint")({
     meta: [
       { title: `${az.osint.title} · Analitika` },
       { name: "description", content: az.osint.description },
+      { property: "og:title", content: `${az.osint.title} · Analitika` },
+      { property: "og:description", content: az.osint.description },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Osint,

@@ -27,7 +27,7 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (conflict) return;
-    const intent = new FormData(event.currentTarget).get("intent");
+    const intent = new FormData(event.currentTarget, (event.nativeEvent as SubmitEvent).submitter).get("intent");
     const brief: Brief = { ...preview, id: existing?.id ?? crypto.randomUUID(), title: title.trim(), body: body.trim(), status: intent === "draft" ? "draft" : "published" };
     if (!brief.title || !brief.body) { setError("Başlıq və brifin mətnini daxil edin."); return; }
     if (save(brief)) void navigate({ to: "/brifler/$id", params: { id: brief.id } });

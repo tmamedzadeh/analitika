@@ -18,6 +18,10 @@ export const Route = createFileRoute("/senedler/$id")({
     meta: [
       { title: "Sənəd · Analitika" },
       { name: "description", content: "Sənəd mətninə, fraqmentlərə və şəkillərə baxın." },
+      { property: "og:title", content: "Sənəd · Analitika" },
+      { property: "og:description", content: "Sənəd mətninə, fraqmentlərə və şəkillərə baxın." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: DocumentPage,

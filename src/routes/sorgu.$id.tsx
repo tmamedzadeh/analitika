@@ -22,6 +22,10 @@ export const Route = createFileRoute("/sorgu/$id")({
     meta: [
       { title: `${az.requests.details} · ${az.requests.title}` },
       { name: "description", content: az.requests.description },
+      { property: "og:title", content: `${az.requests.details} · ${az.requests.title}` },
+      { property: "og:description", content: az.requests.description },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: InfoRequestPage,
