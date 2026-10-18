@@ -17,7 +17,7 @@ const initialFilters: AnalyticsFilters = {
   minInfoCredibility: "all",
 };
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/axtaris")({
   head: () => ({
     meta: [
       { title: "Analitika üzrə axtarış" },

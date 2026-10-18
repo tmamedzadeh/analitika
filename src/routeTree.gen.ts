@@ -9,7 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AxtarisRouteImport } from './routes/axtaris'
 import { Route as AyarlarRouteImport } from './routes/ayarlar'
 import { Route as OsintRouteImport } from './routes/osint'
 import { Route as SenedlerRouteImport } from './routes/senedler'
@@ -19,9 +19,9 @@ import { Route as SenedlerIdRouteImport } from './routes/senedler.$id'
 import { Route as SorguIdRouteImport } from './routes/sorgu.$id'
 import { Route as ApiAnalyticsSearchRouteImport } from './routes/api.analytics.search'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AxtarisRoute = AxtarisRouteImport.update({
+  id: '/axtaris',
+  path: '/axtaris',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AyarlarRoute = AyarlarRouteImport.update({
@@ -66,7 +66,7 @@ const ApiAnalyticsSearchRoute = ApiAnalyticsSearchRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/axtaris': typeof AxtarisRoute
   '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRouteWithChildren
@@ -77,7 +77,7 @@ export interface FileRoutesByFullPath {
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/axtaris': typeof AxtarisRoute
   '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRouteWithChildren
@@ -89,7 +89,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/axtaris': typeof AxtarisRoute
   '/ayarlar': typeof AyarlarRoute
   '/osint': typeof OsintRoute
   '/senedler': typeof SenedlerRouteWithChildren
@@ -102,7 +102,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
+    | '/axtaris'
     | '/ayarlar'
     | '/osint'
     | '/senedler'
@@ -113,7 +113,7 @@ export interface FileRouteTypes {
     | '/api/analytics/search'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
+    | '/axtaris'
     | '/ayarlar'
     | '/osint'
     | '/senedler'
@@ -124,7 +124,7 @@ export interface FileRouteTypes {
     | '/api/analytics/search'
   id:
     | '__root__'
-    | '/'
+    | '/axtaris'
     | '/ayarlar'
     | '/osint'
     | '/senedler'
@@ -136,7 +136,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AxtarisRoute: typeof AxtarisRoute
   AyarlarRoute: typeof AyarlarRoute
   OsintRoute: typeof OsintRoute
   SenedlerRoute: typeof SenedlerRouteWithChildren
@@ -147,11 +147,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/axtaris': {
+      id: '/axtaris'
+      path: '/axtaris'
+      fullPath: '/axtaris'
+      preLoaderRoute: typeof AxtarisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ayarlar': {
@@ -236,7 +236,7 @@ const SorguRouteChildren: SorguRouteChildren = {
 const SorguRouteWithChildren = SorguRoute._addFileChildren(SorguRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AxtarisRoute: AxtarisRoute,
   AyarlarRoute: AyarlarRoute,
   OsintRoute: OsintRoute,
   SenedlerRoute: SenedlerRouteWithChildren,
