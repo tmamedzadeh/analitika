@@ -16,6 +16,7 @@ import { az } from "@/lib/i18n/az";
 import {
   completeDocumentUploads,
   createDocumentDraft,
+  createDocumentSchema,
   discardDocumentDraft,
   listRecentDocuments,
   retryDocumentIndexing,
@@ -104,25 +105,29 @@ function AddDoc() {
     }
     if (photoError) return;
 
+    const input = createDocumentSchema.safeParse({
+      title: String(formData.get("title") ?? ""),
+      body,
+      department: String(formData.get("department") ?? ""),
+      docDate: String(formData.get("docDate") ?? "") || null,
+      tags: String(formData.get("tags") ?? "")
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+      classification,
+      sourceReliability,
+      infoCredibility,
+      photos: photos.map((file) => ({ name: file.name, mime: file.type, size: file.size })),
+    });
+    if (!input.success) {
+      setFormError(input.error.issues[0]?.message ?? az.documents.form.invalidPhotos);
+      return;
+    }
+
     setSaving(true);
     let documentId: string | null = null;
     try {
-      const draft = await createDocumentDraft({
-        data: {
-          title: String(formData.get("title") ?? ""),
-          body,
-          department: String(formData.get("department") ?? ""),
-          docDate: String(formData.get("docDate") ?? "") || null,
-          tags: String(formData.get("tags") ?? "")
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean),
-          classification,
-          sourceReliability,
-          infoCredibility,
-          photos: photos.map((file) => ({ name: file.name, mime: file.type, size: file.size })),
-        },
-      });
+      const draft = await createDocumentDraft({ data: input.data });
       documentId = draft.documentId;
 
       for (const [index, upload] of draft.uploads.entries()) {

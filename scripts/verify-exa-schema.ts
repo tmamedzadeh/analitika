@@ -1,0 +1,60 @@
+import { sql } from "drizzle-orm";
+
+import { closeDb, getDb } from "../src/server/db";
+
+async function verifySchema(): Promise<void> {
+  const db = getDb();
+  const extensionRows = await db.execute(sql`
+    SELECT extname FROM pg_extension WHERE extname IN ('vector', 'pg_trgm')
+  `);
+  const extensions = new Set(extensionRows.map((row) => String(row["extname"])));
+  if (!extensions.has("vector") || !extensions.has("pg_trgm")) {
+    throw new Error("Required PostgreSQL extensions are missing.");
+  }
+
+  const tableRows = await db.execute(sql`
+    SELECT table_name FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name IN (
+        'documents', 'info_requests', 'request_attachments', 'osint_runs',
+        'osint_sources', 'osint_cache', 'chunks'
+      )
+  `);
+  const tables = new Set(tableRows.map((row) => String(row["table_name"])));
+  const requiredTables = [
+    "documents",
+    "info_requests",
+    "request_attachments",
+    "osint_runs",
+    "osint_sources",
+    "osint_cache",
+    "chunks",
+  ];
+  if (requiredTables.some((table) => !tables.has(table))) {
+    throw new Error("One or more required application tables are missing.");
+  }
+
+  const columnRows = await db.execute(sql`
+    SELECT table_name, column_name FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND (
+        (table_name = 'osint_runs' AND column_name = 'pinned') OR
+        (table_name = 'osint_sources' AND column_name = 'fetch_status')
+      )
+  `);
+  const columns = new Set(columnRows.map((row) => `${row["table_name"]}.${row["column_name"]}`));
+  if (!columns.has("osint_runs.pinned") || !columns.has("osint_sources.fetch_status")) {
+    throw new Error("The Exa OSINT migration is missing required columns.");
+  }
+
+  console.log("Database check passed: vector, pg_trgm, required tables, and Exa OSINT columns.");
+}
+
+try {
+  await verifySchema();
+} catch {
+  console.error("Database schema check failed. Confirm migrations and DATABASE_URL.");
+  process.exitCode = 1;
+} finally {
+  await closeDb();
+}

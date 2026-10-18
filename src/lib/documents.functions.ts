@@ -25,6 +25,18 @@ const imageTypes = {
   "image/webp": "webp",
 } as const;
 
+type DocumentProgress = { percent: number; totalChunks: number; completedChunks: number };
+
+function serializeDocumentProgress(value: unknown): DocumentProgress {
+  const progress = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  return {
+    percent: typeof progress["percent"] === "number" ? progress["percent"] : 0,
+    totalChunks: typeof progress["totalChunks"] === "number" ? progress["totalChunks"] : 0,
+    completedChunks:
+      typeof progress["completedChunks"] === "number" ? progress["completedChunks"] : 0,
+  };
+}
+
 const imageInputSchema = z.object({
   name: z.string().trim().min(1).max(255),
   mime: z.enum(["image/jpeg", "image/png", "image/webp"]),
@@ -68,7 +80,7 @@ async function queueDocumentIndexing(documentId: string): Promise<void> {
       .update(documents)
       .set({ status: "queued", step: "queued", error: null, updatedAt: new Date() })
       .where(and(eq(documents.id, documentId), accessFilter()));
-    await inngest.send(documentIndexingRequested.create({ data: { documentId } }));
+    await inngest.send(documentIndexingRequested.create({ documentId }));
   } catch {
     await db
       .update(documents)
@@ -110,6 +122,7 @@ export const listRecentDocuments = createServerFn({ method: "GET" }).handler(asy
 
   return rows.map((row) => ({
     ...row,
+    progress: serializeDocumentProgress(row.progress),
     chunkCount: countByDocument.get(row.id) ?? 0,
     createdAt: row.createdAt.toISOString(),
   }));
@@ -299,6 +312,7 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
 
     return {
       ...document,
+      progress: serializeDocumentProgress(document.progress),
       createdAt: document.createdAt.toISOString(),
       updatedAt: document.updatedAt.toISOString(),
       chunks: documentChunks,

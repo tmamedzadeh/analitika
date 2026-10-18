@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 
 import { createGeminiProviders } from "../ai/gemini";
-import { getAppConfig } from "../config";
+import { getGeminiQuotaKey } from "../ai/gemini-gateway";
 import { chunks, documents } from "../db/schema";
 import { getDb } from "../db";
 import { accessFilter } from "../db/access";
@@ -17,11 +17,11 @@ type DocumentProgress = {
 };
 
 function readableError(error: unknown): string {
-  const message = error instanceof Error ? error.message : "";
-  return (az.documents.form.processingErrorPrefix + message.replace(/\s+/g, " ").trim()).slice(
-    0,
-    800,
-  );
+  const quotaKey = getGeminiQuotaKey(error);
+  const message = quotaKey
+    ? az.documents.form.processingQuotaExceeded.replace("{quota}", quotaKey)
+    : az.documents.form.processingErrorGeneric;
+  return az.documents.form.processingErrorPrefix + message;
 }
 
 export async function processDocumentJob(documentId: string): Promise<void> {
@@ -66,13 +66,12 @@ export async function processDocumentJob(documentId: string): Promise<void> {
       })
       .where(eq(documents.id, documentId));
 
-    const config = getAppConfig();
     const embeddings = createGeminiProviders().embeddings;
     for (let offset = 0; offset < sourceChunks.length; offset += EMBEDDING_BATCH_SIZE) {
       const batch = sourceChunks.slice(offset, offset + EMBEDDING_BATCH_SIZE);
       const vectors = await embeddings.embedDocuments(batch.map((chunk) => chunk.embeddingText));
       if (vectors.length !== batch.length || vectors.some((vector) => vector.length !== 768)) {
-        throw new Error("Gemini embeddings üçün 768 ölçülü nəticə qaytarmadı.");
+        throw new Error("Aktiv embedding provayderi 768 ölçülü nəticə qaytarmadı.");
       }
 
       await db.insert(chunks).values(
@@ -85,7 +84,7 @@ export async function processDocumentJob(documentId: string): Promise<void> {
           charEnd: chunk.charEnd,
           isTable: chunk.isTable,
           embedding: vectors[index]!,
-          embeddingModel: config.embeddingModel,
+          embeddingModel: embeddings.model,
         })),
       );
 

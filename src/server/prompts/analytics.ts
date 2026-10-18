@@ -34,7 +34,7 @@ export function buildAnalyticsPrompt(query: string, sources: readonly AnalyticsS
     prompt: ["Sual:", query, "", "Mənbə fraqmentləri:", context || "(uyğun fraqment yoxdur)"].join(
       "\n",
     ),
-    thinkingLevel: "low",
+    thinkingLevel: "low" as const,
     lowReliabilityWarning: az.reliability.lowReliabilityWarning,
   };
 }

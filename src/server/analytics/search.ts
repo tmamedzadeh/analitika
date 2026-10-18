@@ -7,6 +7,7 @@ import {
   rerankOrderOrOriginal,
   type RerankProvider,
 } from "@/server/ai/rerank";
+import { GeminiLLMProvider } from "@/server/ai/gemini";
 import { createGeminiProviders } from "@/server/ai/gemini";
 import { getDb } from "@/server/db";
 import { accessFilter } from "@/server/db/access";
@@ -21,6 +22,7 @@ const MAX_VECTOR_DISTANCE = 0.4;
 
 export type SearchDocumentChunksOptions = {
   embedding?: number[];
+  embeddingModel?: string;
   enableRerank?: boolean;
   maxEmbeddingAttempts?: 1 | 2 | 3;
   rerankProvider?: RerankProvider;
@@ -52,6 +54,8 @@ export async function searchDocumentChunks(
 ): Promise<AnalyticsSource[]> {
   const db = getDb();
   const providers = createGeminiProviders();
+  const config = getAppConfig();
+  const embeddingModel = options.embeddingModel ?? providers.embeddings.model;
   const embedding =
     options.embedding ??
     (await providers.embeddings.embedQuery(
@@ -93,6 +97,7 @@ export async function searchDocumentChunks(
   const textMatch = sql.join([chunks.tsv, sql.raw(" @@ "), tsQuery]);
   const trigramMatch = sql.join([chunks.text, sql.raw(" % "), sql.param(query)]);
   const conditions = documentConditions(filters);
+  const modelCondition = eq(chunks.embeddingModel, embeddingModel);
 
   const [vectorRows, fullTextRows, trigramRows] = await Promise.all([
     db
@@ -100,7 +105,12 @@ export async function searchDocumentChunks(
       .from(chunks)
       .innerJoin(documents, eq(chunks.documentId, documents.id))
       .where(
-        and(...conditions, isNotNull(chunks.embedding), lt(vectorDistance, MAX_VECTOR_DISTANCE)),
+        and(
+          ...conditions,
+          modelCondition,
+          isNotNull(chunks.embedding),
+          lt(vectorDistance, MAX_VECTOR_DISTANCE),
+        ),
       )
       .orderBy(asc(vectorDistance))
       .limit(CANDIDATE_LIMIT),
@@ -108,14 +118,14 @@ export async function searchDocumentChunks(
       .select(sourceProjection())
       .from(chunks)
       .innerJoin(documents, eq(chunks.documentId, documents.id))
-      .where(and(...conditions, textMatch))
+      .where(and(...conditions, modelCondition, textMatch))
       .orderBy(desc(textScore))
       .limit(CANDIDATE_LIMIT),
     db
       .select(sourceProjection())
       .from(chunks)
       .innerJoin(documents, eq(chunks.documentId, documents.id))
-      .where(and(...conditions, trigramMatch))
+      .where(and(...conditions, modelCondition, trigramMatch))
       .orderBy(desc(similarity))
       .limit(CANDIDATE_LIMIT),
   ]);
@@ -126,12 +136,16 @@ export async function searchDocumentChunks(
   );
   if (candidates.length === 0) return [];
 
-  const rerankProvider = options.rerankProvider ?? new GeminiRerankProvider(providers.light);
+  const rerankProvider =
+    options.rerankProvider ??
+    (config.enableRerank
+      ? new GeminiRerankProvider(new GeminiLLMProvider(config.lightModel, "GEMINI_LIGHT_MODEL"))
+      : undefined);
   const rerankedIds = await rerankOrderOrOriginal(
     query,
     candidates.map(({ item }) => ({ id: item.chunkId, excerpt: item.text.slice(0, 500) })),
     rerankProvider,
-    options.enableRerank ?? getAppConfig().enableRerank,
+    options.enableRerank ?? config.enableRerank,
   );
   const candidateById = new Map(candidates.map((candidate) => [candidate.item.chunkId, candidate]));
   const fused = rerankedIds

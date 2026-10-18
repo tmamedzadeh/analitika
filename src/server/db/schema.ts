@@ -206,10 +206,14 @@ export const osintRuns = pgTable(
     summary: text("summary"),
     error: text("error"),
     cacheKey: text("cache_key"),
+    pinned: boolean("pinned").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
   },
-  (table) => [index("osint_runs_created_idx").on(table.createdAt)],
+  (table) => [
+    index("osint_runs_created_idx").on(table.createdAt),
+    index("osint_runs_pinned_cache_idx").on(table.cacheKey, table.createdAt),
+  ],
 );
 
 export const osintSources = pgTable(
@@ -229,10 +233,17 @@ export const osintSources = pgTable(
     summary: text("summary").notNull().default(""),
     snippet: text("snippet").notNull().default(""),
     fetched: boolean("fetched").notNull().default(false),
+    fetchStatus: text("fetch_status").notNull().default("snippet_fallback"),
   },
   (table) => [
     unique("osint_sources_run_n_unique").on(table.runId, table.n),
     index("osint_sources_run_idx").on(table.runId),
+    check(
+      "osint_sources_fetch_status_check",
+      sql.raw(
+        "fetch_status IN ('provider_text', 'fetched_full', 'snippet_fallback', 'robots_denied', 'dns_or_network_error', 'http_error', 'non_html', 'timeout', 'invalid_url')",
+      ),
+    ),
   ],
 );
 

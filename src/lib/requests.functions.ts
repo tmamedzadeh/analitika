@@ -149,7 +149,7 @@ export const createInfoRequestDraft = createServerFn({ method: "POST" })
         details: data.details,
         sourceReliability: data.sourceReliability,
         infoCredibility: data.infoCredibility,
-        note: data.note,
+        note: data.note || null,
         requesterId: getCurrentUser().id,
       });
       if (files.length > 0) {

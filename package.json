@@ -18,6 +18,12 @@
     "stage3:verify": "bun run scripts/verify-stage-3.ts",
     "db:verify-idare": "bun run scripts/verify-idare-migration.ts",
     "db:seed:demo": "bun run scripts/seed-demo.ts",
+    "db:reindex": "bun run scripts/reindex.ts",
+    "db:verify:exa": "bun run scripts/verify-exa-schema.ts",
+    "db:eval:retrieval": "bun run scripts/eval-retrieval.ts",
+    "osint:pin": "bun run scripts/osint-pin.ts",
+    "osint:live:verify": "bun run scripts/verify-osint-live.ts",
+    "osint:live:report": "bun run scripts/report-osint-live.ts",
     "db:eval:rerank": "bun run scripts/eval-rerank.ts",
     "db:migrate": "drizzle-kit migrate"
   },

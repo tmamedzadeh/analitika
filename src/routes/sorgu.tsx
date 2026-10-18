@@ -146,7 +146,9 @@ function Sorgu() {
     setSaving(true);
     let requestId: string | null = null;
     try {
-      const draft = await createInfoRequestDraft({ data: parsed.data });
+      const draft = await createInfoRequestDraft({
+        data: { ...parsed.data, note: parsed.data.note ?? "" },
+      });
       requestId = draft.requestId;
       try {
         for (const [index, upload] of draft.uploads.entries()) {

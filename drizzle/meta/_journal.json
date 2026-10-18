@@ -22,6 +22,13 @@
       "when": 1792276586141,
       "tag": "0002_idare_departments",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792304648818,
+      "tag": "0003_exa_osint_pins",
+      "breakpoints": true
     }
   ]
 }

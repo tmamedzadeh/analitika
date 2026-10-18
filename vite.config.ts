@@ -6,14 +6,18 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+const vercelNitroOptions = {
+  vercel: {
+    functionRules: {
+      "/api/inngest": { maxDuration: 300 },
+    },
+  },
+};
+
 export default defineConfig({
   nitro: {
     preset: "vercel",
-    vercel: {
-      functionRules: {
-        "/api/inngest": { maxDuration: 300 },
-      },
-    },
+    ...vercelNitroOptions,
   },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).

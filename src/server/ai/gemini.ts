@@ -2,13 +2,13 @@ import { google, type GoogleEmbeddingModelOptions } from "@ai-sdk/google";
 import { embed, embedMany, generateText, Output, streamText as streamTextResponse } from "ai";
 import { z } from "zod";
 
-import { getAppConfig } from "../config";
 import { requireServerEnv } from "../env";
 import { withGeminiRequest, withGeminiStream, type GeminiQuotaKey } from "./gemini-gateway";
 import type {
   EmbeddingProvider,
   GroundedSearchInput,
   LLMProvider,
+  ProviderRequestOptions,
   TextGenerationInput,
 } from "./types";
 
@@ -35,23 +35,45 @@ function requestOptionsFor(input: TextGenerationInput, model: string) {
 }
 
 export class GeminiLLMProvider implements LLMProvider {
+  readonly usageStats = { apiCalls: 0, inputTokens: 0, outputTokens: 0, usageReportedCalls: 0 };
+
   constructor(
     readonly model: string,
     private readonly quotaKey: GeminiQuotaKey = "GEMINI_CHAT_MODEL",
   ) {}
 
+  private recordUsage(value: unknown): void {
+    if (!value || typeof value !== "object") return;
+    const usage = value as { inputTokens?: unknown; outputTokens?: unknown };
+    const inputTokens = usage.inputTokens;
+    const outputTokens = usage.outputTokens;
+    if (typeof inputTokens === "number" && Number.isFinite(inputTokens)) {
+      this.usageStats.inputTokens += inputTokens;
+    }
+    if (typeof outputTokens === "number" && Number.isFinite(outputTokens)) {
+      this.usageStats.outputTokens += outputTokens;
+    }
+    if (typeof inputTokens === "number" || typeof outputTokens === "number") {
+      this.usageStats.usageReportedCalls += 1;
+    }
+  }
+
   async generateText(input: TextGenerationInput): Promise<string> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
     const result = await withGeminiRequest(
       this.quotaKey,
-      () =>
-        generateText({
+      async () => {
+        this.usageStats.apiCalls += 1;
+        const response = await generateText({
           model: google(this.model),
           ...(input.system ? { system: input.system } : {}),
           prompt: input.prompt,
           ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
           ...requestOptionsFor(input, this.model),
-        }),
+        });
+        this.recordUsage(response.usage);
+        return response;
+      },
       input.requestBudget,
       input.maxAttempts,
     );
@@ -65,15 +87,19 @@ export class GeminiLLMProvider implements LLMProvider {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
     const result = await withGeminiRequest(
       this.quotaKey,
-      () =>
-        generateText({
+      async () => {
+        this.usageStats.apiCalls += 1;
+        const response = await generateText({
           model: google(this.model),
           ...(input.system ? { system: input.system } : {}),
           prompt: input.prompt,
           output: Output.object({ schema }),
           ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
           ...requestOptionsFor(input, this.model),
-        }),
+        });
+        this.recordUsage(response.usage);
+        return response;
+      },
       input.requestBudget,
       input.maxAttempts,
     );
@@ -85,14 +111,16 @@ export class GeminiLLMProvider implements LLMProvider {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
     return withGeminiStream(
       this.quotaKey,
-      async () =>
+      async () => (
+        this.usageStats.apiCalls++,
         streamTextResponse({
           model: google(this.model),
           ...(input.system ? { system: input.system } : {}),
           prompt: input.prompt,
           ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
           ...requestOptionsFor(input, this.model),
-        }).textStream,
+        }).textStream
+      ),
       input.requestBudget,
       input.maxAttempts,
     );
@@ -102,8 +130,9 @@ export class GeminiLLMProvider implements LLMProvider {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
     const result = await withGeminiRequest(
       this.quotaKey,
-      () =>
-        generateText({
+      async () => {
+        this.usageStats.apiCalls += 1;
+        const response = await generateText({
           model: google(this.model),
           ...(input.system ? { system: input.system } : {}),
           prompt: input.prompt,
@@ -116,7 +145,10 @@ export class GeminiLLMProvider implements LLMProvider {
           },
           ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
           ...requestOptionsFor(input, this.model),
-        }),
+        });
+        this.recordUsage(response.usage);
+        return response;
+      },
       input.requestBudget,
       input.maxAttempts,
     );
@@ -129,20 +161,37 @@ export class GeminiLLMProvider implements LLMProvider {
           } | null;
         }
       | undefined;
-    const sources = (providerMetadata?.groundingMetadata?.groundingChunks ?? []).flatMap((chunk) =>
-      chunk.web?.uri
-        ? [{ url: chunk.web.uri, title: chunk.web.title?.trim() || chunk.web.uri }]
-        : [],
+    const metadataSources = (providerMetadata?.groundingMetadata?.groundingChunks ?? []).flatMap(
+      (chunk) =>
+        chunk.web?.uri
+          ? [{ url: chunk.web.uri, title: chunk.web.title?.trim() || chunk.web.uri }]
+          : [],
     );
+    const sources = metadataSources.length
+      ? metadataSources
+      : result.sources.flatMap((source) =>
+          source.sourceType === "url"
+            ? [{ url: source.url, title: source.title?.trim() || source.url }]
+            : [],
+        );
     return { text: result.text, sources };
   }
 }
 
 export class GeminiEmbeddingProvider implements EmbeddingProvider {
+  private readonly batchSize = 20;
+  readonly usage = { apiCalls: 0, inputTokens: 0 };
+
   constructor(
     readonly model: string,
     private readonly dimensions = 768,
   ) {}
+
+  private recordTokenUsage(value: unknown): void {
+    if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+      this.usage.inputTokens += value;
+    }
+  }
 
   private prepareValue(value: string, taskType: "RETRIEVAL_DOCUMENT" | "RETRIEVAL_QUERY"): string {
     if (this.model !== "gemini-embedding-2") return value;
@@ -159,16 +208,20 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
     };
   }
 
-  async embedDocument(value: string, request: { maxAttempts?: 1 | 2 | 3 } = {}): Promise<number[]> {
+  async embedDocument(value: string, request: ProviderRequestOptions = {}): Promise<number[]> {
     const result = await withGeminiRequest(
       "GEMINI_EMBED_MODEL",
-      () =>
-        embed({
+      async () => {
+        this.usage.apiCalls += 1;
+        const result = await embed({
           model: google.embedding(this.model),
           value: this.prepareValue(value, "RETRIEVAL_DOCUMENT"),
           providerOptions: this.options("RETRIEVAL_DOCUMENT"),
-        }),
-      undefined,
+        });
+        this.recordTokenUsage(result.usage.tokens);
+        return result;
+      },
+      request.requestBudget,
       request.maxAttempts,
     );
     return result.embedding;
@@ -176,65 +229,83 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
 
   async embedDocuments(
     values: string[],
-    request: { maxAttempts?: 1 | 2 | 3 } = {},
+    request: ProviderRequestOptions = {},
   ): Promise<number[][]> {
     if (values.length === 0) return [];
-    const result = await withGeminiRequest(
-      "GEMINI_EMBED_MODEL",
-      () =>
-        embedMany({
-          model: google.embedding(this.model),
-          values: values.map((value) => this.prepareValue(value, "RETRIEVAL_DOCUMENT")),
-          providerOptions: this.options("RETRIEVAL_DOCUMENT"),
-        }),
-      undefined,
-      request.maxAttempts,
-    );
-    return result.embeddings;
+    const embeddings: number[][] = [];
+    for (let offset = 0; offset < values.length; offset += this.batchSize) {
+      const batch = values.slice(offset, offset + this.batchSize);
+      const result = await withGeminiRequest(
+        "GEMINI_EMBED_MODEL",
+        async () => {
+          this.usage.apiCalls += 1;
+          const response = await embedMany({
+            model: google.embedding(this.model),
+            values: batch.map((value) => this.prepareValue(value, "RETRIEVAL_DOCUMENT")),
+            providerOptions: this.options("RETRIEVAL_DOCUMENT"),
+          });
+          this.recordTokenUsage(response.usage.tokens);
+          return response;
+        },
+        request.requestBudget,
+        request.maxAttempts,
+      );
+      embeddings.push(...result.embeddings);
+    }
+    return embeddings;
   }
 
-  async embedQuery(value: string, request: { maxAttempts?: 1 | 2 | 3 } = {}): Promise<number[]> {
+  async embedQuery(value: string, request: ProviderRequestOptions = {}): Promise<number[]> {
     const result = await withGeminiRequest(
       "GEMINI_EMBED_MODEL",
-      () =>
-        embed({
+      async () => {
+        this.usage.apiCalls += 1;
+        const result = await embed({
           model: google.embedding(this.model),
           value: this.prepareValue(value, "RETRIEVAL_QUERY"),
           providerOptions: this.options("RETRIEVAL_QUERY"),
-        }),
-      undefined,
+        });
+        this.recordTokenUsage(result.usage.tokens);
+        return result;
+      },
+      request.requestBudget,
       request.maxAttempts,
     );
     return result.embedding;
   }
 
-  async embedQueries(
-    values: string[],
-    request: { maxAttempts?: 1 | 2 | 3 } = {},
-  ): Promise<number[][]> {
+  async embedQueries(values: string[], request: ProviderRequestOptions = {}): Promise<number[][]> {
     if (values.length === 0) return [];
-    const result = await withGeminiRequest(
-      "GEMINI_EMBED_MODEL",
-      () =>
-        embedMany({
-          model: google.embedding(this.model),
-          values: values.map((value) => this.prepareValue(value, "RETRIEVAL_QUERY")),
-          providerOptions: this.options("RETRIEVAL_QUERY"),
-        }),
-      undefined,
-      request.maxAttempts,
-    );
-    return result.embeddings;
+    const embeddings: number[][] = [];
+    for (let offset = 0; offset < values.length; offset += this.batchSize) {
+      const batch = values.slice(offset, offset + this.batchSize);
+      const result = await withGeminiRequest(
+        "GEMINI_EMBED_MODEL",
+        async () => {
+          this.usage.apiCalls += 1;
+          const response = await embedMany({
+            model: google.embedding(this.model),
+            values: batch.map((value) => this.prepareValue(value, "RETRIEVAL_QUERY")),
+            providerOptions: this.options("RETRIEVAL_QUERY"),
+          });
+          this.recordTokenUsage(response.usage.tokens);
+          return response;
+        },
+        request.requestBudget,
+        request.maxAttempts,
+      );
+      embeddings.push(...result.embeddings);
+    }
+    return embeddings;
   }
 }
 
 export function createGeminiProviders() {
   requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
-  const config = getAppConfig();
   return {
-    analytics: new GeminiLLMProvider(config.analyticsModel, "GEMINI_CHAT_MODEL"),
-    osint: new GeminiLLMProvider(config.osintModel, "GEMINI_CHAT_MODEL"),
-    light: new GeminiLLMProvider(config.lightModel, "GEMINI_LIGHT_MODEL"),
-    embeddings: new GeminiEmbeddingProvider(config.embeddingModel, config.embeddingDimensions),
+    analytics: new GeminiLLMProvider(requireServerEnv("GEMINI_CHAT_MODEL"), "GEMINI_CHAT_MODEL"),
+    osint: new GeminiLLMProvider(requireServerEnv("GEMINI_CHAT_MODEL"), "GEMINI_CHAT_MODEL"),
+    light: new GeminiLLMProvider(requireServerEnv("GEMINI_LIGHT_MODEL"), "GEMINI_LIGHT_MODEL"),
+    embeddings: new GeminiEmbeddingProvider(requireServerEnv("GEMINI_EMBED_MODEL"), 768),
   };
 }

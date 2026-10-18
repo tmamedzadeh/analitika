@@ -10,7 +10,7 @@ import {
 afterEach(() => vi.useRealTimers());
 
 describe("Gemini request gateway", () => {
-  it("keeps concurrent requests at or below three", async () => {
+  it("keeps concurrent provider requests at or below three", async () => {
     let active = 0;
     let maximum = 0;
     await Promise.all(
@@ -32,7 +32,7 @@ describe("Gemini request gateway", () => {
     const request = withGeminiRequest("GEMINI_LIGHT_MODEL", async () => {
       calls += 1;
       if (calls === 1) {
-        throw Object.assign(new Error("private provider detail"), {
+        throw Object.assign(new Error("sensitive provider details"), {
           statusCode: 429,
           responseHeaders: { "retry-after": "2" },
         });
@@ -50,6 +50,24 @@ describe("Gemini request gateway", () => {
     expect(calls).toBe(2);
   });
 
+  it("stops after three quota attempts without exposing provider text", async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const request = withGeminiRequest("GEMINI_CHAT_MODEL", async () => {
+      calls += 1;
+      throw Object.assign(new Error("sensitive provider details"), { statusCode: 429 });
+    });
+    const rejection = expect(request).rejects.toMatchObject({
+      name: "GeminiQuotaExceededError",
+      quotaKey: "GEMINI_CHAT_MODEL",
+      message: expect.not.stringContaining("sensitive"),
+    });
+
+    await vi.runAllTimersAsync();
+    await rejection;
+    expect(calls).toBe(3);
+  });
+
   it("counts retries against the per-run call budget", async () => {
     const budget = new GeminiRequestBudget(1);
     await expect(
@@ -64,23 +82,27 @@ describe("Gemini request gateway", () => {
     expect(budget.calls).toBe(1);
   });
 
-  it("wraps exhausted quota without exposing the provider message", async () => {
-    vi.useFakeTimers();
-    const request = withGeminiRequest("GEMINI_CHAT_MODEL", async () => {
-      throw Object.assign(new Error("private provider detail"), { statusCode: 429 });
-    });
-    const rejection = expect(request).rejects.toMatchObject({
-      name: "GeminiQuotaExceededError",
-      quotaKey: "GEMINI_CHAT_MODEL",
-      message: expect.not.stringContaining("private"),
-    });
-    await vi.runAllTimersAsync();
-    await rejection;
-  });
-
   it("provides a typed quota error for UI-safe handling", () => {
     const error = new GeminiQuotaExceededError("GEMINI_EMBED_MODEL");
     expect(error.quotaKey).toBe("GEMINI_EMBED_MODEL");
     expect(error.message).not.toContain("API key");
+  });
+
+  it("stops immediately for terminal free-tier exhaustion", async () => {
+    let calls = 0;
+    await expect(
+      withGeminiRequest("GEMINI_CHAT_MODEL", async () => {
+        calls += 1;
+        throw Object.assign(new Error("Gemini API error"), {
+          statusCode: 403,
+          responseBody: JSON.stringify({ code: "AllocationQuota.FreeTierOnly" }),
+        });
+      }),
+    ).rejects.toMatchObject({
+      limitKind: "free-tier",
+      terminal: true,
+      quotaKey: "GEMINI_CHAT_MODEL",
+    });
+    expect(calls).toBe(1);
   });
 });

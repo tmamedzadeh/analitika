@@ -23,6 +23,8 @@ export const serverEnvSchema = z.object({
   GEMINI_CHAT_MODEL: optionalValue,
   GEMINI_LIGHT_MODEL: optionalValue,
   GEMINI_EMBED_MODEL: optionalValue,
+  EXA_API_KEY: optionalValue,
+  SEARCH_PROVIDER: z.enum(["exa", "gemini_grounding"]).default("exa"),
   S3_ENDPOINT: optionalValue,
   S3_REGION: optionalValue,
   S3_ACCESS_KEY_ID: optionalValue,
