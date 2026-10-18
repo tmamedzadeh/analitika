@@ -8,7 +8,7 @@ import { Shell } from "@/components/Shell";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { listBriefs } from "@/lib/briefs.functions";
-import { getBakuDate, briefHead } from "@/lib/briefs";
+import { getBakuDate, briefHead, type BriefCursor } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
 
 const shortMonthsAz = [
@@ -43,7 +43,7 @@ function DailyBriefs() {
   const selectedMonthYear = month ? Number(month.slice(0, 4)) : undefined;
   const briefsQuery = useInfiniteQuery({
     queryKey: ["daily-briefs", query, period, month],
-    initialPageParam: null as string | null,
+    initialPageParam: null as BriefCursor | null,
     queryFn: ({ pageParam }) => listBriefs({ data: { query, period, month, cursor: pageParam } }),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });

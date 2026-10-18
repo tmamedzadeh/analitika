@@ -233,9 +233,6 @@ export const az = {
     uploadFailed: "Foto Storage-a yüklənmədi. Yenidən cəhd edin.",
     uploadPrepareFailed: "Fotoları yükləməyə hazırlamaq mümkün olmadı.",
     uploadVerifyFailed: "Yüklənən fotonun məzmunu yoxlamadan keçmədi.",
-    conflict: "Bu tarix üçün məlumat artıq mövcuddur",
-    openExisting: "Mövcud brifi aç",
-    dateConflictHelp: "Hər tarix üçün yalnız bir məlumat ola bilər.",
     indexStatus: {
       none: "Axtarış indeksi yoxdur",
       queued: "İndeksləmə növbədədir",

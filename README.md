@@ -19,16 +19,18 @@ bun run build
 bun run test
 bunx tsc --noEmit
 bun run db:migrate
-bun run db:seed:demo
-bun run db:eval:retrieval
+bun run db:reset-and-seed --dry-run
+bun run db:verify:search
 bun run stage3:verify
 ```
 
-`db:migrate` использует `DATABASE_URL_MIGRATE`; приложение использует `DATABASE_URL` через Supabase Transaction pooler. Схема брифов добавлена миграцией `0004_daily_briefs.sql`. Команда очистки удаляет фиксированные синтетические документы и брифы, их фрагменты и демонстрационные фотографии:
+`db:migrate` использует `DATABASE_URL_MIGRATE`; приложение использует `DATABASE_URL` через Supabase Transaction pooler. Миграция `0005_allow_duplicate_brief_dates.sql` снимает уникальность даты брифа. `db:reset-and-seed` по умолчанию выполняет только read-only dry run: показывает target database, counts целевых таблиц и точные Storage keys, не обращаясь к embedding provider. Реальная очистка и импорт корпуса из `zirve_military_seed_data_2026-10-18.json` требуют явного флага:
 
 ```sh
-bun run db:seed:demo --clean
+bun run db:reset-and-seed --reset-and-seed
 ```
+
+Команда остановится, если локальную конфигурацию нельзя распознать как non-production dev/demo target, если приложение и migration URL указывают на разные базы, если документ связан с `info_requests` или если миграция уникальности даты ещё не применена. `info_requests`, их вложения, `query_logs`, eval-таблицы и посторонние Storage объекты сохраняются.
 
 Схему после миграций можно проверить командой `bun run db:verify:exa`.
 
@@ -36,20 +38,20 @@ bun run db:seed:demo --clean
 
 `.env.example` содержит полный пустой шаблон. Секреты храните только в `.env.local` и Vercel Environment Variables.
 
-| Переменная | Назначение |
-| --- | --- |
-| `DATABASE_URL` | Supabase Transaction pooler для приложения |
-| `DATABASE_URL_MIGRATE` | Supabase Session pooler или direct connection только для Drizzle |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini API key |
-| `GEMINI_CHAT_MODEL` | Gemini для аналитики и основной OSINT-сводки |
-| `GEMINI_LIGHT_MODEL` | Gemini для переводов и резюме источников |
-| `GEMINI_EMBED_MODEL` | Gemini embeddings; текущая схема ждёт 768 измерений |
-| `SEARCH_PROVIDER` | `exa` по умолчанию или `gemini_grounding` |
-| `EXA_API_KEY` | Ключ Exa для веб-поиска |
-| `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` | Приватное S3-совместимое файловое хранилище |
-| `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` | Доставка и проверка подписей Inngest |
-| `DEMO_BASIC_AUTH` | Необязательная защита демо в формате `user:password`; `/api/inngest` исключён |
-| `ENABLE_RERANK` | `false` по умолчанию; экспериментальный Gemini rerank |
+| Переменная                                                                          | Назначение                                                                    |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `DATABASE_URL`                                                                      | Supabase Transaction pooler для приложения                                    |
+| `DATABASE_URL_MIGRATE`                                                              | Supabase Session pooler или direct connection только для Drizzle              |
+| `GOOGLE_GENERATIVE_AI_API_KEY`                                                      | Gemini API key                                                                |
+| `GEMINI_CHAT_MODEL`                                                                 | Gemini для аналитики и основной OSINT-сводки                                  |
+| `GEMINI_LIGHT_MODEL`                                                                | Gemini для переводов и резюме источников                                      |
+| `GEMINI_EMBED_MODEL`                                                                | Gemini embeddings; текущая схема ждёт 768 измерений                           |
+| `SEARCH_PROVIDER`                                                                   | `exa` по умолчанию или `gemini_grounding`                                     |
+| `EXA_API_KEY`                                                                       | Ключ Exa для веб-поиска                                                       |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` | Приватное S3-совместимое файловое хранилище                                   |
+| `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`                                          | Доставка и проверка подписей Inngest                                          |
+| `DEMO_BASIC_AUTH`                                                                   | Необязательная защита демо в формате `user:password`; `/api/inngest` исключён |
+| `ENABLE_RERANK`                                                                     | `false` по умолчанию; экспериментальный Gemini rerank                         |
 
 Значения моделей читаются из env после `trim`; в исходниках модели не задаются.
 
@@ -90,6 +92,7 @@ bun run db:seed:demo --clean
    - `Qafqazda nəqliyyat dəhlizlərinin inkişafı və yük daşımalarına təsiri`
 
    При тех же шести языках и периоде будет показан pinned-кэш без внешних вызовов. Кнопка «Yenilə» запускает свежий поиск.
+
 6. Покажите руководству, что источники открываются в новой вкладке, частичный результат показывает причины пропусков, а истории запросов доступны после обновления страницы.
 
 Данные в демо-документах полностью синтетические. Результаты открытого веб-поиска являются материалом для проверки аналитиком, а не подтверждёнными фактами.

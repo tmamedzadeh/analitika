@@ -1,10 +1,11 @@
-import { and, desc, eq, gte, inArray, ilike, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, ilike, lte, or, sql } from "drizzle-orm";
 
 import {
   briefExcerpt,
   BRIEF_PAGE_SIZE,
   getBakuDate,
   getWeekStartDate,
+  type BriefCursor,
   type Brief,
   type BriefListItem,
 } from "@/lib/briefs";
@@ -12,12 +13,13 @@ import { accessFilter } from "@/server/db/access";
 import { getDb } from "@/server/db";
 import { briefAttachments, chunks, dailyBriefs } from "@/server/db/schema";
 import { getStorage } from "@/server/storage/s3";
+import { afterBriefPosition, beforeBriefPosition } from "./pagination";
 
 export type BriefListFilters = {
   query: string;
   period: "all" | "week" | "month";
   month: string;
-  cursor: string | null;
+  cursor: BriefCursor | null;
 };
 
 function briefWindow(filters: Pick<BriefListFilters, "period" | "month">, now = new Date()) {
@@ -41,7 +43,7 @@ export function buildBriefListConditions(filters: BriefListFilters) {
     conditions.push(gte(dailyBriefs.briefDate, window.from));
     conditions.push(lte(dailyBriefs.briefDate, window.through));
   }
-  if (filters.cursor) conditions.push(lt(dailyBriefs.briefDate, filters.cursor));
+  if (filters.cursor) conditions.push(afterBriefPosition(filters.cursor));
   const query = filters.query.trim();
   if (query) {
     const pattern = `%${query}%`;
@@ -59,7 +61,7 @@ export function buildBriefListConditions(filters: BriefListFilters) {
 
 export async function listBriefsPage(filters: BriefListFilters): Promise<{
   items: BriefListItem[];
-  nextCursor: string | null;
+  nextCursor: BriefCursor | null;
 }> {
   const db = getDb();
   const rows = await db
@@ -76,7 +78,7 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
     })
     .from(dailyBriefs)
     .where(and(...buildBriefListConditions(filters)))
-    .orderBy(desc(dailyBriefs.briefDate))
+    .orderBy(desc(dailyBriefs.briefDate), desc(dailyBriefs.id))
     .limit(BRIEF_PAGE_SIZE + 1);
 
   const hasMore = rows.length > BRIEF_PAGE_SIZE;
@@ -116,7 +118,12 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
   }));
   return {
     items,
-    nextCursor: hasMore ? (pageRows.at(-1)?.date ?? null) : null,
+    nextCursor: hasMore
+      ? (() => {
+          const last = pageRows.at(-1);
+          return last ? { date: last.date, id: last.id } : null;
+        })()
+      : null,
   };
 }
 
@@ -158,18 +165,19 @@ export async function getBriefDetails(
         .where(and(eq(chunks.id, chunkId), eq(chunks.briefId, briefId), accessFilter()))
         .limit(1)
     : [];
-  // Find neighbors by date rather than assuming consecutive calendar days.
+  const position = { date: row.briefDate, id: row.id };
+  // Keep detail navigation aligned with the newest-first list, including ties on a date.
   const [older] = await db
     .select({ id: dailyBriefs.id })
     .from(dailyBriefs)
-    .where(and(sql`${dailyBriefs.briefDate} < ${row.briefDate}`, accessFilter()))
-    .orderBy(desc(dailyBriefs.briefDate))
+    .where(and(afterBriefPosition(position), accessFilter()))
+    .orderBy(desc(dailyBriefs.briefDate), desc(dailyBriefs.id))
     .limit(1);
   const [newer] = await db
     .select({ id: dailyBriefs.id })
     .from(dailyBriefs)
-    .where(and(sql`${dailyBriefs.briefDate} > ${row.briefDate}`, accessFilter()))
-    .orderBy(dailyBriefs.briefDate)
+    .where(and(beforeBriefPosition(position), accessFilter()))
+    .orderBy(asc(dailyBriefs.briefDate), asc(dailyBriefs.id))
     .limit(1);
   return {
     brief: {

@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -7,7 +7,6 @@ import {
   briefInputSchema,
   briefPhotoMetadataSchema,
   imageMimeFromSignature,
-  isDateUniqueViolation,
   MAX_BRIEF_PHOTOS,
 } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
@@ -76,20 +75,6 @@ async function deleteUploadedKeys(keys: string[]): Promise<void> {
   await Promise.allSettled(keys.map((key) => storage.delete(key)));
 }
 
-async function dateConflict(date: string, exceptId?: string): Promise<string | null> {
-  const db = getDb();
-  const [row] = await db
-    .select({ id: dailyBriefs.id })
-    .from(dailyBriefs)
-    .where(
-      exceptId
-        ? and(eq(dailyBriefs.briefDate, date), ne(dailyBriefs.id, exceptId), accessFilter())
-        : and(eq(dailyBriefs.briefDate, date), accessFilter()),
-    )
-    .limit(1);
-  return row?.id ?? null;
-}
-
 export async function prepareBriefUploadUrls(
   input: z.infer<typeof prepareBriefUploadsSchema>,
 ): Promise<{
@@ -131,9 +116,6 @@ export async function prepareBriefUploadUrls(
   if (parsed.keepAttachmentIds.length + parsed.photos.length > MAX_BRIEF_PHOTOS) {
     throw new Error(az.briefs.validation.tooManyPhotos);
   }
-  const conflictId = await dateConflict(parsed.date, isNew ? undefined : briefId);
-  if (conflictId) throw new Error(`${az.briefs.conflict}:${conflictId}`);
-
   const storage = getStorage();
   const uploads = await Promise.all(
     parsed.photos.map(async (photo) => {
@@ -177,10 +159,7 @@ async function verifyUploadedPhotos(
 
 export async function saveBriefRecord(
   input: z.infer<typeof saveBriefSchema>,
-): Promise<
-  | { ok: true; briefId: string; queueFailed: boolean; cleanupIncomplete: boolean }
-  | { ok: false; conflictId: string }
-> {
+): Promise<{ ok: true; briefId: string; queueFailed: boolean; cleanupIncomplete: boolean }> {
   const parsed = saveBriefSchema.parse(input);
   const db = getDb();
   const uploadedKeys = parsed.uploads.map((upload) => upload.key);
@@ -296,10 +275,6 @@ export async function saveBriefRecord(
     return { ok: true, briefId: parsed.briefId, queueFailed, cleanupIncomplete };
   } catch (error) {
     if (uploadedKeys.length > 0) await deleteUploadedKeys(uploadedKeys);
-    if (isDateUniqueViolation(error)) {
-      const conflictId = await dateConflict(parsed.date, parsed.briefId);
-      if (conflictId) return { ok: false, conflictId };
-    }
     throw error;
   }
 }

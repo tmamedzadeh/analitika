@@ -37,7 +37,6 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
     existing?.photos.map((photo) => ({ ...photo })) ?? [],
   );
   const [error, setError] = useState("");
-  const [conflictId, setConflictId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [intent, setIntent] = useState<"draft" | "published">("published");
   const existingPhotos = photos.filter((photo) => photo.id);
@@ -77,7 +76,6 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
     event.preventDefault();
     if (busy) return;
     setError("");
-    setConflictId(null);
     const parsed = briefInputSchema.safeParse({ date, title, body, status: intent });
     if (!parsed.success) {
       setError(validationMessage(String(parsed.error.issues[0]?.path[0] ?? "")));
@@ -137,25 +135,14 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
           uploads: prepared.uploads.map(({ url: _url, ...upload }) => upload),
         },
       });
-      if (!saved.ok) {
-        setConflictId(saved.conflictId);
-        setError(az.briefs.conflict);
-        return;
-      }
       await navigate({ to: "/brifler/$id", params: { id: saved.briefId } });
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "";
-      const conflictMatch = new RegExp(`${az.briefs.conflict}:([0-9a-f-]{36})`, "i").exec(message);
-      if (conflictMatch?.[1]) {
-        setConflictId(conflictMatch[1]);
-        setError(az.briefs.conflict);
-      } else {
-        setError(
-          Object.values(az.briefs.validation).some((validation) => validation === message)
-            ? message
-            : az.briefs.saveFailed,
-        );
-      }
+      setError(
+        Object.values(az.briefs.validation).some((validation) => validation === message)
+          ? message
+          : az.briefs.saveFailed,
+      );
       if (prepared?.uploads.length) {
         await discardBriefUploads({
           data: { briefId: prepared.briefId, keys: prepared.uploads.map((upload) => upload.key) },
@@ -200,20 +187,6 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
               />
             </label>
           </div>
-
-          {conflictId && (
-            <div
-              role="alert"
-              className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm text-warning"
-            >
-              <p className="flex-1">{az.briefs.conflict}</p>
-              <Button asChild variant="outline" className="rounded-full">
-                <Link to="/brifler/$id" params={{ id: conflictId }}>
-                  {az.briefs.openExisting}
-                </Link>
-              </Button>
-            </div>
-          )}
 
           <div className="mt-5 block text-sm font-medium">
             <p>{az.briefs.body}</p>

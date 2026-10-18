@@ -86,7 +86,7 @@ export const dailyBriefs = pgTable(
   "daily_briefs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    briefDate: date("brief_date").notNull().unique(),
+    briefDate: date("brief_date").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
     status: text("status").notNull().default("draft"),

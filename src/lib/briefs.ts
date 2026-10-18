@@ -32,6 +32,7 @@ export type BriefListItem = Omit<Brief, "body" | "photos" | "publishedAt" | "hig
   photoCount: number;
   coverUrl?: string | null;
 };
+export type BriefCursor = { date: string; id: string };
 
 export const briefIdSchema = z.string().uuid();
 
@@ -199,14 +200,6 @@ export function formatBriefEmbeddingText(title: string, date: string, chunkText:
   return `${title} / ${date}\n${chunkText}`;
 }
 
-export function hasBriefDateConflict(
-  briefs: readonly { id: string; date: string }[],
-  date: string,
-  exceptId?: string,
-): boolean {
-  return briefs.some((brief) => brief.date === date && brief.id !== exceptId);
-}
-
 export function briefCanAppearInSearch(filters: {
   departmentIds: readonly string[];
   allDepartmentIds: readonly string[];
@@ -236,13 +229,4 @@ export function briefRouteForSearchSource(source: {
 
 export function briefSearchLabel(date: string): string {
   return `${az.analytics.openBrief} · ${date}`;
-}
-
-export function isDateUniqueViolation(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const value = error as { code?: unknown; constraint?: unknown };
-  return (
-    value.code === "23505" &&
-    (value.constraint === undefined || value.constraint === "daily_briefs_brief_date_unique")
-  );
 }

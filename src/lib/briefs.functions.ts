@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { briefIdSchema } from "./briefs";
+import { briefDateSchema, briefIdSchema } from "./briefs";
 import {
   discardBriefUploads as discardServerBriefUploads,
   prepareBriefUploadsSchema,
@@ -19,11 +19,7 @@ const listInputSchema = z.object({
     .string()
     .regex(/^$|^\d{4}-\d{2}$/)
     .default(""),
-  cursor: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .nullable()
-    .default(null),
+  cursor: z.object({ date: briefDateSchema, id: briefIdSchema }).nullable().default(null),
 });
 const briefIdInputSchema = z.object({ briefId: briefIdSchema, chunkId: briefIdSchema.optional() });
 const discardInputSchema = z.object({

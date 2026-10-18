@@ -9,29 +9,12 @@ import {
   formatBriefEmbeddingText,
   getBakuDate,
   getWeekStartDate,
-  hasBriefDateConflict,
   imageMimeFromSignature,
   inspectBriefPhoto,
-  isDateUniqueViolation,
   photoError,
 } from "./briefs";
 
 describe("daily brief validation and dates", () => {
-  it("allows one brief per date and excludes the current brief while editing", () => {
-    const saved = [{ id: "one", date: "2026-10-18" }];
-    expect(hasBriefDateConflict(saved, "2026-10-18")).toBe(true);
-    expect(hasBriefDateConflict(saved, "2026-10-18", "one")).toBe(false);
-    expect(hasBriefDateConflict(saved, "2026-10-19")).toBe(false);
-  });
-
-  it("recognizes the database unique-date race error", () => {
-    expect(
-      isDateUniqueViolation({ code: "23505", constraint: "daily_briefs_brief_date_unique" }),
-    ).toBe(true);
-    expect(isDateUniqueViolation({ code: "23505", constraint: "another_unique_key" })).toBe(false);
-    expect(isDateUniqueViolation({ code: "22007" })).toBe(false);
-  });
-
   it("calculates today and week boundaries in Asia/Baku calendar dates", () => {
     expect(getBakuDate(new Date("2026-10-17T20:30:00.000Z"))).toBe("2026-10-18");
     expect(getWeekStartDate("2026-10-18")).toBe("2026-10-12");
