@@ -19,7 +19,9 @@ export const demoBriefs: Brief[] = Array.from({ length: 9 }, (_, index) => ({
 }));
 export function briefDate(date: string) {
   const value = new Date(`${date}T12:00:00`);
-  return { day: String(value.getDate()), month: value.toLocaleDateString("az-AZ", { month: "long", year: "numeric" }), weekday: value.toLocaleDateString("az-AZ", { weekday: "long" }) };
+  const months = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktyabr", "noyabr", "dekabr"];
+  const weekdays = ["bazar", "bazar ertəsi", "çərşənbə axşamı", "çərşənbə", "cümə axşamı", "cümə", "şənbə"];
+  return { day: String(value.getDate()), month: `${months[value.getMonth()]} ${value.getFullYear()}`, monthName: months[value.getMonth()], weekday: weekdays[value.getDay()] };
 }
 export function briefHead(title: string, description: string) {
   return { meta: [{ title: `${title} · Gündəlik xülasələr` }, { name: "description", content: description }, { property: "og:title", content: `${title} · Gündəlik xülasələr` }, { property: "og:description", content: description }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] };

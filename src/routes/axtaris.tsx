@@ -24,6 +24,8 @@ export const Route = createFileRoute("/axtaris")({
       { name: "description", content: "Sənədlər üzrə mənbəli analitik axtarış və sintez." },
       { property: "og:title", content: "Analitika üzrə axtarış" },
       { property: "og:description", content: "Sənədlər üzrə mənbəli analitik axtarış və sintez." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Analytics,
