@@ -38,6 +38,8 @@ export const Route = createFileRoute("/senedler")({
         property: "og:description",
         content: "Yeni sənəd əlavə edin və indeksləmə vəziyyətini izləyin.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AddDoc,
