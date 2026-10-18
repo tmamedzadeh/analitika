@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Daily brief screens share a browser-safe in-memory context and reusable editor; this is a frontend prototype, not persisted or connected to the document backend.
+- The homepage is the daily briefs index; analytics keeps its own /axtaris route, and brief edit routes are un-nested from the detail page.

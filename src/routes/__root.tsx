@@ -9,6 +9,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { type ReactNode } from "react";
+import { BriefsProvider } from "@/components/BriefsProvider";
 
 import appCss from "../styles.css?url";
 import { az } from "../lib/i18n/az";
@@ -108,7 +109,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <BriefsProvider><Outlet /></BriefsProvider>
     </QueryClientProvider>
   );
 }
