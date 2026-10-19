@@ -13,7 +13,7 @@
 - Inngest uses the SDK request-signature verifier for GET, registration, and execution. Unauthenticated sync is disabled for the production serve handler.
 - HTML decoding honors a supported response-header charset first, then an HTML charset declaration in the first 4 KiB, then UTF-8. Pinned DNS lookup supports both Node single-address and `{ all: true }` callback shapes.
 - Analytics SSE streams send comment keepalives every 15 seconds; the browser aborts a stalled search after 100 seconds. The Vercel analytics function gets a 120-second maximum runtime.
-- In production, missing `DEMO_BASIC_AUTH` returns 503. Credential bytes are compared with a fixed-size timing-safe comparison.
+- Application access uses individual accounts and database-backed sessions. Vercel Deployment Protection remains a separate platform setting.
 - Deleting a document sets `info_requests.answer_document_id` to null so the request record survives.
 
 ## Accepted risks and deferred work

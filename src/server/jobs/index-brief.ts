@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 
 import { az } from "@/lib/i18n/az";
 import { formatBriefEmbeddingText } from "@/lib/briefs";
-import { accessFilter } from "@/server/db/access";
+import { systemAccessFilter } from "@/server/db/access";
 import { getDb } from "@/server/db";
 import { chunks, dailyBriefs } from "@/server/db/schema";
 import { createGeminiProviders } from "@/server/ai/gemini";
@@ -18,7 +18,7 @@ export async function indexBriefJob(briefId: string): Promise<void> {
   const [brief] = await db
     .select()
     .from(dailyBriefs)
-    .where(and(eq(dailyBriefs.id, briefId), accessFilter()))
+    .where(and(eq(dailyBriefs.id, briefId), systemAccessFilter()))
     .limit(1);
   if (!brief) return;
 
@@ -31,7 +31,7 @@ export async function indexBriefJob(briefId: string): Promise<void> {
           indexStatus: "none",
           indexProgress: { percent: 0, totalChunks: 0, completedChunks: 0 },
         })
-        .where(and(eq(dailyBriefs.id, briefId), accessFilter()));
+        .where(and(eq(dailyBriefs.id, briefId), systemAccessFilter()));
     });
     return;
   }
@@ -49,7 +49,7 @@ export async function indexBriefJob(briefId: string): Promise<void> {
         } satisfies BriefIndexProgress,
         updatedAt: new Date(),
       })
-      .where(and(eq(dailyBriefs.id, briefId), accessFilter()));
+      .where(and(eq(dailyBriefs.id, briefId), systemAccessFilter()));
   });
 
   try {
@@ -61,7 +61,7 @@ export async function indexBriefJob(briefId: string): Promise<void> {
         indexProgress: { percent: 10, totalChunks: sourceChunks.length, completedChunks: 0 },
         updatedAt: new Date(),
       })
-      .where(and(eq(dailyBriefs.id, briefId), accessFilter()));
+      .where(and(eq(dailyBriefs.id, briefId), systemAccessFilter()));
 
     const embeddings = createGeminiProviders().embeddings;
     for (let offset = 0; offset < sourceChunks.length; offset += EMBEDDING_BATCH_SIZE) {
@@ -98,7 +98,7 @@ export async function indexBriefJob(briefId: string): Promise<void> {
           } satisfies BriefIndexProgress,
           updatedAt: new Date(),
         })
-        .where(and(eq(dailyBriefs.id, briefId), accessFilter()));
+        .where(and(eq(dailyBriefs.id, briefId), systemAccessFilter()));
     }
 
     await db
@@ -112,7 +112,7 @@ export async function indexBriefJob(briefId: string): Promise<void> {
         } satisfies BriefIndexProgress,
         updatedAt: new Date(),
       })
-      .where(and(eq(dailyBriefs.id, briefId), accessFilter()));
+      .where(and(eq(dailyBriefs.id, briefId), systemAccessFilter()));
   } catch (error) {
     await db
       .update(dailyBriefs)
@@ -120,7 +120,7 @@ export async function indexBriefJob(briefId: string): Promise<void> {
         indexStatus: "failed",
         updatedAt: new Date(),
       })
-      .where(and(eq(dailyBriefs.id, briefId), accessFilter()));
+      .where(and(eq(dailyBriefs.id, briefId), systemAccessFilter()));
     if (isTemporaryWorkerFailure(error)) throw error;
     throw nonRetriableJobError("Brief indexing failed.");
   }

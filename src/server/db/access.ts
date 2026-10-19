@@ -1,13 +1,29 @@
-import { sql } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 
-export type CurrentUser = {
-  id: "admin";
-};
+import {
+  allowedClassifications,
+  getCurrentUser as getAuthenticatedUser,
+  type SessionUser,
+} from "@/server/auth";
+import { documents } from "./schema";
+
+export type CurrentUser = SessionUser;
 
 export function getCurrentUser(): CurrentUser {
-  return { id: "admin" };
+  return getAuthenticatedUser();
 }
 
+// This predicate is for records that have no classification field (for example briefs).
+// Request authentication is still required by the Start middleware.
 export function accessFilter(_user: CurrentUser = getCurrentUser()) {
+  return sql.raw("true");
+}
+
+export function documentAccessFilter(user: CurrentUser = getCurrentUser()) {
+  return inArray(documents.classification, allowedClassifications(user));
+}
+
+// Trusted document indexing workers use this predicate; never use it in request handlers.
+export function systemAccessFilter() {
   return sql.raw("true");
 }

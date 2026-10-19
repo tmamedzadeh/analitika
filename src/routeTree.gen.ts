@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppAxtarisRouteImport } from './routes/_app.axtaris'
 import { Route as AppAyarlarRouteImport } from './routes/_app.ayarlar'
@@ -22,10 +23,18 @@ import { Route as AppBriflerYeniRouteImport } from './routes/_app.brifler.yeni'
 import { Route as AppSenedlerIdRouteImport } from './routes/_app.senedler_.$id'
 import { Route as AppSorguIdRouteImport } from './routes/_app.sorgu.$id'
 import { Route as ApiAnalyticsSearchRouteImport } from './routes/api.analytics.search'
+import { Route as ApiAuthLoginRouteImport } from './routes/api.auth.login'
+import { Route as ApiAuthLogoutRouteImport } from './routes/api.auth.logout'
 import { Route as AppBriflerIdRedakteRouteImport } from './routes/_app.brifler.$id_.redakte'
+import { Route as ApiAttachmentsKindParentIdAttachmentIdRouteImport } from './routes/api.attachments.$kind.$parentId.$attachmentId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -88,14 +97,31 @@ const ApiAnalyticsSearchRoute = ApiAnalyticsSearchRouteImport.update({
   path: '/api/analytics/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthLoginRoute = ApiAuthLoginRouteImport.update({
+  id: '/api/auth/login',
+  path: '/api/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthLogoutRoute = ApiAuthLogoutRouteImport.update({
+  id: '/api/auth/logout',
+  path: '/api/auth/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppBriflerIdRedakteRoute = AppBriflerIdRedakteRouteImport.update({
   id: '/brifler/$id_/redakte',
   path: '/brifler/$id/redakte',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiAttachmentsKindParentIdAttachmentIdRoute =
+  ApiAttachmentsKindParentIdAttachmentIdRouteImport.update({
+    id: '/api/attachments/$kind/$parentId/$attachmentId',
+    path: '/api/attachments/$kind/$parentId/$attachmentId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/login': typeof LoginRoute
   '/axtaris': typeof AppAxtarisRoute
   '/ayarlar': typeof AppAyarlarRoute
   '/osint': typeof AppOsintRoute
@@ -107,9 +133,13 @@ export interface FileRoutesByFullPath {
   '/senedler/$id': typeof AppSenedlerIdRoute
   '/sorgu/$id': typeof AppSorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
+  '/api/auth/login': typeof ApiAuthLoginRoute
+  '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/brifler/$id/redakte': typeof AppBriflerIdRedakteRoute
+  '/api/attachments/$kind/$parentId/$attachmentId': typeof ApiAttachmentsKindParentIdAttachmentIdRoute
 }
 export interface FileRoutesByTo {
+  '/login': typeof LoginRoute
   '/axtaris': typeof AppAxtarisRoute
   '/ayarlar': typeof AppAyarlarRoute
   '/osint': typeof AppOsintRoute
@@ -122,11 +152,15 @@ export interface FileRoutesByTo {
   '/senedler/$id': typeof AppSenedlerIdRoute
   '/sorgu/$id': typeof AppSorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
+  '/api/auth/login': typeof ApiAuthLoginRoute
+  '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/brifler/$id/redakte': typeof AppBriflerIdRedakteRoute
+  '/api/attachments/$kind/$parentId/$attachmentId': typeof ApiAttachmentsKindParentIdAttachmentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
   '/_app/axtaris': typeof AppAxtarisRoute
   '/_app/ayarlar': typeof AppAyarlarRoute
   '/_app/osint': typeof AppOsintRoute
@@ -139,12 +173,16 @@ export interface FileRoutesById {
   '/_app/senedler_/$id': typeof AppSenedlerIdRoute
   '/_app/sorgu/$id': typeof AppSorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
+  '/api/auth/login': typeof ApiAuthLoginRoute
+  '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/_app/brifler/$id_/redakte': typeof AppBriflerIdRedakteRoute
+  '/api/attachments/$kind/$parentId/$attachmentId': typeof ApiAttachmentsKindParentIdAttachmentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/axtaris'
     | '/ayarlar'
     | '/osint'
@@ -156,9 +194,13 @@ export interface FileRouteTypes {
     | '/senedler/$id'
     | '/sorgu/$id'
     | '/api/analytics/search'
+    | '/api/auth/login'
+    | '/api/auth/logout'
     | '/brifler/$id/redakte'
+    | '/api/attachments/$kind/$parentId/$attachmentId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/login'
     | '/axtaris'
     | '/ayarlar'
     | '/osint'
@@ -171,10 +213,14 @@ export interface FileRouteTypes {
     | '/senedler/$id'
     | '/sorgu/$id'
     | '/api/analytics/search'
+    | '/api/auth/login'
+    | '/api/auth/logout'
     | '/brifler/$id/redakte'
+    | '/api/attachments/$kind/$parentId/$attachmentId'
   id:
     | '__root__'
     | '/_app'
+    | '/login'
     | '/_app/axtaris'
     | '/_app/ayarlar'
     | '/_app/osint'
@@ -187,13 +233,20 @@ export interface FileRouteTypes {
     | '/_app/senedler_/$id'
     | '/_app/sorgu/$id'
     | '/api/analytics/search'
+    | '/api/auth/login'
+    | '/api/auth/logout'
     | '/_app/brifler/$id_/redakte'
+    | '/api/attachments/$kind/$parentId/$attachmentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
   ApiInngestRoute: typeof ApiInngestRoute
   ApiAnalyticsSearchRoute: typeof ApiAnalyticsSearchRoute
+  ApiAuthLoginRoute: typeof ApiAuthLoginRoute
+  ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
+  ApiAttachmentsKindParentIdAttachmentIdRoute: typeof ApiAttachmentsKindParentIdAttachmentIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -203,6 +256,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -289,12 +349,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAnalyticsSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/login': {
+      id: '/api/auth/login'
+      path: '/api/auth/login'
+      fullPath: '/api/auth/login'
+      preLoaderRoute: typeof ApiAuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/logout': {
+      id: '/api/auth/logout'
+      path: '/api/auth/logout'
+      fullPath: '/api/auth/logout'
+      preLoaderRoute: typeof ApiAuthLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/brifler/$id_/redakte': {
       id: '/_app/brifler/$id_/redakte'
       path: '/brifler/$id/redakte'
       fullPath: '/brifler/$id/redakte'
       preLoaderRoute: typeof AppBriflerIdRedakteRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/attachments/$kind/$parentId/$attachmentId': {
+      id: '/api/attachments/$kind/$parentId/$attachmentId'
+      path: '/api/attachments/$kind/$parentId/$attachmentId'
+      fullPath: '/api/attachments/$kind/$parentId/$attachmentId'
+      preLoaderRoute: typeof ApiAttachmentsKindParentIdAttachmentIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -341,8 +422,13 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
   ApiInngestRoute: ApiInngestRoute,
   ApiAnalyticsSearchRoute: ApiAnalyticsSearchRoute,
+  ApiAuthLoginRoute: ApiAuthLoginRoute,
+  ApiAuthLogoutRoute: ApiAuthLogoutRoute,
+  ApiAttachmentsKindParentIdAttachmentIdRoute:
+    ApiAttachmentsKindParentIdAttachmentIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

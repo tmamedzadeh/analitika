@@ -28,7 +28,8 @@
     "osint:live:verify": "bun run scripts/verify-osint-live.ts",
     "osint:live:report": "bun run scripts/report-osint-live.ts",
     "db:eval:rerank": "bun run scripts/eval-rerank.ts",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "auth:create-admin": "bun run scripts/create-admin.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"

@@ -54,7 +54,6 @@ bun run db:reset-and-seed --reset-and-seed
 | `OSINT_MMR_LAMBDA`, `OSINT_RELEVANCE_THRESHOLD`                                     | OSINT source-selection relevance and diversity settings                       |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` | Приватное S3-совместимое файловое хранилище                                   |
 | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`                                          | Доставка и проверка подписей Inngest                                          |
-| `DEMO_BASIC_AUTH`                                                                   | Необязательная защита демо в формате `user:password`; `/api/inngest` исключён |
 | `ENABLE_RERANK`                                                                     | `false` по умолчанию; экспериментальный Gemini rerank                         |
 
 Значения моделей читаются из env после `trim`; в исходниках модели не задаются.
@@ -100,3 +99,7 @@ bun run db:reset-and-seed --reset-and-seed
 6. Покажите руководству, что источники открываются в новой вкладке, частичный результат показывает причины пропусков, а истории запросов доступны после обновления страницы.
 
 Данные в демо-документах полностью синтетические. Результаты открытого веб-поиска являются материалом для проверки аналитиком, а не подтверждёнными фактами.
+
+## Authentication rollout
+
+Follow [the authentication deployment guide](./docs/AUTHENTICATION.md) to apply the migration and bootstrap the first administrator before deploying the account-based login.

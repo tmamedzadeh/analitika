@@ -29,7 +29,7 @@ import { chunkDocument } from "../src/server/ingest/chunker";
 import { createOsintCacheKey } from "../src/server/osint/urls";
 import { findPinnedOsintRun, shouldServePinnedCache } from "../src/server/osint/cache";
 import { closeStorage, getStorage } from "../src/server/storage/s3";
-import { readServerEnv, requireServerEnv } from "../src/server/env";
+import { requireServerEnv } from "../src/server/env";
 
 const dataFile = resolve(process.cwd(), "zirve_military_seed_data_2026-10-18.json");
 const expectedCounts = { dailyBriefs: 10, documents: 10, osintRuns: 10, osintSources: 30 } as const;
@@ -232,7 +232,6 @@ async function inspectDatabase(connectionString: string): Promise<DatabaseMetada
 }
 
 function demoTargetGate(metadata: DatabaseMetadata): { allowed: boolean; reason: string } {
-  const env = readServerEnv();
   const production =
     process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
   const migrationUrl = process.env.DATABASE_URL_MIGRATE?.trim();
@@ -250,18 +249,18 @@ function demoTargetGate(metadata: DatabaseMetadata): { allowed: boolean; reason:
     metadata.host.endsWith(".pooler.supabase.com") ||
     metadata.host === "localhost" ||
     metadata.host === "127.0.0.1";
-  const allowed = Boolean(env.DEMO_BASIC_AUTH) && !production && sameDatabase && knownProvider;
+  const allowed = !production && sameDatabase && knownProvider;
   if (allowed) {
     return {
       allowed,
       reason:
-        "local non-production configuration has demo auth and matching app/migration database targets",
+        "non-production configuration has matching app/migration database targets on a known provider",
     };
   }
   return {
     allowed,
     reason:
-      "could not confirm a local dev/demo target from demo auth, non-production mode, and matching app/migration database metadata",
+      "could not confirm a non-production target with matching app/migration database metadata on a known provider",
   };
 }
 

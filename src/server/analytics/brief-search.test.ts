@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { analyticsFiltersSchema, type AnalyticsFilters } from "@/lib/analytics";
 import { directionIds } from "@/lib/directions";
+import { withCurrentUser, type SessionUser } from "@/server/auth";
 import { searchSourceConditions } from "./search";
 
 const defaults: AnalyticsFilters = {
@@ -13,9 +14,19 @@ const defaults: AnalyticsFilters = {
   minInfoCredibility: "all",
 };
 
+const testUser: SessionUser = {
+  id: "test-user",
+  username: "test",
+  role: "user",
+  clearance: "secret",
+  sessionId: "test-session",
+};
+
 function compile(filters: AnalyticsFilters) {
-  const condition = searchSourceConditions(filters);
-  return new PgDialect().sqlToQuery(condition!);
+  return withCurrentUser(testUser, () => {
+    const condition = searchSourceConditions(filters);
+    return new PgDialect().sqlToQuery(condition!);
+  });
 }
 
 describe("daily brief retrieval filters", () => {

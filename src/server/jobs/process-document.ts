@@ -4,7 +4,7 @@ import { createGeminiProviders } from "../ai/gemini";
 import { getGeminiQuotaKey } from "../ai/gemini-gateway";
 import { chunks, documents } from "../db/schema";
 import { getDb } from "../db";
-import { accessFilter } from "../db/access";
+import { systemAccessFilter } from "../db/access";
 import { chunkDocument } from "../ingest/chunker";
 import { az } from "@/lib/i18n/az";
 import { isTemporaryWorkerFailure, nonRetriableJobError } from "./failure-policy";
@@ -30,7 +30,7 @@ export async function processDocumentJob(documentId: string): Promise<void> {
   const [document] = await db
     .select()
     .from(documents)
-    .where(and(eq(documents.id, documentId), accessFilter()))
+    .where(and(eq(documents.id, documentId), systemAccessFilter()))
     .limit(1);
   if (!document || document.status === "ready") return;
 

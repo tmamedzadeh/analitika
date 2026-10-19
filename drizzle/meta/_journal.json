@@ -92,6 +92,13 @@
       "when": 1792419000000,
       "tag": "0012_backfill_document_directions",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792420000000,
+      "tag": "0013_auth_users_sessions",
+      "breakpoints": true
     }
   ]
 }

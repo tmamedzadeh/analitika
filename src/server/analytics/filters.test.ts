@@ -3,7 +3,8 @@ import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 
 import { directions, directionIds } from "@/lib/directions";
-import { analyticsFiltersSchema } from "@/lib/analytics";
+import { analyticsFiltersSchema, type AnalyticsFilters } from "@/lib/analytics";
+import { withCurrentUser, type SessionUser } from "@/server/auth";
 import { documentConditions, minimumDocDate } from "./filters";
 
 const baseFilters = {
@@ -14,34 +15,48 @@ const baseFilters = {
   minInfoCredibility: "all" as const,
 };
 
+const testUser: SessionUser = {
+  id: "test-user",
+  username: "test",
+  role: "user",
+  clearance: "secret",
+  sessionId: "test-session",
+};
+
+function documentWhere(filters: AnalyticsFilters, now?: Date) {
+  return withCurrentUser(testUser, () => and(...documentConditions(filters, now))!);
+}
+
 describe("analytics direction filters", () => {
   it("applies selected direction IDs in SQL with accessFilter before RRF", () => {
     const filters = analyticsFiltersSchema.parse({
       ...baseFilters,
       directionIds: ["OSINT", "GEOINT"],
     });
-    const where = and(...documentConditions(filters));
+    const where = documentWhere(filters);
     const query = new PgDialect().sqlToQuery(where!);
 
     expect(query.sql).toContain('"documents"."direction" in');
-    expect(query.sql).toContain("true");
+    expect(query.sql).toContain('"documents"."classification" in');
+    expect(query.params).toContain("open");
+    expect(query.params).toContain("secret");
     expect(query.params).toContain("OSINT");
     expect(query.params).toContain("GEOINT");
   });
 
   it("omits the direction condition when every direction is selected", () => {
     const filters = analyticsFiltersSchema.parse(baseFilters);
-    const query = new PgDialect().sqlToQuery(and(...documentConditions(filters))!);
+    const query = new PgDialect().sqlToQuery(documentWhere(filters));
 
     expect(query.sql).not.toContain('"documents"."direction" in');
-    expect(query.sql).toContain("true");
+    expect(query.sql).toContain('"documents"."classification" in');
     expect(filters.directionIds).toHaveLength(directions.length);
   });
 
   it("applies a stable period window and falls back to creation date when doc date is missing", () => {
     const filters = analyticsFiltersSchema.parse({ ...baseFilters, period: "30d" });
     const now = new Date("2026-10-18T18:00:00.000Z");
-    const query = new PgDialect().sqlToQuery(and(...documentConditions(filters, now))!);
+    const query = new PgDialect().sqlToQuery(documentWhere(filters, now));
 
     expect(minimumDocDate("30d", now)).toBe("2026-09-18");
     expect(query.sql).toContain('"documents"."doc_date" >=');

@@ -12,7 +12,6 @@ import {
 import { accessFilter } from "@/server/db/access";
 import { getDb } from "@/server/db";
 import { briefAttachments, chunks, dailyBriefs } from "@/server/db/schema";
-import { getStorage } from "@/server/storage/s3";
 import { afterBriefPosition, beforeBriefPosition } from "./pagination";
 
 export type BriefListFilters = {
@@ -96,14 +95,15 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
   const featuredRow = pageRows.find((row) => row.date === getBakuDate()) ?? pageRows[0];
   const [coverFile] = featuredRow
     ? await db
-        .select({ storageKey: briefAttachments.storageKey })
+        .select({ id: briefAttachments.id })
         .from(briefAttachments)
         .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
         .where(and(eq(briefAttachments.briefId, featuredRow.id), accessFilter()))
         .orderBy(briefAttachments.ord)
         .limit(1)
     : [];
-  const coverUrl = coverFile ? await getStorage().getSignedUrl(coverFile.storageKey, 3600) : null;
+  const coverUrl =
+    coverFile && featuredRow ? `/api/attachments/brief/${featuredRow.id}/${coverFile.id}` : null;
   const items: BriefListItem[] = pageRows.map((row) => ({
     id: row.id,
     date: row.date,
@@ -149,14 +149,11 @@ export async function getBriefDetails(
     .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
     .where(and(eq(briefAttachments.briefId, briefId), accessFilter()))
     .orderBy(briefAttachments.ord);
-  const storage = getStorage();
-  const photos = await Promise.all(
-    files.map(async ({ brief_attachments: file }) => ({
-      id: file.id,
-      name: file.name,
-      url: await storage.getSignedUrl(file.storageKey, 3600),
-    })),
-  );
+  const photos = files.map(({ brief_attachments: file }) => ({
+    id: file.id,
+    name: file.name,
+    url: `/api/attachments/brief/${briefId}/${file.id}`,
+  }));
   const [highlightChunk] = chunkId
     ? await db
         .select({ id: chunks.id, start: chunks.charStart, end: chunks.charEnd })

@@ -2,7 +2,7 @@ import { and, arrayContains, eq, gte, inArray, isNull, lte, or } from "drizzle-o
 
 import type { AnalyticsFilters } from "@/lib/analytics";
 import { directions } from "@/lib/directions";
-import { accessFilter } from "@/server/db/access";
+import { documentAccessFilter } from "@/server/db/access";
 import { documents } from "@/server/db/schema";
 
 export function minimumDocDate(
@@ -19,7 +19,7 @@ export function minimumDocDate(
 }
 
 export function documentConditions(filters: AnalyticsFilters, now = new Date()) {
-  const conditions = [eq(documents.status, "ready"), accessFilter()];
+  const conditions = [eq(documents.status, "ready"), documentAccessFilter()];
   const fromDate = minimumDocDate(filters.period, now);
   if (fromDate) {
     const periodCondition = or(

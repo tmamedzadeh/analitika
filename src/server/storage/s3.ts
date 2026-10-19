@@ -9,7 +9,12 @@ import {
 import { getSignedUrl as presignUrl } from "@aws-sdk/s3-request-presigner";
 
 import { requireServerEnv } from "../env";
-import type { StorageObject, StorageProvider, StoredObjectSummary } from "./types";
+import type {
+  StorageObject,
+  StorageProvider,
+  StoredObjectStream,
+  StoredObjectSummary,
+} from "./types";
 
 export class S3Storage implements StorageProvider {
   private readonly client: S3Client;
@@ -90,6 +95,16 @@ export class S3Storage implements StorageProvider {
     if (!result.Body) throw new Error("Storage faylın məzmununu qaytarmadı.");
     const bytes = await result.Body.transformToByteArray();
     return bytes.slice(0, byteCount);
+  }
+
+  async getObjectStream(key: string): Promise<StoredObjectStream> {
+    const result = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    if (!result.Body) throw new Error("Storage object is unavailable.");
+    return {
+      body: result.Body.transformToWebStream(),
+      ...(result.ContentLength !== undefined ? { size: result.ContentLength } : {}),
+      ...(result.ContentType ? { contentType: result.ContentType } : {}),
+    };
   }
 
   async listObjects(prefix: string): Promise<StoredObjectSummary[]> {

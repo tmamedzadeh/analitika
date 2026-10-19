@@ -9,7 +9,8 @@ import { imageMimeFromSignature } from "./briefs";
 import { documentIndexingRequested } from "../server/inngest/events";
 import { inngest } from "../server/inngest/client";
 import { getDb } from "../server/db";
-import { accessFilter } from "../server/db/access";
+import { documentAccessFilter, getCurrentUser } from "../server/db/access";
+import { canAccessClassification } from "@/server/auth";
 import { attachments, chunks, documents } from "../server/db/schema";
 import { getStorage } from "../server/storage/s3";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
@@ -86,7 +87,7 @@ async function queueDocumentIndexing(documentId: string): Promise<void> {
     await db
       .update(documents)
       .set({ status: "queued", step: "queued", error: null, updatedAt: new Date() })
-      .where(and(eq(documents.id, documentId), accessFilter()));
+      .where(and(eq(documents.id, documentId), documentAccessFilter()));
     await inngest.send(documentIndexingRequested.create({ documentId }));
   } catch {
     await db
@@ -97,7 +98,7 @@ async function queueDocumentIndexing(documentId: string): Promise<void> {
         error: az.documents.form.queueFailed,
         updatedAt: new Date(),
       })
-      .where(and(eq(documents.id, documentId), accessFilter()));
+      .where(and(eq(documents.id, documentId), documentAccessFilter()));
     throw new Error(az.documents.form.queueFailed);
   }
 }
@@ -118,7 +119,7 @@ export const listRecentDocuments = createServerFn({ method: "GET" }).handler(asy
       createdAt: documents.createdAt,
     })
     .from(documents)
-    .where(accessFilter())
+    .where(documentAccessFilter())
     .orderBy(desc(documents.createdAt))
     .limit(8);
   return rows.map((row) => ({
@@ -188,6 +189,10 @@ export const prepareDocumentUploads = createServerFn({ method: "POST" })
 export const saveDocument = createServerFn({ method: "POST" })
   .validator(saveDocumentSchema)
   .handler(async ({ data }) => {
+    const user = getCurrentUser();
+    if (!canAccessClassification(user, data.classification)) {
+      throw new Error("Your clearance does not allow this classification.");
+    }
     const db = getDb();
     const storage = getStorage();
     try {
@@ -224,6 +229,7 @@ export const saveDocument = createServerFn({ method: "POST" })
         tags: [...new Set(data.tags.map((tag) => tag.trim()).filter(Boolean))],
         direction: data.direction,
         classification: data.classification,
+        ownerId: user.id,
         sourceReliability: data.sourceReliability,
         infoCredibility: data.infoCredibility,
         status: "queued",
@@ -255,7 +261,7 @@ export const retryDocumentIndexing = createServerFn({ method: "POST" })
     const [document] = await db
       .select({ status: documents.status })
       .from(documents)
-      .where(and(eq(documents.id, data.documentId), accessFilter()))
+      .where(and(eq(documents.id, data.documentId), documentAccessFilter()))
       .limit(1);
     if (!document) throw new Error(az.documents.missing);
     if (document.status !== "failed") throw new Error(az.documents.form.retryOnlyFailed);
@@ -270,7 +276,7 @@ export const updateDocumentDirection = createServerFn({ method: "POST" })
     const [document] = await db
       .update(documents)
       .set({ direction: data.direction, updatedAt: new Date() })
-      .where(and(eq(documents.id, data.documentId), accessFilter()))
+      .where(and(eq(documents.id, data.documentId), documentAccessFilter()))
       .returning({ id: documents.id });
     if (!document) throw new Error(az.documents.missing);
     return { documentId: document.id, direction: data.direction };
@@ -283,7 +289,7 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
     const [document] = await db
       .select()
       .from(documents)
-      .where(and(eq(documents.id, data.documentId), accessFilter()))
+      .where(and(eq(documents.id, data.documentId), documentAccessFilter()))
       .limit(1);
     if (!document) return null;
 
@@ -304,14 +310,12 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
       db.select().from(attachments).where(eq(attachments.documentId, data.documentId)),
     ]);
     const storage = getStorage();
-    const photos = await Promise.all(
-      documentAttachments.map(async (attachment) => ({
-        id: attachment.id,
-        name: attachment.caption ?? "",
-        mime: attachment.mime,
-        url: await storage.getSignedUrl(attachment.storageKey),
-      })),
-    );
+    const photos = documentAttachments.map((attachment) => ({
+      id: attachment.id,
+      name: attachment.caption ?? "",
+      mime: attachment.mime,
+      url: `/api/attachments/document/${data.documentId}/${attachment.id}`,
+    }));
 
     return {
       ...document,
@@ -330,7 +334,7 @@ export const deleteDocument = createServerFn({ method: "POST" })
     const [document] = await db
       .select({ id: documents.id })
       .from(documents)
-      .where(and(eq(documents.id, data.documentId), accessFilter()))
+      .where(and(eq(documents.id, data.documentId), documentAccessFilter()))
       .limit(1);
     if (!document) throw new Error(az.documents.missing);
 
@@ -339,6 +343,8 @@ export const deleteDocument = createServerFn({ method: "POST" })
       .from(attachments)
       .where(eq(attachments.documentId, data.documentId));
     await Promise.all(files.map((file) => getStorage().delete(file.storageKey)));
-    await db.delete(documents).where(and(eq(documents.id, data.documentId), accessFilter()));
+    await db
+      .delete(documents)
+      .where(and(eq(documents.id, data.documentId), documentAccessFilter()));
     return { ok: true };
   });

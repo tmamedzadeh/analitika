@@ -1,9 +1,9 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, or } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
 
-import { getCurrentUser, accessFilter } from "../server/db/access";
+import { getCurrentUser, documentAccessFilter } from "../server/db/access";
 import { getDb } from "../server/db";
 import { documents, infoRequests, requestAttachments } from "../server/db/schema";
 import { getStorage } from "../server/storage/s3";
@@ -35,7 +35,12 @@ function safeFileName(value: string): string {
 }
 
 function requestForCurrentUser(requestId: string) {
-  return and(eq(infoRequests.id, requestId), eq(infoRequests.requesterId, getCurrentUser().id));
+  const user = getCurrentUser();
+  const ownerCondition =
+    user.role === "admin"
+      ? or(eq(infoRequests.requesterId, user.id), eq(infoRequests.requesterId, "admin"))
+      : eq(infoRequests.requesterId, user.id);
+  return and(eq(infoRequests.id, requestId), ownerCondition);
 }
 
 const requestUploadSchema = requestAttachmentMetadataSchema
@@ -73,14 +78,24 @@ export const listInfoRequests = createServerFn({ method: "GET" }).handler(async 
       sourceReliability: infoRequests.sourceReliability,
       infoCredibility: infoRequests.infoCredibility,
       status: infoRequests.status,
-      answerDocumentId: infoRequests.answerDocumentId,
+      answerDocumentId: documents.id,
       answerDocumentTitle: documents.title,
       createdAt: infoRequests.createdAt,
       updatedAt: infoRequests.updatedAt,
     })
     .from(infoRequests)
-    .leftJoin(documents, and(eq(infoRequests.answerDocumentId, documents.id), accessFilter()))
-    .where(eq(infoRequests.requesterId, getCurrentUser().id))
+    .leftJoin(
+      documents,
+      and(eq(infoRequests.answerDocumentId, documents.id), documentAccessFilter()),
+    )
+    .where(
+      getCurrentUser().role === "admin"
+        ? or(
+            eq(infoRequests.requesterId, getCurrentUser().id),
+            eq(infoRequests.requesterId, "admin"),
+          )
+        : eq(infoRequests.requesterId, getCurrentUser().id),
+    )
     .orderBy(desc(infoRequests.requestDate), desc(infoRequests.createdAt))
     .limit(100);
 
@@ -96,7 +111,7 @@ export const listAnswerDocuments = createServerFn({ method: "GET" }).handler(asy
   return db
     .select({ id: documents.id, title: documents.title, docDate: documents.docDate })
     .from(documents)
-    .where(and(eq(documents.status, "ready"), accessFilter()))
+    .where(and(eq(documents.status, "ready"), documentAccessFilter()))
     .orderBy(desc(documents.createdAt))
     .limit(500);
 });
@@ -117,13 +132,16 @@ export const getInfoRequestDetails = createServerFn({ method: "GET" })
         infoCredibility: infoRequests.infoCredibility,
         note: infoRequests.note,
         status: infoRequests.status,
-        answerDocumentId: infoRequests.answerDocumentId,
+        answerDocumentId: documents.id,
         answerDocumentTitle: documents.title,
         createdAt: infoRequests.createdAt,
         updatedAt: infoRequests.updatedAt,
       })
       .from(infoRequests)
-      .leftJoin(documents, and(eq(infoRequests.answerDocumentId, documents.id), accessFilter()))
+      .leftJoin(
+        documents,
+        and(eq(infoRequests.answerDocumentId, documents.id), documentAccessFilter()),
+      )
       .where(requestForCurrentUser(data.requestId))
       .limit(1);
     if (!request) return null;
@@ -134,17 +152,14 @@ export const getInfoRequestDetails = createServerFn({ method: "GET" })
         name: requestAttachments.name,
         mime: requestAttachments.mime,
         size: requestAttachments.size,
-        storageKey: requestAttachments.storageKey,
       })
       .from(requestAttachments)
       .where(eq(requestAttachments.requestId, data.requestId));
     const storage = getStorage();
-    const attachments = await Promise.all(
-      files.map(async ({ storageKey, ...file }) => ({
-        ...file,
-        url: await storage.getSignedUrl(storageKey),
-      })),
-    );
+    const attachments = files.map((file) => ({
+      ...file,
+      url: `/api/attachments/request/${data.requestId}/${file.id}`,
+    }));
 
     return {
       ...request,
@@ -277,7 +292,7 @@ export const setInfoRequestAnswerDocument = createServerFn({ method: "POST" })
           and(
             eq(documents.id, data.answerDocumentId),
             eq(documents.status, "ready"),
-            accessFilter(),
+            documentAccessFilter(),
           ),
         )
         .limit(1);

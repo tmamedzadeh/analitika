@@ -9,15 +9,6 @@ const optionalValue = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z.string().trim().min(1).optional(),
 );
-const optionalBasicAuth = z.preprocess(
-  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-  z
-    .string()
-    .max(1024)
-    .regex(/^[^:]+:.+$/)
-    .optional(),
-);
-
 export const serverEnvSchema = z.object({
   DATABASE_URL: optionalValue,
   DATABASE_POOL_MAX: z.preprocess(
@@ -44,7 +35,6 @@ export const serverEnvSchema = z.object({
   S3_BUCKET: optionalValue,
   INNGEST_EVENT_KEY: optionalValue,
   INNGEST_SIGNING_KEY: optionalValue,
-  DEMO_BASIC_AUTH: optionalBasicAuth,
   ENABLE_RERANK: z.enum(["true", "false"]).default("false"),
 });
 

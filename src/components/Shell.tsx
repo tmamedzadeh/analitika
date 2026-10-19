@@ -1,18 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Search, Globe, FileText, SlidersHorizontal, PanelsTopLeft, LogOut } from "lucide-react";
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { ZirveLoader } from "@/components/ZirveLoader";
+import { getSettingsIdentity } from "@/lib/auth.functions";
 import { az } from "@/lib/i18n/az";
 
 const nav = [
@@ -24,32 +15,51 @@ const nav = [
 ] as const;
 
 function LogoutAction({ iconOnly = false }: { iconOnly?: boolean }) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+
+  async function logout() {
+    if (pending) return;
+    setPending(true);
+    setError("");
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      if (!response.ok) throw new Error();
+      window.location.replace("/login");
+    } catch {
+      setError("Çıxış mümkün olmadı. Yenidən cəhd edin.");
+      setPending(false);
+    }
+  }
+
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          aria-label={az.actions.logout}
-          className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-card px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/20 hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:px-3"
-        >
+    <span className="inline-flex flex-col items-end">
+      <button
+        type="button"
+        aria-label={az.actions.logout}
+        aria-busy={pending}
+        disabled={pending}
+        onClick={() => void logout()}
+        className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-card px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/20 hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait sm:px-3"
+      >
+        {pending ? (
+          <ZirveLoader variant="button" label={az.actions.logout} />
+        ) : (
           <LogOut size={16} aria-hidden="true" />
-          <span className={iconOnly ? "sr-only" : "hidden sm:inline"}>{az.actions.logout}</span>
-        </button>
-      </DialogTrigger>
-      <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{az.actions.logoutManagedTitle}</DialogTitle>
-          <DialogDescription className="pt-2 leading-6">
-            {az.actions.logoutManagedDescription}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">{az.actions.close}</Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        )}
+        <span className={iconOnly ? "sr-only" : "hidden sm:inline"}>
+          {pending ? "Çıxış edilir…" : az.actions.logout}
+        </span>
+      </button>
+      {error && (
+        <span role="status" className="mt-1 max-w-52 text-right text-xs text-destructive">
+          {error}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -104,6 +114,25 @@ function navItemIsActive(pathname: string, to: (typeof nav)[number]["to"]): bool
 
 export function ShellLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [username, setUsername] = useState("");
+  useEffect(() => {
+    let mounted = true;
+    getSettingsIdentity()
+      .then((identity) => {
+        if (mounted) setUsername(identity.username);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  useEffect(() => {
+    const reloadRestoredPage = (event: PageTransitionEvent) => {
+      if (event.persisted) window.location.reload();
+    };
+    window.addEventListener("pageshow", reloadRestoredPage);
+    return () => window.removeEventListener("pageshow", reloadRestoredPage);
+  }, []);
   return (
     <div className="min-h-screen md:flex">
       <aside className="flex w-full flex-col border-b border-border bg-card px-4 py-3 md:min-h-screen md:w-55 md:shrink-0 md:border-b-0 md:border-r md:px-5 md:py-6">
@@ -120,6 +149,9 @@ export function ShellLayout({ children }: { children: ReactNode }) {
               PLATFORMA
             </span>
           </Link>
+          <div className="md:hidden">
+            <LogoutAction />
+          </div>
         </div>
 
         <nav
@@ -150,7 +182,9 @@ export function ShellLayout({ children }: { children: ReactNode }) {
         <div className="mt-auto hidden md:block">
           <div className="mt-5 flex items-center gap-3 border-t border-border pt-5">
             <span className="min-w-0">
-              <span className="block truncate text-xs font-semibold">{az.actions.user}</span>
+              <span className="block truncate text-xs font-semibold">
+                {username || az.actions.user}
+              </span>
             </span>
             <span className="ml-auto">
               <LogoutAction iconOnly />

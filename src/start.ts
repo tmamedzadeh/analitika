@@ -1,10 +1,7 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
-import { Buffer } from "node:buffer";
-import process from "node:process";
 
 import { renderErrorPage } from "./lib/error-page";
-import { readServerEnv } from "./server/env";
-import { basicAuthCredentialsMatch, demoAuthUnavailableResponse } from "./server/basic-auth";
+import { getUserForRequest, safeInternalRedirect, withCurrentUser } from "./server/auth";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -13,10 +10,10 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }
-    console.error(error);
+    console.error("Unhandled application error.");
     return new Response(renderErrorPage(), {
       status: 500,
-      headers: { "content-type": "text/html; charset=utf-8" },
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
     });
   }
 });
@@ -28,46 +25,69 @@ const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",
 });
 
-const basicAuthMiddleware = createMiddleware().server(async ({ next, request }) => {
-  const credentials = readServerEnv().DEMO_BASIC_AUTH;
-  const pathname = new URL(request.url).pathname;
-
-  if (pathname === "/api/inngest" || pathname.startsWith("/api/inngest/")) {
+const sessionMiddleware = createMiddleware().server(async ({ next, request }) => {
+  const { pathname, search } = new URL(request.url);
+  const publicAsset =
+    pathname.startsWith("/assets/") ||
+    pathname.startsWith("/_build/") ||
+    pathname === "/logo.png" ||
+    pathname === "/favicon.ico" ||
+    pathname === "/robots.txt";
+  if (
+    publicAsset ||
+    pathname === "/api/inngest" ||
+    pathname.startsWith("/api/inngest/") ||
+    pathname === "/api/auth/login" ||
+    pathname === "/api/auth/logout"
+  ) {
     return next();
   }
-  if (!credentials) {
-    return process.env["NODE_ENV"] === "production" ? demoAuthUnavailableResponse() : next();
-  }
 
-  const authorization = request.headers.get("authorization");
-  const [scheme, encodedCredentials] = authorization?.split(/\s+/, 2) ?? [];
-  let suppliedCredentials = "";
-
-  if (scheme?.toLowerCase() === "basic" && encodedCredentials) {
-    try {
-      suppliedCredentials = Buffer.from(encodedCredentials, "base64").toString("utf8");
-    } catch {
-      suppliedCredentials = "";
+  const user = await getUserForRequest(request);
+  if (pathname === "/login") {
+    if (user) {
+      return new Response(null, {
+        status: 302,
+        headers: { location: "/", "cache-control": "no-store" },
+      });
     }
+    return next();
   }
 
-  if (
-    scheme?.toLowerCase() !== "basic" ||
-    !basicAuthCredentialsMatch(credentials, suppliedCredentials)
-  ) {
-    return new Response("Kimlik doğrulaması tələb olunur.", {
+  if (!user) {
+    const headers = new Headers({ "cache-control": "no-store" });
+    const isDocumentNavigation =
+      request.method === "GET" &&
+      (request.headers.get("sec-fetch-dest") === "document" ||
+        request.headers.get("accept")?.includes("text/html") === true);
+    if (isDocumentNavigation) {
+      const target = safeInternalRedirect(`${pathname}${search}`);
+      headers.set("location", `/login?redirect=${encodeURIComponent(target)}`);
+      return new Response(null, { status: 302, headers });
+    }
+    headers.set("content-type", "application/json; charset=utf-8");
+    return new Response(JSON.stringify({ message: "Authentication required." }), {
       status: 401,
-      headers: {
-        "cache-control": "no-store",
-        "content-type": "text/plain; charset=utf-8",
-        "www-authenticate": 'Basic realm="Analitika", charset="UTF-8"',
-      },
+      headers,
     });
   }
 
-  return next();
+  const response = await withCurrentUser(user, () => next());
+  if (response instanceof Response) {
+    response.headers.set("cache-control", "private, no-store, max-age=0");
+    const vary = response.headers.get("vary");
+    if (
+      !vary
+        ?.toLowerCase()
+        .split(/\s*,\s*/)
+        .includes("cookie")
+    ) {
+      response.headers.set("vary", vary ? `${vary}, cookie` : "cookie");
+    }
+  }
+  return response;
 });
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [errorMiddleware, basicAuthMiddleware, csrfMiddleware],
+  requestMiddleware: [errorMiddleware, csrfMiddleware, sessionMiddleware],
 }));

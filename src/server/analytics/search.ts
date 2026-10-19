@@ -10,7 +10,7 @@ import {
 import { GeminiLLMProvider } from "@/server/ai/gemini";
 import { createGeminiProviders } from "@/server/ai/gemini";
 import { getDb } from "@/server/db";
-import { accessFilter } from "@/server/db/access";
+import { accessFilter, documentAccessFilter } from "@/server/db/access";
 import { attachments, briefAttachments, chunks, dailyBriefs, documents } from "@/server/db/schema";
 import { documentConditions, minimumDocDate } from "./filters";
 import { reciprocalRankFusion } from "./ranking";
@@ -236,7 +236,7 @@ export async function searchDocumentChunks(
           .select({ id: attachments.documentId, total: count() })
           .from(attachments)
           .innerJoin(documents, eq(attachments.documentId, documents.id))
-          .where(and(inArray(attachments.documentId, documentIds), accessFilter()))
+          .where(and(inArray(attachments.documentId, documentIds), documentAccessFilter()))
           .groupBy(attachments.documentId)
       : Promise.resolve([]),
     briefIds.length
@@ -290,7 +290,7 @@ export async function getAnalyticsOptions(): Promise<{ tags: string[] }> {
   const rows = await db
     .select({ tags: documents.tags })
     .from(documents)
-    .where(and(eq(documents.status, "ready"), accessFilter()))
+    .where(and(eq(documents.status, "ready"), documentAccessFilter()))
     .orderBy(desc(documents.createdAt), asc(documents.title))
     .limit(500);
 

@@ -47,6 +47,63 @@ export const osintSourceType = pgEnum("osint_source_type", [
   "think_tank",
   "other",
 ]);
+export const userRole = pgEnum("user_role", ["admin", "user"]);
+
+export const appUsers = pgTable(
+  "app_users",
+  {
+    id: text("id").primaryKey(),
+    username: text("username").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    role: userRole("role").notNull().default("user"),
+    clearance: text("clearance").notNull(),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("app_users_username_unique_idx").on(table.username),
+    index("app_users_role_active_idx").on(table.role, table.active),
+    check(
+      "app_users_username_check",
+      sql.raw("username = lower(btrim(username)) AND char_length(username) BETWEEN 1 AND 50"),
+    ),
+    check(
+      "app_users_clearance_check",
+      sql.raw("clearance IN ('open', 'secret', 'top_secret', 'special')"),
+    ),
+  ],
+);
+
+export const appSessions = pgTable(
+  "app_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("app_sessions_token_hash_unique_idx").on(table.tokenHash),
+    index("app_sessions_user_idx").on(table.userId),
+  ],
+);
+
+export const authLoginAttempts = pgTable(
+  "auth_login_attempts",
+  {
+    key: text("key").primaryKey(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    attempts: integer("attempts").notNull().default(0),
+  },
+  (table) => [
+    index("auth_login_attempts_window_idx").on(table.windowStart),
+    check("auth_login_attempts_nonnegative_check", sql.raw("attempts >= 0")),
+  ],
+);
 
 export const documents = pgTable(
   "documents",

@@ -99,7 +99,7 @@
 
 ## 6. Безопасность и инфраструктура
 
-- Доступ к демо: добавь middleware в src/start.ts: если задана переменная DEMO_BASIC_AUTH ("логин:пароль"), требуй HTTP Basic Auth на все маршруты, кроме /api/inngest. (Парольная защита Vercel не бесплатна для всех планов, поэтому делаем в коде.)
+- Application access uses individual accounts and server-side sessions; /api/inngest continues to require a signed request.
 - Эндпоинт Inngest защити подписью (INNGEST_SIGNING_KEY).
 - Убери src/lib/lovable-error-reporting.ts и его вызовы, замени на console.error. Страницы 404 и ошибки (в \_\_root.tsx и lib/error-page.ts) переведи на азербайджанский. Ключи и тексты промптов не логируй.
 - Rate limit на серверные функции поиска и OSINT: простой лимит на IP через таблицу или in-memory (достаточно для демо), чтобы случайно не сжечь бюджет.
@@ -112,14 +112,13 @@ GOOGLE_GENERATIVE_AI_API_KEY
 AI_CHAT_MODEL, AI_LIGHT_MODEL, GEMINI_EMBED_MODEL
 S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET
 INNGEST_EVENT_KEY, INNGEST_SIGNING_KEY
-DEMO_BASIC_AUTH
 ENABLE_RERANK=false
 Ключ Gemini уже был опубликован в чате: попроси пользователя ПЕРЕВЫПУСТИТЬ его в Google AI Studio и использовать новый. Старый не используй.
 
 ## 8. Этапы и критерии готовности
 
-Этап 0, основа. Drizzle, схема, миграции, подключение к Supabase, StorageProvider, провайдеры AI, конфиг, .env.example, Basic Auth, страницы ошибок, Nitro-пресет Vercel, удаление Lovable-репортера, DECISIONS.md.
-Действия от пользователя (веди пошагово): создать проект Supabase и получить connection string пулера; включить расширения vector и pg_trgm (если миграция не может); создать приватный бакет и S3-ключи Supabase Storage; получить новый Gemini-ключ; завести переменные в .env.local и Vercel; создать аккаунт Inngest и ключи; задать DEMO_BASIC_AUTH.
+Этап 0, основа. Drizzle, схема, миграции, подключение к Supabase, StorageProvider, провайдеры AI, конфиг, .env.example, per-user authentication, страницы ошибок, Nitro-пресет Vercel, удаление Lovable-репортера, DECISIONS.md.
+Действия от пользователя (веди пошагово): создать проект Supabase и получить connection string пулера; включить расширения vector и pg_trgm (если миграция не может); создать приватный бакет и S3-ключи Supabase Storage; получить новый Gemini-ключ; завести переменные в .env.local и Vercel; создать аккаунт Inngest и ключи; задать first-admin bootstrap command.
 Готово: build зелёный, миграции применены, тестовая запись в БД и файл в Storage проходят, деплой на Vercel открывается только по логину и паролю.
 Этап 1, документы. Форма, сохранение, фото, фоновая индексация, список, страница документа, удаление, повторная обработка, тесты чанкера.
 Готово: документ с таблицей и 2 фото проходит queued → processing → ready; чанки и embeddings есть в БД; фото открываются; удаление чистит БД и Storage.
