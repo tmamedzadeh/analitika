@@ -1,7 +1,7 @@
 import { and, arrayContains, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
 
 import type { AnalyticsFilters } from "@/lib/analytics";
-import { departments } from "@/lib/departments";
+import { directions } from "@/lib/directions";
 import { accessFilter } from "@/server/db/access";
 import { documents } from "@/server/db/schema";
 
@@ -32,8 +32,8 @@ export function documentConditions(filters: AnalyticsFilters, now = new Date()) 
     if (periodCondition) conditions.push(periodCondition);
   }
   if (filters.tag) conditions.push(arrayContains(documents.tags, [filters.tag]));
-  if (filters.departmentIds.length < departments.length) {
-    conditions.push(inArray(documents.department, filters.departmentIds));
+  if (filters.directionIds.length < directions.length) {
+    conditions.push(inArray(documents.direction, filters.directionIds));
   }
 
   if (filters.minSourceReliability !== "all") {

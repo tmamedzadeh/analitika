@@ -55,6 +55,7 @@ export const documents = pgTable(
     title: text("title").notNull(),
     body: text("body").notNull(),
     department: text("department"),
+    direction: text("direction"),
     docDate: date("doc_date"),
     tags: text("tags").array().notNull().default(emptyTextArray),
     language: text("language").notNull().default("az"),
@@ -74,9 +75,16 @@ export const documents = pgTable(
     index("documents_status_created_idx").on(table.status, table.createdAt),
     index("documents_doc_date_idx").on(table.docDate),
     index("documents_department_idx").on(table.department),
+    index("documents_direction_idx").on(table.direction),
     check(
       "documents_department_check",
       sql.raw("department IS NULL OR department IN ('d1', 'd2', 'd3', 'd4', 'd5')"),
+    ),
+    check(
+      "documents_direction_check",
+      sql.raw(
+        "direction IS NULL OR direction IN ('HUMINT', 'OSINT', 'IMINT', 'SIGINT', 'CYBINT', 'GEOINT', 'MASINT', 'TECHINT', 'FININT', 'TACINT_CI')",
+      ),
     ),
     check("documents_chunk_count_nonnegative", sql.raw("chunk_count >= 0")),
     check(

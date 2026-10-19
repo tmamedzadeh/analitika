@@ -3,11 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 
 import { BriefMarkdown } from "@/components/BriefMarkdown";
+import { DirectionMultiSelect } from "@/components/DirectionMultiSelect";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
 import type { AnalyticsFilters, AnalyticsSourcePreview } from "@/lib/analytics";
 import { getAnalyticsOptions } from "@/lib/analytics.functions";
-import { departments, departmentIds, departmentLabel } from "@/lib/departments";
+import { directionIds, directionLabel } from "@/lib/directions";
 import { briefRouteForSearchSource, briefSearchLabel } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
 import { infoCredibilityValues, sourceReliabilityValues } from "@/lib/reliability";
@@ -15,7 +16,7 @@ import { infoCredibilityValues, sourceReliabilityValues } from "@/lib/reliabilit
 const initialFilters: AnalyticsFilters = {
   period: "7d",
   tag: "",
-  departmentIds: [...departmentIds],
+  directionIds: [...directionIds],
   minSourceReliability: "all",
   minInfoCredibility: "all",
 };
@@ -96,6 +97,7 @@ function Analytics() {
   const [errorReference, setErrorReference] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [sourceOnly, setSourceOnly] = useState(false);
+  const noDirections = filters.directionIds.length === 0;
   const usedSourceNumbers = citedSourceNumbers(answer);
   const visibleSources = sourceOnly
     ? sources
@@ -108,7 +110,7 @@ function Analytics() {
 
   async function runSearch(mode: "answer" | "sources") {
     const normalizedQuestion = question.trim();
-    if (!normalizedQuestion || busy) return;
+    if (!normalizedQuestion || busy || noDirections) return;
     setBusy(true);
     setHasSearched(true);
     setSourceOnly(mode === "sources");
@@ -238,7 +240,7 @@ function Analytics() {
         />
         <button
           className="glow rounded-xl bg-primary px-7 py-3 font-semibold text-primary-foreground disabled:opacity-60"
-          disabled={busy || question.trim().length === 0}
+          disabled={busy || noDirections || question.trim().length === 0}
           type="submit"
         >
           {busy ? az.analytics.searching : az.analytics.searchButton}
@@ -287,32 +289,18 @@ function Analytics() {
             ))}
           </select>
         </label>
-        <fieldset className="min-w-0 border-0 p-0 text-sm">
-          <legend className="mb-1.5">{az.analytics.departmentFilter}</legend>
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            {departments.map(({ id, label }) => (
-              <label key={id} className="flex items-center gap-1.5">
-                <input
-                  type="checkbox"
-                  checked={filters.departmentIds.includes(id)}
-                  onChange={(event) => {
-                    const checked = event.currentTarget.checked;
-                    setFilters((current) => {
-                      const selected = checked
-                        ? [...current.departmentIds, id]
-                        : current.departmentIds.filter((departmentId) => departmentId !== id);
-                      return {
-                        ...current,
-                        departmentIds: selected.length > 0 ? selected : current.departmentIds,
-                      };
-                    });
-                  }}
-                />
-                {label}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <div className="min-w-0">
+          <DirectionMultiSelect
+            value={filters.directionIds}
+            onChange={(next) => setFilters((current) => ({ ...current, directionIds: next }))}
+          />
+          {noDirections && (
+            <p role="alert" className="mt-1 text-xs text-destructive">
+              {az.directions.required}
+            </p>
+          )}
+        </div>
+
         <label className="flex min-w-0 flex-col gap-1.5">
           <span className="">{az.analytics.sourceReliabilityFilter}</span>
           <select
@@ -426,7 +414,7 @@ function Analytics() {
             <button
               className="pill disabled:opacity-50"
               type="button"
-              disabled={!hasSearched || busy}
+              disabled={!hasSearched || busy || noDirections}
               onClick={() => void runSearch("sources")}
             >
               {az.analytics.showOnlyFragments}
@@ -434,7 +422,7 @@ function Analytics() {
             <button
               className="pill disabled:opacity-50"
               type="button"
-              disabled={!hasSearched || busy || question.trim().length === 0}
+              disabled={!hasSearched || busy || noDirections || question.trim().length === 0}
               onClick={() => void runSearch("answer")}
             >
               {az.analytics.regenerate}
@@ -479,7 +467,7 @@ function Analytics() {
                   {(source.sourceKind === "brief"
                     ? [source.sectionTitle || az.analytics.sectionUnknown]
                     : [
-                        departmentLabel(source.department),
+                        directionLabel(source.direction) ?? az.directions.unassigned,
                         source.sectionTitle || az.analytics.sectionUnknown,
                         source.docDate,
                       ]

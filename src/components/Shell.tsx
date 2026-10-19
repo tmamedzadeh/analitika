@@ -1,13 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  Search,
-  Globe,
-  MessageSquareText,
-  FileText,
-  SlidersHorizontal,
-  PanelsTopLeft,
-  LogOut,
-} from "lucide-react";
+import { Search, Globe, FileText, SlidersHorizontal, PanelsTopLeft, LogOut } from "lucide-react";
 import { type ReactNode } from "react";
 
 import {
@@ -28,7 +20,6 @@ const nav = [
   { to: "/axtaris", icon: Search, label: az.navigation.analyticsSearch },
   { to: "/osint", icon: Globe, label: az.navigation.osint },
   { to: "/senedler", icon: FileText, label: az.navigation.documents },
-  { to: "/sorgu", icon: MessageSquareText, label: az.navigation.requests },
   { to: "/ayarlar", icon: SlidersHorizontal, label: az.navigation.settings },
 ] as const;
 
@@ -108,7 +99,6 @@ export function Shell({
 function navItemIsActive(pathname: string, to: (typeof nav)[number]["to"]): boolean {
   if (to === "/") return pathname === "/" || pathname.startsWith("/brifler/");
   if (to === "/senedler") return pathname === to || pathname.startsWith(`${to}/`);
-  if (to === "/sorgu") return pathname === to || pathname.startsWith(`${to}/`);
   return pathname === to;
 }
 

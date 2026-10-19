@@ -73,9 +73,9 @@ describe("OSINT pipeline helpers", () => {
   });
 
   it("classifies quota and JSON failures without including provider text", () => {
-    expect(
-      osintFailureCategory(new GeminiQuotaExceededError("GEMINI_LIGHT_MODEL", "per-minute")),
-    ).toBe("gemini_quota_per-minute");
+    expect(osintFailureCategory(new GeminiQuotaExceededError("AI_LIGHT_MODEL", "per-minute"))).toBe(
+      "gemini_quota_per-minute",
+    );
     expect(osintFailureCategory(new SyntaxError("invalid response body"))).toBe("invalid_json");
   });
 

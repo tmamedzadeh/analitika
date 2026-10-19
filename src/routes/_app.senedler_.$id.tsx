@@ -6,12 +6,13 @@ import { z } from "zod";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
 import { BriefMarkdown } from "@/components/BriefMarkdown";
-import { departmentLabel } from "@/lib/departments";
+import { directionIdSchema, directions, directionLabel, type DirectionId } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
 import {
   deleteDocument,
   getDocumentDetails,
   retryDocumentIndexing,
+  updateDocumentDirection,
 } from "@/lib/documents.functions";
 
 export const Route = createFileRoute("/_app/senedler_/$id")({
@@ -35,9 +36,11 @@ function DocumentPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const parsedId = z.string().uuid().safeParse(id);
-  const [busyAction, setBusyAction] = useState<"retry" | "delete" | null>(null);
+  const [busyAction, setBusyAction] = useState<"retry" | "delete" | "direction" | null>(null);
   const busy = busyAction !== null;
   const [pageError, setPageError] = useState("");
+  const [direction, setDirection] = useState<DirectionId | "">("");
+  const [directionSaved, setDirectionSaved] = useState(false);
   const documentQuery = useQuery({
     queryKey: ["document", id],
     enabled: parsedId.success,
@@ -52,6 +55,10 @@ function DocumentPage() {
   });
 
   const document = documentQuery.data;
+  useEffect(() => {
+    const parsedDirection = directionIdSchema.safeParse(document?.direction);
+    setDirection(parsedDirection.success ? parsedDirection.data : "");
+  }, [document?.direction]);
   useEffect(() => {
     if (!selectedChunkId || !document) return;
     const frame = requestAnimationFrame(() => {
@@ -85,6 +92,25 @@ function DocumentPage() {
       await navigate({ to: "/senedler" });
     } catch (error) {
       setPageError(error instanceof Error ? error.message : az.documents.loadError);
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function saveDirection() {
+    if (!direction) return;
+    setBusyAction("direction");
+    setPageError("");
+    setDirectionSaved(false);
+    try {
+      await updateDocumentDirection({ data: { documentId: id, direction } });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["document", id] }),
+        queryClient.invalidateQueries({ queryKey: ["documents", "recent"] }),
+      ]);
+      setDirectionSaved(true);
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : az.directions.saveFailed);
     } finally {
       setBusyAction(null);
     }
@@ -161,7 +187,7 @@ function DocumentPage() {
       badges={[
         az.documents.status[document.status],
         az.documents.step[document.step as keyof typeof az.documents.step] ?? document.step,
-        ...(departmentLabel(document.department) ? [departmentLabel(document.department)!] : []),
+        directionLabel(document.direction) ?? az.directions.unassigned,
         az.reliability.sourceBadge + " " + document.sourceReliability,
         az.reliability.informationBadge + " " + document.infoCredibility,
       ]}
@@ -209,6 +235,44 @@ function DocumentPage() {
           {document.error}
         </p>
       )}
+
+      <section className="panel mb-5 flex flex-wrap items-end gap-3 p-5">
+        <label className="min-w-56 flex-1">
+          <span className="mb-2 block text-sm font-semibold">{az.directions.field}</span>
+          <select
+            className="field"
+            value={direction}
+            onChange={(event) => {
+              setDirection(event.currentTarget.value as DirectionId | "");
+              setDirectionSaved(false);
+            }}
+            required
+          >
+            <option value="" disabled>
+              {az.directions.placeholder}
+            </option>
+            {directions.map(({ id: value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          disabled={busy || !direction || direction === document.direction}
+          onClick={() => void saveDirection()}
+          className="pill min-h-11"
+        >
+          {busyAction === "direction" && <ZirveLoader variant="inline" label="" />}
+          {busyAction === "direction" ? az.directions.saving : az.directions.save}
+        </button>
+        {directionSaved && (
+          <p role="status" className="w-full text-sm text-success">
+            {az.directions.saved}
+          </p>
+        )}
+      </section>
 
       {document.status === "processing" && (
         <div className="panel mb-5 p-4">

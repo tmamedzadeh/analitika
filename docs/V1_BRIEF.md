@@ -10,7 +10,7 @@
 2. Все тексты интерфейса на азербайджанском. Новые строки складывай в src/lib/i18n/az.ts. Дизайн и классы Lovable не переделывай, только подключай реальные данные. Для состояний загрузки, пустых данных и ошибок используй имеющиеся компоненты и стиль.
 3. Git: не переписывай историю (никаких force push, rebase, amend уже отправленного). Каждый этап делай в ветке v1/<этап>, после успешных lint, build и test делай merge в main. Коммиты небольшие, сообщения осмысленные.
 4. Секреты: никогда не коммить ключи. Добавь .env\* в .gitignore (кроме .env.example), создай .env.example со всеми переменными без значений.
-5. Не придумывай имена Gemini-моделей из памяти. Сверься с официальной документацией (ai.google.dev/gemini-api/docs/models и /pricing) и вынеси имена в env: GEMINI_CHAT_MODEL, GEMINI_LIGHT_MODEL, GEMINI_EMBED_MODEL. Версии пакетов и API TanStack Start тоже проверяй по актуальной документации, а не по памяти.
+5. Не придумывай имена Gemini-моделей из памяти. Сверься с официальной документацией (ai.google.dev/gemini-api/docs/models и /pricing) и вынеси имена в env: AI_CHAT_MODEL, AI_LIGHT_MODEL, GEMINI_EMBED_MODEL. Версии пакетов и API TanStack Start тоже проверяй по актуальной документации, а не по памяти.
 6. После каждого этапа запускай lint, build, test (менеджер пакетов определи по lock-файлу, сейчас bun.lock) и кратко отчитывайся: что сделано, что проверено, что дальше.
 7. ДЕЙСТВИЯ ОТ ПОЛЬЗОВАТЕЛЯ. Если для продолжения нужно что-то сделать в консолях (Supabase, Vercel, Inngest, Google AI Studio) или принять решение, остановись и выведи блок:
    ДЕЙСТВИЕ ОТ ВАС:
@@ -109,7 +109,7 @@
 
 DATABASE_URL (Supabase pooler, строка подключения)
 GOOGLE_GENERATIVE_AI_API_KEY
-GEMINI_CHAT_MODEL, GEMINI_LIGHT_MODEL, GEMINI_EMBED_MODEL
+AI_CHAT_MODEL, AI_LIGHT_MODEL, GEMINI_EMBED_MODEL
 S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET
 INNGEST_EVENT_KEY, INNGEST_SIGNING_KEY
 DEMO_BASIC_AUTH

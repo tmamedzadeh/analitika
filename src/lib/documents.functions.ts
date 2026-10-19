@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
 
-import { departmentIdSchema } from "./departments";
+import { directionIdSchema } from "./directions";
 import { az } from "./i18n/az";
 import { imageMimeFromSignature } from "./briefs";
 import { documentIndexingRequested } from "../server/inngest/events";
@@ -55,7 +55,7 @@ export const createDocumentSchema = z.object({
     .refine((value) => value.trim().length > 0),
   docDate: documentDateSchema.nullable().optional(),
   tags: z.array(z.string().trim().min(1).max(64)).max(30),
-  department: departmentIdSchema,
+  direction: directionIdSchema,
   classification: z.enum(["open", "secret", "top_secret", "special"]),
   sourceReliability: z.enum(["A", "B", "C", "D", "E", "F"]),
   infoCredibility: z.number().int().min(1).max(6),
@@ -114,6 +114,7 @@ export const listRecentDocuments = createServerFn({ method: "GET" }).handler(asy
       chunkCount: documents.chunkCount,
       error: documents.error,
       docDate: documents.docDate,
+      direction: documents.direction,
       createdAt: documents.createdAt,
     })
     .from(documents)
@@ -221,7 +222,7 @@ export const saveDocument = createServerFn({ method: "POST" })
         body: data.body,
         docDate: data.docDate || null,
         tags: [...new Set(data.tags.map((tag) => tag.trim()).filter(Boolean))],
-        department: data.department,
+        direction: data.direction,
         classification: data.classification,
         sourceReliability: data.sourceReliability,
         infoCredibility: data.infoCredibility,
@@ -260,6 +261,19 @@ export const retryDocumentIndexing = createServerFn({ method: "POST" })
     if (document.status !== "failed") throw new Error(az.documents.form.retryOnlyFailed);
     await queueDocumentIndexing(data.documentId);
     return { documentId: data.documentId };
+  });
+
+export const updateDocumentDirection = createServerFn({ method: "POST" })
+  .validator(z.object({ documentId: z.string().uuid(), direction: directionIdSchema }))
+  .handler(async ({ data }) => {
+    const db = getDb();
+    const [document] = await db
+      .update(documents)
+      .set({ direction: data.direction, updatedAt: new Date() })
+      .where(and(eq(documents.id, data.documentId), accessFilter()))
+      .returning({ id: documents.id });
+    if (!document) throw new Error(az.documents.missing);
+    return { documentId: document.id, direction: data.direction };
   });
 
 export const getDocumentDetails = createServerFn({ method: "GET" })

@@ -43,8 +43,8 @@ bun run db:reset-and-seed --reset-and-seed
 | `DATABASE_URL`                                                                      | Supabase Transaction pooler для приложения                                    |
 | `DATABASE_URL_MIGRATE`                                                              | Supabase Session pooler или direct connection только для Drizzle              |
 | `GOOGLE_GENERATIVE_AI_API_KEY`                                                      | Gemini API key                                                                |
-| `GEMINI_CHAT_MODEL`                                                                 | Gemini для аналитики и основной OSINT-сводки                                  |
-| `GEMINI_LIGHT_MODEL`                                                                | Gemini для переводов и резюме источников                                      |
+| `AI_CHAT_MODEL`                                                                     | Основная AI-модель для аналитики и OSINT; quota fallback использует light-модель |
+| `AI_LIGHT_MODEL`                                                                    | Необязательная fallback-модель и модель для облегчённых AI-задач                |
 | `GEMINI_EMBED_MODEL`                                                                | Gemini embeddings; текущая схема ждёт 768 измерений                           |
 | `SEARCH_PROVIDER`                                                                   | `exa` по умолчанию или `gemini_grounding`                                     |
 | `EXA_API_KEY`                                                                       | Ключ Exa для веб-поиска                                                       |
@@ -61,7 +61,7 @@ bun run db:reset-and-seed --reset-and-seed
 
 ## Архитектура
 
-- `/` — список «Gündəlik xülasələr»: бриф за сегодня, фильтры по неделе/месяцу, поиск и постраничная загрузка.
+- `/` — список «Xülasələr»: бриф за сегодня, фильтры по неделе/месяцу, поиск и постраничная загрузка.
 - `/brifler/$id`, `/brifler/yeni`, `/brifler/$id/redakte` — просмотр, создание и редактирование брифов; опубликованные брифы индексируются в фоне и участвуют в поиске.
 - `/axtaris` — гибридный поиск по фрагментам документов и опубликованных брифов (vector, full-text, trigram и RRF), источники и ответы с цитатами.
 - `/osint` — Exa Search на шести локализованных запросах, безопасная загрузка публичных страниц, резюме и сводка на азербайджанском.

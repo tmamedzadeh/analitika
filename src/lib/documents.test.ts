@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { createDocumentSchema, documentUploadMatches } from "./documents.functions";
+import { directionIds } from "./directions";
 
 const validDocument = {
   title: "Test document",
   body: "Synthetic document text.",
   docDate: null,
   tags: [],
-  department: "d3",
+  direction: "OSINT",
   classification: "open",
   sourceReliability: "F",
   infoCredibility: 6,
@@ -15,14 +16,26 @@ const validDocument = {
 };
 
 describe("document form validation", () => {
-  it("requires a valid department ID", () => {
+  it("requires a valid intelligence direction", () => {
     expect(createDocumentSchema.safeParse(validDocument).success).toBe(true);
-    expect(
-      createDocumentSchema.safeParse({ ...validDocument, department: undefined }).success,
-    ).toBe(false);
-    expect(
-      createDocumentSchema.safeParse({ ...validDocument, department: "İdarə 3" }).success,
-    ).toBe(false);
+    expect(createDocumentSchema.safeParse({ ...validDocument, direction: undefined }).success).toBe(
+      false,
+    );
+    expect(createDocumentSchema.safeParse({ ...validDocument, direction: "İdarə 3" }).success).toBe(
+      false,
+    );
+    expect(directionIds).toEqual([
+      "HUMINT",
+      "OSINT",
+      "IMINT",
+      "SIGINT",
+      "CYBINT",
+      "GEOINT",
+      "MASINT",
+      "TECHINT",
+      "FININT",
+      "TACINT_CI",
+    ]);
   });
 
   it("rejects photos above the configured maximum size", () => {

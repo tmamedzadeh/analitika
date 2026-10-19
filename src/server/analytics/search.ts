@@ -73,7 +73,7 @@ function sourceProjection() {
     title: sql<string>`coalesce(${documents.title}, ${dailyBriefs.title})`,
     docDate: documents.docDate,
     briefDate: dailyBriefs.briefDate,
-    department: documents.department,
+    direction: documents.direction,
     sectionTitle: chunks.sectionTitle,
     text: chunks.text,
     charStart: chunks.charStart,
@@ -211,8 +211,8 @@ export async function searchDocumentChunks(
 
   const rerankProvider =
     options.rerankProvider ??
-    (config.enableRerank
-      ? new GeminiRerankProvider(new GeminiLLMProvider(config.lightModel, "GEMINI_LIGHT_MODEL"))
+    (config.enableRerank && config.lightModel
+      ? new GeminiRerankProvider(new GeminiLLMProvider(config.lightModel, "AI_LIGHT_MODEL"))
       : undefined);
   const rerankedIds = await rerankOrderOrOriginal(
     query,
@@ -263,7 +263,7 @@ export async function searchDocumentChunks(
       title: item.title,
       docDate: item.docDate,
       briefDate: item.briefDate,
-      department: item.department,
+      direction: item.direction,
       sectionTitle: item.sectionTitle,
       text: item.text,
       quote: quote.length > 360 ? quote.slice(0, 357) + "…" : quote,

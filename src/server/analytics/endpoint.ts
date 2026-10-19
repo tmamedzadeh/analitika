@@ -44,7 +44,7 @@ function errorSummary(error: unknown) {
 
 function answerFailureMessage(error: unknown): string {
   if (!isGeminiQuotaError(error)) return az.analytics.answerFailed;
-  const quota = getGeminiFailureInfo(error).quotaKey ?? "GEMINI_CHAT_MODEL";
+  const quota = getGeminiFailureInfo(error).quotaKey ?? "AI_CHAT_MODEL";
   return az.analytics.quotaExceeded.replace("{quota}", quota);
 }
 

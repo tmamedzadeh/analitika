@@ -14,7 +14,7 @@ import {
   type InfoCredibility,
   type SourceReliability,
 } from "@/lib/reliability";
-import { departments } from "@/lib/departments";
+import { directions } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
 import {
   prepareDocumentUploads,
@@ -114,7 +114,7 @@ function AddDoc() {
     const input = createDocumentSchema.safeParse({
       title: String(formData.get("title") ?? ""),
       body,
-      department: String(formData.get("department") ?? ""),
+      direction: String(formData.get("direction") ?? ""),
       docDate: String(formData.get("docDate") ?? "") || null,
       tags: String(formData.get("tags") ?? "")
         .split(",")
@@ -223,14 +223,12 @@ function AddDoc() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold">
-                {az.documents.form.department}
-              </span>
-              <select name="department" className="field" defaultValue="" required>
+              <span className="mb-2 block text-sm font-semibold">{az.directions.field}</span>
+              <select name="direction" className="field" defaultValue="" required>
                 <option value="" disabled>
-                  {az.documents.form.departmentPlaceholder}
+                  {az.directions.placeholder}
                 </option>
-                {departments.map(({ id, label }) => (
+                {directions.map(({ id, label }) => (
                   <option key={id} value={id}>
                     {label}
                   </option>
@@ -404,6 +402,10 @@ function AddDoc() {
                     >
                       {document.title}
                     </Link>
+                    <p className="label-mono mt-2">
+                      {directions.find(({ id }) => id === document.direction)?.label ??
+                        az.directions.unassigned}
+                    </p>
                     {document.status !== "ready" && (
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <span

@@ -78,6 +78,20 @@
       "when": 1792390200000,
       "tag": "0010_osint_quality",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792417871015,
+      "tag": "0011_document_directions",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792419000000,
+      "tag": "0012_backfill_document_directions",
+      "breakpoints": true
     }
   ]
 }

@@ -100,7 +100,7 @@ export const startOsintRun = createServerFn({ method: "POST" })
         ":" +
         config.analyticsModel +
         ":" +
-        config.lightModel +
+        (config.lightModel ?? "no-light-fallback") +
         ":" +
         config.embeddingModel,
     );

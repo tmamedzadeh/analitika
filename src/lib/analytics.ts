@@ -1,15 +1,15 @@
 import { z } from "zod";
 
 import type { InfoCredibility, SourceReliability } from "./reliability";
-import { departmentIdSchema, departmentIds } from "./departments";
+import { directionIdSchema, directionIds } from "./directions";
 
 export const analyticsFiltersSchema = z.object({
   period: z.enum(["7d", "30d", "90d", "12m", "all"]),
   tag: z.string().max(64),
-  departmentIds: z
-    .array(departmentIdSchema)
+  directionIds: z
+    .array(directionIdSchema)
     .min(1)
-    .max(departmentIds.length)
+    .max(directionIds.length)
     .refine((values) => new Set(values).size === values.length),
   minSourceReliability: z.enum(["all", "A", "B", "C", "D", "E", "F"]),
   minInfoCredibility: z.enum(["all", "1", "2", "3", "4", "5", "6"]),
@@ -33,7 +33,7 @@ export type AnalyticsSource = {
   title: string;
   docDate: string | null;
   briefDate: string | null;
-  department: string | null;
+  direction: string | null;
   sectionTitle: string;
   text: string;
   quote: string;

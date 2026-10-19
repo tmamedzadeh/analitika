@@ -1,4 +1,4 @@
-export type GeminiQuotaKey = "GEMINI_CHAT_MODEL" | "GEMINI_LIGHT_MODEL" | "GEMINI_EMBED_MODEL";
+export type GeminiQuotaKey = "AI_CHAT_MODEL" | "AI_LIGHT_MODEL" | "GEMINI_EMBED_MODEL";
 
 const MAX_CONCURRENT_REQUESTS = 3;
 const MAX_ATTEMPTS = 3;
@@ -89,6 +89,13 @@ function apiErrorBody(error: unknown, depth = 0): string | undefined {
   return apiErrorBody(value["cause"], depth + 1);
 }
 
+function apiErrorMessage(error: unknown, depth = 0): string {
+  if (depth > 3 || !error || typeof error !== "object") return "";
+  const value = error as Record<string, unknown>;
+  const message = typeof value["message"] === "string" ? value["message"] : "";
+  return [message, apiErrorMessage(value["cause"], depth + 1)].filter(Boolean).join(" ");
+}
+
 function quotaResponseMetadata(error: unknown): {
   ids: string[];
   metrics: string[];
@@ -139,6 +146,7 @@ function classifyQuotaResponse(error: unknown): GeminiLimitKind {
   const { signal } = quotaResponseMetadata(error);
   if (/allocationquota\.freetieronly|free.?tier.?only/.test(signal)) return "free-tier";
   if (/token|tpm|input_token|output_token/.test(signal)) return "tokens";
+  if (/credit|prepaid|balance/.test(signal)) return "tokens";
   if (/per[_ ]?day|perday|daily|requests?[_ ]?per[_ ]?day|rpd/.test(signal)) return "per-day";
   if (/per[_ ]?minute|perminute|minute|rpm|rate.?limit/.test(signal)) return "per-minute";
   if (/grounding|google.?search|search.?requests?/.test(signal)) return "search-requests";
@@ -177,15 +185,32 @@ export function getGeminiFailureInfo(error: unknown): {
 
 export function isGeminiQuotaError(error: unknown): boolean {
   if (error instanceof GeminiQuotaExceededError) return true;
-  if (getStatusCode(error) === 429) return true;
-  if (!error || typeof error !== "object") return false;
-  const value = error as Record<string, unknown>;
-  const message = typeof value["message"] === "string" ? value["message"] : "";
+  const statusCode = getStatusCode(error);
+  if (statusCode === 429) return true;
+  const message = apiErrorMessage(error);
   const body = apiErrorBody(error) ?? "";
-  return (
-    /RESOURCE_EXHAUSTED|quota|rate.?limit/i.test(message) ||
-    /AllocationQuota\.FreeTierOnly|free.?tier.?only/i.test(body)
-  );
+  const { signal } = quotaResponseMetadata(error);
+  const details = `${message}\n${signal}\n${body}`;
+  const freeTier = /AllocationQuota\.FreeTierOnly|free.?tier.?only/i.test(details);
+  if (statusCode === 401) return false;
+  if (statusCode === 403) return freeTier;
+  if (statusCode === 402) {
+    // Google uses 402 PAYMENT_REQUIRED when prepaid account credits are depleted.
+    return /PAYMENT_REQUIRED|prepaid|(?:credit|balance).{0,60}(?:exhausted|depleted|insufficient|empty)|insufficient.{0,60}(?:credits?|balance)/i.test(
+      details,
+    );
+  }
+  if (
+    /RESOURCE[_ -]?EXHAUSTED|QUOTA[_ -]?(?:EXCEEDED|EXHAUSTED)|RATE[_ -]?LIMIT[_ -]?(?:EXCEEDED)?|AllocationQuota\.FreeTierOnly|free.?tier.?only/i.test(
+      details,
+    ) ||
+    /(?:exceeded|exhausted|depleted).{0,60}quota|quota.{0,60}(?:exceeded|exhausted|depleted)|too many requests/i.test(
+      details,
+    )
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function isTerminalQuotaError(error: unknown): boolean {
@@ -253,6 +278,11 @@ export async function withGeminiRequest<T>(
         true,
       );
     }
+    // Non-429 resource exhaustion (for example depleted prepaid credits) is not
+    // made better by retrying the same model. Let the configured fallback run.
+    if (statusCode !== 429) {
+      throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
+    }
     const delay = retryDelay(failure, attempt);
     if (attempt >= maxAttempts || delay > MAX_RETRY_DELAY_MS) {
       throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
@@ -304,6 +334,9 @@ export async function* withGeminiStream<T>(
         true,
       );
     }
+    if (statusCode !== 429) {
+      throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
+    }
     const delay = retryDelay(failure, attempt);
     if (emitted || attempt >= maxAttempts || delay > MAX_RETRY_DELAY_MS) {
       throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
@@ -311,6 +344,42 @@ export async function* withGeminiStream<T>(
     await pause(delay);
   }
   throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
+}
+
+export async function withGeminiQuotaFallback<T>(
+  primaryModel: string,
+  fallbackModel: string | undefined,
+  primary: () => Promise<T>,
+  fallback?: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await primary();
+  } catch (error) {
+    if (!isGeminiQuotaError(error)) throw error;
+    if (!fallbackModel || !fallback || fallbackModel === primaryModel) throw error;
+    console.warn(`[AI] model=${primaryModel} quota_exhausted fallback=${fallbackModel}`);
+    return fallback();
+  }
+}
+
+export async function* withGeminiQuotaFallbackStream<T>(
+  primaryStream: AsyncIterable<T>,
+  primaryModel: string,
+  fallbackModel: string | undefined,
+  fallback?: () => Promise<AsyncIterable<T>>,
+): AsyncGenerator<T> {
+  let emitted = false;
+  try {
+    for await (const value of primaryStream) {
+      emitted = true;
+      yield value;
+    }
+  } catch (error) {
+    if (!isGeminiQuotaError(error) || emitted) throw error;
+    if (!fallbackModel || !fallback || fallbackModel === primaryModel) throw error;
+    console.warn(`[AI] model=${primaryModel} quota_exhausted fallback=${fallbackModel}`);
+    for await (const value of await fallback()) yield value;
+  }
 }
 
 export function getGeminiQuotaKey(error: unknown): GeminiQuotaKey | undefined {

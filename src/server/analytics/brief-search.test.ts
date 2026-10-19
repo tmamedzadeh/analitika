@@ -2,13 +2,13 @@ import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 
 import { analyticsFiltersSchema, type AnalyticsFilters } from "@/lib/analytics";
-import { departmentIds } from "@/lib/departments";
+import { directionIds } from "@/lib/directions";
 import { searchSourceConditions } from "./search";
 
 const defaults: AnalyticsFilters = {
   period: "all",
   tag: "",
-  departmentIds: [...departmentIds],
+  directionIds: [...directionIds],
   minSourceReliability: "all",
   minInfoCredibility: "all",
 };
@@ -38,11 +38,11 @@ describe("daily brief retrieval filters", () => {
     const byTag = compile(analyticsFiltersSchema.parse({ ...defaults, tag: "demo-synthetic" }));
     expect(byTag.sql).toContain('"daily_briefs"."status" =');
 
-    const byDepartment = compile(
-      analyticsFiltersSchema.parse({ ...defaults, departmentIds: ["d1"] }),
+    const byDirection = compile(
+      analyticsFiltersSchema.parse({ ...defaults, directionIds: ["OSINT"] }),
     );
-    expect(byDepartment.sql).toContain('"daily_briefs"."status"');
-    expect(byDepartment.sql).toContain('"documents"."department" in');
+    expect(byDirection.sql).toContain('"daily_briefs"."status"');
+    expect(byDirection.sql).toContain('"documents"."direction" in');
 
     const byReliability = compile(
       analyticsFiltersSchema.parse({ ...defaults, minInfoCredibility: "4" }),

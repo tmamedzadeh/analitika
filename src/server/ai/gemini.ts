@@ -2,8 +2,14 @@ import { google, type GoogleEmbeddingModelOptions } from "@ai-sdk/google";
 import { embed, embedMany, generateText, Output, streamText as streamTextResponse } from "ai";
 import { z } from "zod";
 
-import { requireServerEnv } from "../env";
-import { withGeminiRequest, withGeminiStream, type GeminiQuotaKey } from "./gemini-gateway";
+import { readServerEnv, requireServerEnv } from "../env";
+import {
+  withGeminiQuotaFallback,
+  withGeminiQuotaFallbackStream,
+  withGeminiRequest,
+  withGeminiStream,
+  type GeminiQuotaKey,
+} from "./gemini-gateway";
 import type {
   EmbeddingProvider,
   GroundedSearchInput,
@@ -39,8 +45,37 @@ export class GeminiLLMProvider implements LLMProvider {
 
   constructor(
     readonly model: string,
-    private readonly quotaKey: GeminiQuotaKey = "GEMINI_CHAT_MODEL",
+    private readonly quotaKey: GeminiQuotaKey = "AI_CHAT_MODEL",
+    private readonly fallbackModel?: string,
   ) {}
+
+  private withRequest<T>(
+    input: TextGenerationInput,
+    operation: (model: string) => Promise<T>,
+    onSuccess?: (result: T) => void,
+  ): Promise<T> {
+    const run = (model: string, quotaKey: GeminiQuotaKey, maxAttempts = input.maxAttempts) =>
+      withGeminiRequest(
+        quotaKey,
+        async () => {
+          this.usageStats.apiCalls += 1;
+          const result = await operation(model);
+          onSuccess?.(result);
+          return result;
+        },
+        input.requestBudget,
+        maxAttempts,
+      );
+    const primary = () => run(this.model, this.quotaKey);
+    if (this.quotaKey !== "AI_CHAT_MODEL") return primary();
+    const fallbackModel = this.fallbackModel;
+    return withGeminiQuotaFallback(
+      this.model,
+      fallbackModel,
+      primary,
+      fallbackModel ? () => run(fallbackModel, "AI_LIGHT_MODEL", 1) : undefined,
+    );
+  }
 
   private recordUsage(value: unknown): void {
     if (!value || typeof value !== "object") return;
@@ -62,25 +97,20 @@ export class GeminiLLMProvider implements LLMProvider {
     input: TextGenerationInput,
   ): Promise<{ text: string; finishReason: string }> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
-    const result = await withGeminiRequest(
-      this.quotaKey,
-      async () => {
-        this.usageStats.apiCalls += 1;
-        const response = await generateText({
-          model: google(this.model),
+    const result = await this.withRequest(
+      input,
+      (model) =>
+        generateText({
+          model: google(model),
           ...(input.system ? { system: input.system } : {}),
           prompt: input.prompt,
           ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
           ...(input.maxOutputTokens === undefined
             ? {}
             : { maxOutputTokens: input.maxOutputTokens }),
-          ...requestOptionsFor(input, this.model),
-        });
-        this.recordUsage(response.usage);
-        return response;
-      },
-      input.requestBudget,
-      input.maxAttempts,
+          ...requestOptionsFor(input, model),
+        }),
+      (response) => this.recordUsage(response.usage),
     );
     return { text: result.text, finishReason: result.finishReason };
   }
@@ -94,12 +124,11 @@ export class GeminiLLMProvider implements LLMProvider {
     schema: TSchema,
   ): Promise<z.output<TSchema>> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
-    const result = await withGeminiRequest(
-      this.quotaKey,
-      async () => {
-        this.usageStats.apiCalls += 1;
-        const response = await generateText({
-          model: google(this.model),
+    const result = await this.withRequest(
+      input,
+      (model) =>
+        generateText({
+          model: google(model),
           ...(input.system ? { system: input.system } : {}),
           prompt: input.prompt,
           output: Output.object({ schema }),
@@ -107,13 +136,9 @@ export class GeminiLLMProvider implements LLMProvider {
           ...(input.maxOutputTokens === undefined
             ? {}
             : { maxOutputTokens: input.maxOutputTokens }),
-          ...requestOptionsFor(input, this.model),
-        });
-        this.recordUsage(response.usage);
-        return response;
-      },
-      input.requestBudget,
-      input.maxAttempts,
+          ...requestOptionsFor(input, model),
+        }),
+      (response) => this.recordUsage(response.usage),
     );
     if (result.output === undefined) throw new Error("Gemini returned no structured output.");
     return result.output;
@@ -121,34 +146,47 @@ export class GeminiLLMProvider implements LLMProvider {
 
   async streamText(input: TextGenerationInput): Promise<AsyncIterable<string>> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
-    return withGeminiStream(
-      this.quotaKey,
-      async () => (
-        this.usageStats.apiCalls++,
-        streamTextResponse({
-          model: google(this.model),
-          ...(input.system ? { system: input.system } : {}),
-          prompt: input.prompt,
-          ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
-          ...(input.maxOutputTokens === undefined
-            ? {}
-            : { maxOutputTokens: input.maxOutputTokens }),
-          ...requestOptionsFor(input, this.model),
-        }).textStream
-      ),
-      input.requestBudget,
-      input.maxAttempts,
+    const createStream = (
+      model: string,
+      quotaKey: GeminiQuotaKey,
+      maxAttempts = input.maxAttempts,
+    ) =>
+      withGeminiStream(
+        quotaKey,
+        async () => {
+          this.usageStats.apiCalls += 1;
+          return streamTextResponse({
+            model: google(model),
+            ...(input.system ? { system: input.system } : {}),
+            prompt: input.prompt,
+            ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+            ...(input.maxOutputTokens === undefined
+              ? {}
+              : { maxOutputTokens: input.maxOutputTokens }),
+            ...requestOptionsFor(input, model),
+          }).textStream;
+        },
+        input.requestBudget,
+        maxAttempts,
+      );
+    const primary = createStream(this.model, this.quotaKey);
+    if (this.quotaKey !== "AI_CHAT_MODEL") return primary;
+    const fallbackModel = this.fallbackModel;
+    return withGeminiQuotaFallbackStream(
+      primary,
+      this.model,
+      fallbackModel,
+      fallbackModel ? async () => createStream(fallbackModel, "AI_LIGHT_MODEL", 1) : undefined,
     );
   }
 
   async generateGroundedSearch(input: GroundedSearchInput) {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
-    const result = await withGeminiRequest(
-      this.quotaKey,
-      async () => {
-        this.usageStats.apiCalls += 1;
-        const response = await generateText({
-          model: google(this.model),
+    const result = await this.withRequest(
+      input,
+      (model) =>
+        generateText({
+          model: google(model),
           ...(input.system ? { system: input.system } : {}),
           prompt: input.prompt,
           tools: {
@@ -159,13 +197,9 @@ export class GeminiLLMProvider implements LLMProvider {
             }) as never,
           },
           ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
-          ...requestOptionsFor(input, this.model),
-        });
-        this.recordUsage(response.usage);
-        return response;
-      },
-      input.requestBudget,
-      input.maxAttempts,
+          ...requestOptionsFor(input, model),
+        }),
+      (response) => this.recordUsage(response.usage),
     );
     const providerMetadata = result.providerMetadata?.["google"] as
       | {
@@ -315,12 +349,25 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
   }
 }
 
+let missingLightModelWarningLogged = false;
+
 export function createGeminiProviders() {
   requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
+  const env = readServerEnv();
+  const chatModel = requireServerEnv("AI_CHAT_MODEL");
+  const lightModel = env.AI_LIGHT_MODEL;
+  if ((!lightModel || lightModel === chatModel) && !missingLightModelWarningLogged) {
+    missingLightModelWarningLogged = true;
+    console.warn(
+      "[AI] AI_LIGHT_MODEL is missing or matches AI_CHAT_MODEL; quota fallback is unavailable.",
+    );
+  }
   return {
-    analytics: new GeminiLLMProvider(requireServerEnv("GEMINI_CHAT_MODEL"), "GEMINI_CHAT_MODEL"),
-    osint: new GeminiLLMProvider(requireServerEnv("GEMINI_CHAT_MODEL"), "GEMINI_CHAT_MODEL"),
-    light: new GeminiLLMProvider(requireServerEnv("GEMINI_LIGHT_MODEL"), "GEMINI_LIGHT_MODEL"),
+    analytics: new GeminiLLMProvider(chatModel, "AI_CHAT_MODEL", lightModel),
+    osint: new GeminiLLMProvider(chatModel, "AI_CHAT_MODEL", lightModel),
+    light: lightModel
+      ? new GeminiLLMProvider(lightModel, "AI_LIGHT_MODEL")
+      : new GeminiLLMProvider(chatModel, "AI_CHAT_MODEL"),
     embeddings: new GeminiEmbeddingProvider(requireServerEnv("GEMINI_EMBED_MODEL"), 768),
   };
 }

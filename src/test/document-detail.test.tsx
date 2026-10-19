@@ -24,6 +24,7 @@ const detail = {
   title: documentTitle,
   body: "Known source text for the selected document.",
   department: "d3",
+  direction: null,
   docDate: "2026-10-18",
   tags: ["operations"],
   language: "az",
@@ -50,6 +51,7 @@ const recentDocument = {
   progress: { percent: 100, completedChunks: 1, totalChunks: 1 },
   error: null,
   docDate: "2026-10-18",
+  direction: null,
   createdAt: "2026-10-18T10:00:00.000Z",
   chunkCount: 1,
 } as Awaited<ReturnType<typeof listRecentDocuments>>[number];

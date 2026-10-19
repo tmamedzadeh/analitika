@@ -2,40 +2,40 @@ import { and } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 
-import { departments, departmentIds } from "@/lib/departments";
+import { directions, directionIds } from "@/lib/directions";
 import { analyticsFiltersSchema } from "@/lib/analytics";
 import { documentConditions, minimumDocDate } from "./filters";
 
 const baseFilters = {
   period: "all" as const,
   tag: "",
-  departmentIds: [...departmentIds],
+  directionIds: [...directionIds],
   minSourceReliability: "all" as const,
   minInfoCredibility: "all" as const,
 };
 
-describe("analytics department filters", () => {
-  it("applies selected department IDs in SQL with accessFilter before RRF", () => {
+describe("analytics direction filters", () => {
+  it("applies selected direction IDs in SQL with accessFilter before RRF", () => {
     const filters = analyticsFiltersSchema.parse({
       ...baseFilters,
-      departmentIds: ["d2", "d4"],
+      directionIds: ["OSINT", "GEOINT"],
     });
     const where = and(...documentConditions(filters));
     const query = new PgDialect().sqlToQuery(where!);
 
-    expect(query.sql).toContain('"documents"."department" in');
+    expect(query.sql).toContain('"documents"."direction" in');
     expect(query.sql).toContain("true");
-    expect(query.params).toContain("d2");
-    expect(query.params).toContain("d4");
+    expect(query.params).toContain("OSINT");
+    expect(query.params).toContain("GEOINT");
   });
 
-  it("omits the department condition when every department is selected", () => {
+  it("omits the direction condition when every direction is selected", () => {
     const filters = analyticsFiltersSchema.parse(baseFilters);
     const query = new PgDialect().sqlToQuery(and(...documentConditions(filters))!);
 
-    expect(query.sql).not.toContain('"documents"."department" in');
+    expect(query.sql).not.toContain('"documents"."direction" in');
     expect(query.sql).toContain("true");
-    expect(filters.departmentIds).toHaveLength(departments.length);
+    expect(filters.directionIds).toHaveLength(directions.length);
   });
 
   it("applies a stable period window and falls back to creation date when doc date is missing", () => {

@@ -174,9 +174,9 @@ export function briefDate(date: string) {
 export function briefHead(title: string, description: string) {
   return {
     meta: [
-      { title: `${title} · Gündəlik xülasələr` },
+      { title: `${title} · Xülasələr` },
       { name: "description", content: description },
-      { property: "og:title", content: `${title} · Gündəlik xülasələr` },
+      { property: "og:title", content: `${title} · Xülasələr` },
       { property: "og:description", content: description },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
