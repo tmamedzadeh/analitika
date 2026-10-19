@@ -48,6 +48,10 @@ bun run db:reset-and-seed --reset-and-seed
 | `GEMINI_EMBED_MODEL`                                                                | Gemini embeddings; текущая схема ждёт 768 измерений                           |
 | `SEARCH_PROVIDER`                                                                   | `exa` по умолчанию или `gemini_grounding`                                     |
 | `EXA_API_KEY`                                                                       | Ключ Exa для веб-поиска                                                       |
+| `TAVILY_API_KEY`                                                                    | Optional Tavily fallback for OSINT web search                                 |
+| `HASDATA_API_KEY`, `HASDATA_MODE`                                                   | Evaluation-only HasData SERP provider; mode is `light` by default             |
+| `OSINT_MAX_SEARCH_REQUESTS`                                                         | Per-run search request ceiling; defaults to 24                                |
+| `OSINT_MMR_LAMBDA`, `OSINT_RELEVANCE_THRESHOLD`                                     | OSINT source-selection relevance and diversity settings                       |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` | Приватное S3-совместимое файловое хранилище                                   |
 | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`                                          | Доставка и проверка подписей Inngest                                          |
 | `DEMO_BASIC_AUTH`                                                                   | Необязательная защита демо в формате `user:password`; `/api/inngest` исключён |

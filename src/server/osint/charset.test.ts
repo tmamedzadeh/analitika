@@ -11,6 +11,9 @@ describe("HTML charset detection and byte decoding", () => {
       decodeHtmlBytes(new Uint8Array([0xc4, 0xe3, 0xba, 0xc3]), "text/html; charset=gb18030"),
     ).toBe("你好");
     expect(
+      decodeHtmlBytes(new Uint8Array([0xc4, 0xe3, 0xba, 0xc3]), "text/html; charset=gbk"),
+    ).toBe("你好");
+    expect(
       decodeHtmlBytes(
         new Uint8Array([0xcf, 0xf0, 0xe8, 0xe2, 0xe5, 0xf2]),
         "text/html; charset=windows-1251",

@@ -36,6 +36,12 @@ export const documentStatus = pgEnum("document_status", [
 ]);
 export const osintRunStatus = pgEnum("osint_run_status", ["queued", "running", "done", "failed"]);
 export const osintSourceType = pgEnum("osint_source_type", [
+  "state_media",
+  "independent_media",
+  "public_broadcaster",
+  "international_media",
+  "agency",
+  "domestic_media",
   "media",
   "official",
   "think_tank",
@@ -269,8 +275,10 @@ export const osintRuns = pgTable(
     step: text("step").notNull().default("queued"),
     progress: jsonb("progress").notNull().default(emptyJsonObject),
     summary: text("summary"),
+    structuredReport: jsonb("structured_report"),
     error: text("error"),
     cacheKey: text("cache_key"),
+    cacheBypass: boolean("cache_bypass").notNull().default(false),
     pinned: boolean("pinned").notNull().default(false),
     heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -316,6 +324,10 @@ export const osintSources = pgTable(
     publishedAt: timestamp("published_at", { withTimezone: true }),
     sourceType: osintSourceType("source_type").notNull().default("other"),
     summary: text("summary").notNull().default(""),
+    structuredSummary: jsonb("structured_summary"),
+    providers: text("providers").array().notNull().default(emptyTextArray),
+    providerRank: integer("provider_rank"),
+    affiliation: text("affiliation"),
     snippet: text("snippet").notNull().default(""),
     fetched: boolean("fetched").notNull().default(false),
     fetchStatus: text("fetch_status").notNull().default("snippet_fallback"),
@@ -342,6 +354,34 @@ export const osintCache = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("osint_cache_expires_idx").on(table.expiresAt)],
+);
+
+export const osintSearchCache = pgTable(
+  "osint_search_cache",
+  {
+    cacheKey: text("cache_key").primaryKey(),
+    provider: text("provider").notNull(),
+    language: text("language").notNull(),
+    period: text("period").notNull(),
+    includeDomains: text("include_domains").array().notNull().default(emptyTextArray),
+    results: jsonb("results").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [index("osint_search_cache_expires_idx").on(table.expiresAt)],
+);
+
+export const osintPageCache = pgTable(
+  "osint_page_cache",
+  {
+    normalizedUrl: text("normalized_url").primaryKey(),
+    text: text("text").notNull(),
+    title: text("title"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    language: text("language"),
+    status: text("status").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [index("osint_page_cache_expires_idx").on(table.expiresAt)],
 );
 
 export const queryLogs = pgTable("query_logs", {

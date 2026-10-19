@@ -49,6 +49,10 @@ function Osint() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [cacheNotice, setCacheNotice] = useState("");
+  const [sourceLanguageFilter, setSourceLanguageFilter] = useState("all");
+  const [sourceTypeFilter, setSourceTypeFilter] = useState("all");
+  const [sourceDateFrom, setSourceDateFrom] = useState("");
+  const [sourceDateTo, setSourceDateTo] = useState("");
 
   const historyQuery = useQuery({
     queryKey: ["osint-runs"],
@@ -102,6 +106,25 @@ function Osint() {
   const runSources = run?.sources ?? [];
   const progress = run?.progress;
   const isActive = run?.status === "queued" || run?.status === "running";
+  const report = run?.structuredReport;
+  const filteredSources = runSources.filter((source) => {
+    if (sourceLanguageFilter !== "all" && source.language !== sourceLanguageFilter) return false;
+    if (sourceTypeFilter !== "all" && source.sourceType !== sourceTypeFilter) return false;
+    if (sourceDateFrom && (!source.publishedAt || source.publishedAt.slice(0, 10) < sourceDateFrom))
+      return false;
+    if (sourceDateTo && (!source.publishedAt || source.publishedAt.slice(0, 10) > sourceDateTo))
+      return false;
+    return true;
+  });
+  const citationLinks = (numbers: number[]) =>
+    numbers.map((number) => (
+      <a className="cite ml-1!" key={number} href={"#osint-source-" + number}>
+        [{number}]
+      </a>
+    ));
+  const cacheAgeHours = run?.createdAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(run.createdAt).getTime()) / 3_600_000))
+    : 0;
 
   return (
     <Shell crumb={az.osint.title} title={az.osint.title} badges={[az.osint.providerBadge]}>
@@ -171,7 +194,7 @@ function Osint() {
           role="status"
           className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm"
         >
-          {cacheNotice}
+          {interpolate(az.osint.cachedAge, { hours: cacheAgeHours })}
         </p>
       ) : null}
       {historyQuery.isError ? (
@@ -219,6 +242,13 @@ function Osint() {
                 <p className="mt-3 font-medium">
                   {az.osint.step[run.step as keyof typeof az.osint.step] ?? run.step}
                 </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {run.query} ·{" "}
+                  {run.languages
+                    .map((language) => osintLanguageNames[language as OsintLanguage] ?? language)
+                    .join(", ")}{" "}
+                  · {periodLabels[run.period as OsintPeriod] ?? run.period}
+                </p>
                 <div
                   className="mt-3 h-2 overflow-hidden rounded-full bg-secondary"
                   role="progressbar"
@@ -250,7 +280,12 @@ function Osint() {
                   })}
                 </p>
                 {progress?.partial ? (
-                  <p className="mt-3 text-sm text-amber-700">{az.osint.partialNotice}</p>
+                  <p className="mt-3 text-sm text-amber-700">
+                    {progress.notice ?? az.osint.partialNotice}
+                  </p>
+                ) : null}
+                {progress?.fallbackProvider ? (
+                  <p className="mt-3 text-sm text-amber-700">{az.osint.fallbackUsed}</p>
                 ) : null}
                 {run.error ? (
                   <p role="alert" className="mt-3 text-sm text-destructive">
@@ -267,8 +302,122 @@ function Osint() {
           </section>
 
           <section className="panel p-5 sm:p-6">
-            <p className="label-mono text-primary!">{az.osint.summary}</p>
-            {run?.summary ? (
+            <p className="label-mono text-primary!">
+              {report ? az.osint.reportBluf : az.osint.summary}
+            </p>
+            {report ? (
+              <div className="mt-4 space-y-5 text-base leading-7">
+                <p>
+                  {report.bluf} {citationLinks(report.blufSourceNumbers)}
+                </p>
+                {report.keyFindings.length ? (
+                  <div>
+                    <h2 className="label-mono">{az.osint.keyFindings}</h2>
+                    <ul className="mt-2 list-disc space-y-2 pl-5">
+                      {report.keyFindings.map((finding, index) => (
+                        <li key={index}>
+                          {finding.text} {citationLinks(finding.sourceNumbers)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {report.entities.length ? (
+                  <div>
+                    <h2 className="label-mono">{az.osint.entities}</h2>
+                    <ul className="mt-2 flex flex-wrap gap-2">
+                      {report.entities.map((entity, index) => (
+                        <li key={index} className="pill">
+                          {entity.name} {citationLinks(entity.sourceNumbers)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {report.timeline.length ? (
+                  <div>
+                    <h2 className="label-mono">{az.osint.timeline}</h2>
+                    <ul className="mt-2 space-y-2">
+                      {report.timeline.map((item, index) => (
+                        <li key={index}>
+                          <strong>{item.date || az.osint.eventDateUnknown}</strong> — {item.event}{" "}
+                          {citationLinks(item.sourceNumbers)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {report.perspectives.length ? (
+                  <div>
+                    <h2 className="label-mono">{az.osint.perspectives}</h2>
+                    <ul className="mt-2 space-y-2">
+                      {report.perspectives.map((item, index) => (
+                        <li key={index}>
+                          <strong>{item.group}:</strong> {item.summary}{" "}
+                          {citationLinks(item.sourceNumbers)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {report.disagreements.length ? (
+                  <div>
+                    <h2 className="label-mono">{az.osint.disagreements}</h2>
+                    <ul className="mt-2 space-y-3">
+                      {report.disagreements.map((item, index) => (
+                        <li key={index}>
+                          <strong>{item.topic}</strong>
+                          <ul className="ml-4 list-disc">
+                            {item.positions.map((position, positionIndex) => (
+                              <li key={positionIndex}>
+                                <strong>{position.group}:</strong> {position.text}{" "}
+                                {citationLinks(position.sourceNumbers)}
+                              </li>
+                            ))}
+                          </ul>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {report.gaps.length ? (
+                  <div>
+                    <h2 className="label-mono">{az.osint.gaps}</h2>
+                    <ul className="mt-2 list-disc pl-5">
+                      {report.gaps.map((item, index) => (
+                        <li key={index}>
+                          {item.text} {citationLinks(item.sourceNumbers)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {report.watch.length ? (
+                  <div>
+                    <h2 className="label-mono">{az.osint.watch}</h2>
+                    <ul className="mt-2 list-disc pl-5">
+                      {report.watch.map((item, index) => (
+                        <li key={index}>
+                          {item.text} {citationLinks(item.sourceNumbers)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {report.caveats.length ? (
+                  <div>
+                    <h2 className="label-mono">{az.osint.caveats}</h2>
+                    <ul className="mt-2 list-disc pl-5">
+                      {report.caveats.map((item, index) => (
+                        <li key={index}>
+                          {item.text} {citationLinks(item.sourceNumbers)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : run?.summary ? (
               <div className="mt-4 text-base leading-7">
                 <BriefMarkdown markdown={run.summary} />
               </div>
@@ -284,20 +433,80 @@ function Osint() {
 
           <section>
             <p className="label-mono mb-3">
-              {interpolate(az.osint.sourcesCount, { count: runSources.length })}
+              {interpolate(az.osint.sourcesCount, { count: filteredSources.length })}
             </p>
+            {runSources.length ? (
+              <div className="panel mb-3 flex flex-wrap gap-2 p-3">
+                <select
+                  aria-label={az.osint.filterLanguage}
+                  className="field w-auto py-1"
+                  value={sourceLanguageFilter}
+                  onChange={(event) => setSourceLanguageFilter(event.target.value)}
+                >
+                  <option value="all">
+                    {az.osint.filterLanguage}: {az.osint.allOptions}
+                  </option>
+                  {OSINT_LANGUAGES.map((language) => (
+                    <option key={language} value={language}>
+                      {osintLanguageNames[language]}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  aria-label={az.osint.filterSourceType}
+                  className="field w-auto py-1"
+                  value={sourceTypeFilter}
+                  onChange={(event) => setSourceTypeFilter(event.target.value)}
+                >
+                  <option value="all">
+                    {az.osint.filterSourceType}: {az.osint.allOptions}
+                  </option>
+                  {Object.entries(az.osint.sourceType).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  aria-label={az.osint.filterDateFrom}
+                  type="date"
+                  className="field w-auto py-1"
+                  value={sourceDateFrom}
+                  onChange={(event) => setSourceDateFrom(event.target.value)}
+                />
+                <input
+                  aria-label={az.osint.filterDateTo}
+                  type="date"
+                  className="field w-auto py-1"
+                  value={sourceDateTo}
+                  onChange={(event) => setSourceDateTo(event.target.value)}
+                />
+              </div>
+            ) : null}
             {runSources.length === 0 ? (
               <div className="panel p-5 text-sm text-muted-foreground">
                 {run && !isActive ? az.osint.noSources : az.osint.sourcesWaiting}
               </div>
+            ) : filteredSources.length === 0 ? (
+              <div className="panel p-5 text-sm text-muted-foreground">
+                {az.osint.noFilteredSources}
+              </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
-                {runSources.map((source, index) => (
-                  <article className="panel min-w-0 p-5" key={source.id}>
+                {filteredSources.map((source) => (
+                  <article
+                    className="panel min-w-0 p-5"
+                    key={source.id}
+                    id={"osint-source-" + source.n}
+                  >
                     <h2 className="font-semibold leading-snug">
-                      <span className="cite ml-0! mr-1">{index + 1}</span>
-                      {source.title}
+                      <span className="cite ml-0! mr-1">{source.n}</span>
+                      {source.structuredSummary?.title || source.title}
                     </h2>
+                    <p className="label-mono mt-2">
+                      {az.osint.sourceType[source.sourceType as keyof typeof az.osint.sourceType] ??
+                        source.sourceType}
+                    </p>
                     <p className="label-mono mt-2 break-all">
                       {source.domain} · {source.language.toUpperCase()} ·{" "}
                       {az.osint.fetchStatus[
@@ -312,6 +521,19 @@ function Osint() {
                     {source.publishedAt ? (
                       <p className="mt-2 text-xs text-muted-foreground">
                         {az.osint.date}: {new Date(source.publishedAt).toLocaleDateString("az-AZ")}
+                      </p>
+                    ) : null}
+                    {source.structuredSummary?.quote ? (
+                      <blockquote className="mt-3 border-l-2 border-primary/40 pl-3 text-sm italic">
+                        {source.structuredSummary.quote}
+                        <span className="mt-1 block text-xs not-italic text-muted-foreground">
+                          {az.osint.sourceQuote}
+                        </span>
+                      </blockquote>
+                    ) : null}
+                    {source.providers.length ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {source.providers.join(" + ")}
                       </p>
                     ) : null}
                     <a

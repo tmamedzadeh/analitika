@@ -11,6 +11,10 @@ export function shouldServePinnedCache(input: {
   return input.pinned && input.done && !input.refresh;
 }
 
+export function shouldReadOsintSearchCache(refresh: boolean): boolean {
+  return !refresh;
+}
+
 export async function findPinnedOsintRun(cacheKey: string) {
   const [run] = await getDb()
     .select({ id: osintRuns.id, status: osintRuns.status, pinned: osintRuns.pinned })

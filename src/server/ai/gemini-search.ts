@@ -2,6 +2,13 @@ import type { LLMProvider, SearchInput, SearchProvider, SearchSource } from "./t
 
 export class GeminiGroundingProvider implements SearchProvider {
   readonly provider = "gemini_grounding" as const;
+  readonly capabilities = {
+    hasText: false,
+    supportsDomains: false,
+    supportsCountry: false,
+    supportsLanguage: false,
+    supportsDateRange: true,
+  } as const;
   readonly model: string;
 
   constructor(private readonly llm: LLMProvider) {
@@ -43,6 +50,7 @@ export class GeminiGroundingProvider implements SearchProvider {
       url: source.url,
       title: source.title,
       index: source.index ?? index + 1,
+      providerRank: source.index ?? index + 1,
       ...(index === 0 && result.text.trim() ? { searchSummary: result.text.trim() } : {}),
     }));
   }

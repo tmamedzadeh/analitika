@@ -1,10 +1,21 @@
 import { and, desc, eq, gt, inArray, lte } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { OSINT_GEMINI_CALL_BUDGET, osintRunIdSchema, osintSearchSchema } from "./osint";
+import {
+  OSINT_GEMINI_CALL_BUDGET,
+  OSINT_SEARCH_CALL_BUDGET,
+  osintRunIdSchema,
+  osintSearchSchema,
+} from "./osint";
 import { az } from "./i18n/az";
 import { getDb } from "@/server/db";
-import { osintCache, osintRuns, osintSources } from "@/server/db/schema";
+import {
+  osintCache,
+  osintPageCache,
+  osintRuns,
+  osintSearchCache,
+  osintSources,
+} from "@/server/db/schema";
 import { osintRunRequested } from "@/server/inngest/events";
 import { inngest } from "@/server/inngest/client";
 import { createOsintCacheKey } from "@/server/osint/urls";
@@ -12,6 +23,7 @@ import { getAppConfig } from "@/server/config";
 import { findPinnedOsintRun, shouldServePinnedCache } from "@/server/osint/cache";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 import { markStaleOsintRuns } from "@/server/osint/stale-runs";
+import type { SourceSummary, StructuredReport } from "@/server/osint/reports";
 
 type OsintProgress = {
   percent: number;
@@ -32,6 +44,8 @@ type OsintProgress = {
   currentLanguage?: string;
   partial?: boolean;
   notice?: string;
+  fallbackProvider?: boolean;
+  fallbackReason?: string;
 };
 function serializeProgress(value: unknown): OsintProgress {
   const p = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
@@ -42,7 +56,10 @@ function serializeProgress(value: unknown): OsintProgress {
     sourcesFound: typeof p["sourcesFound"] === "number" ? p["sourcesFound"] : 0,
     sourcesProcessed: typeof p["sourcesProcessed"] === "number" ? p["sourcesProcessed"] : 0,
     providerCalls: typeof p["providerCalls"] === "number" ? p["providerCalls"] : 0,
-    providerCallBudget: OSINT_GEMINI_CALL_BUDGET,
+    providerCallBudget:
+      typeof p["providerCallBudget"] === "number"
+        ? p["providerCallBudget"]
+        : OSINT_SEARCH_CALL_BUDGET,
     searchCalls: typeof p["searchCalls"] === "number" ? p["searchCalls"] : 0,
     llmCalls: typeof p["llmCalls"] === "number" ? p["llmCalls"] : 0,
     llmCallBudget: OSINT_GEMINI_CALL_BUDGET,
@@ -60,6 +77,10 @@ function serializeProgress(value: unknown): OsintProgress {
     ...(typeof p["currentLanguage"] === "string" ? { currentLanguage: p["currentLanguage"] } : {}),
     ...(typeof p["partial"] === "boolean" ? { partial: p["partial"] } : {}),
     ...(typeof p["notice"] === "string" ? { notice: p["notice"] } : {}),
+    ...(typeof p["fallbackProvider"] === "boolean"
+      ? { fallbackProvider: p["fallbackProvider"] }
+      : {}),
+    ...(typeof p["fallbackReason"] === "string" ? { fallbackReason: p["fallbackReason"] } : {}),
   };
 }
 
@@ -75,11 +96,19 @@ export const startOsintRun = createServerFn({ method: "POST" })
       data.query,
       languages,
       data.period,
-      config.searchProvider + ":" + config.analyticsModel + ":" + config.lightModel,
+      (config.searchProvider === "exa" ? "exa+tavily:v3" : "gemini_grounding:v3") +
+        ":" +
+        config.analyticsModel +
+        ":" +
+        config.lightModel +
+        ":" +
+        config.embeddingModel,
     );
     const db = getDb(),
       now = new Date();
     await db.delete(osintCache).where(lte(osintCache.expiresAt, now));
+    await db.delete(osintSearchCache).where(lte(osintSearchCache.expiresAt, now));
+    await db.delete(osintPageCache).where(lte(osintPageCache.expiresAt, now));
     const [active] = await db
       .select({ id: osintRuns.id })
       .from(osintRuns)
@@ -122,6 +151,7 @@ export const startOsintRun = createServerFn({ method: "POST" })
         languages,
         period: data.period,
         cacheKey,
+        cacheBypass: data.refresh,
         status: "queued",
         step: "queued",
         heartbeatAt: now,
@@ -132,7 +162,7 @@ export const startOsintRun = createServerFn({ method: "POST" })
           sourcesFound: 0,
           sourcesProcessed: 0,
           providerCalls: 0,
-          providerCallBudget: OSINT_GEMINI_CALL_BUDGET,
+          providerCallBudget: OSINT_SEARCH_CALL_BUDGET,
           searchCalls: 0,
           llmCalls: 0,
           llmCallBudget: OSINT_GEMINI_CALL_BUDGET,
@@ -208,11 +238,13 @@ export const getOsintRun = createServerFn({ method: "GET" })
       .orderBy(osintSources.n);
     return {
       ...run,
+      structuredReport: run.structuredReport as StructuredReport | null,
       progress: serializeProgress(run.progress),
       createdAt: run.createdAt.toISOString(),
       finishedAt: run.finishedAt?.toISOString() ?? null,
       sources: sources.map((source) => ({
         ...source,
+        structuredSummary: source.structuredSummary as SourceSummary | null,
         publishedAt: source.publishedAt?.toISOString() ?? null,
       })),
     };

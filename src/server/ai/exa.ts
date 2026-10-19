@@ -1,9 +1,23 @@
-import type { RequestCallBudget, SearchInput, SearchProvider, SearchSource } from "./types";
+import type {
+  RequestCallBudget,
+  SearchInput,
+  SearchProvider,
+  SearchProviderCapabilities,
+  SearchSource,
+} from "./types";
 import { requireServerEnv } from "../env";
 
 const EXA_SEARCH_URL = "https://api.exa.ai/search";
 const MAX_RETRIES = 2;
 const MAX_RETRY_WAIT_MS = 5_000;
+
+export const exaCapabilities: SearchProviderCapabilities = {
+  hasText: true,
+  supportsDomains: true,
+  supportsCountry: true,
+  supportsLanguage: false,
+  supportsDateRange: true,
+};
 
 type ExaResult = {
   title?: unknown;
@@ -48,10 +62,16 @@ export function parseExaSearchResponse(value: unknown): SearchSource[] {
       {
         url: row.url.trim(),
         title,
-        ...(typeof row.publishedDate === "string" ? { publishedDate: row.publishedDate } : {}),
+        ...(typeof row.publishedDate === "string"
+          ? { publishedDate: row.publishedDate, publishedAt: row.publishedDate }
+          : {}),
         ...(typeof row.text === "string" && row.text.trim() ? { text: row.text.trim() } : {}),
         ...(highlights.length ? { highlights } : {}),
+        ...(highlights.length ? { snippet: highlights.join("\n") } : {}),
         index: index + 1,
+        providerRank: index + 1,
+        provider: "exa",
+        providers: ["exa"],
       },
     ];
   });
@@ -72,6 +92,7 @@ function signalFor(input: SearchInput): AbortSignal {
 
 export class ExaProvider implements SearchProvider {
   readonly provider = "exa" as const;
+  readonly capabilities = exaCapabilities;
   readonly model = "exa-search-auto";
   readonly usageStats = { apiCalls: 0, inputTokens: 0, outputTokens: 0 };
 
@@ -84,12 +105,14 @@ export class ExaProvider implements SearchProvider {
     const body: Record<string, unknown> = {
       query: input.query,
       type: "auto",
-      numResults: Math.min(5, Math.max(1, input.limit)),
+      numResults: Math.min(10, Math.max(1, input.numResults ?? input.limit ?? 5)),
       contents: { text: { maxCharacters: 12_000 } },
     };
     if (input.startPublishedDate) body["startPublishedDate"] = input.startPublishedDate;
     if (input.endPublishedDate) body["endPublishedDate"] = input.endPublishedDate;
-    if (input.userLocation) body["userLocation"] = input.userLocation;
+    if (input.userLocation ?? input.country)
+      body["userLocation"] = input.userLocation ?? input.country;
+    if (input.includeDomains?.length) body["includeDomains"] = input.includeDomains;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
       input.requestBudget?.reserve();
@@ -110,15 +133,18 @@ export class ExaProvider implements SearchProvider {
         } catch {
           throw new Error("Invalid Exa response.");
         }
-        return parseExaSearchResponse(data);
+        return parseExaSearchResponse(data).map((source) => ({
+          ...source,
+          provider: this.provider,
+          providers: [this.provider],
+        }));
       }
       const waitMs =
-        response.status === 429 ? retryAfterMs(response.headers.get("retry-after")) : undefined;
-      if (
-        response.status !== 429 ||
-        attempt + 1 >= MAX_RETRIES ||
-        (waitMs ?? 0) > MAX_RETRY_WAIT_MS
-      ) {
+        response.status === 429 || response.status >= 500
+          ? retryAfterMs(response.headers.get("retry-after"))
+          : undefined;
+      const retryable = response.status === 429 || response.status >= 500;
+      if (!retryable || attempt + 1 >= MAX_RETRIES || (waitMs ?? 0) > MAX_RETRY_WAIT_MS) {
         throw new ExaRequestError(
           response.status,
           response.headers.get("retry-after") ?? undefined,

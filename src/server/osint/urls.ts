@@ -17,6 +17,25 @@ export function normalizeOsintQuery(query: string): string {
   return query.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+export function createOsintSearchCacheKey(input: {
+  provider: string;
+  language: string;
+  query: string;
+  period: OsintPeriod;
+  includeDomains?: string[];
+}): string {
+  const value = JSON.stringify({
+    provider: input.provider,
+    language: input.language.toLowerCase(),
+    query: normalizeOsintQuery(input.query),
+    period: input.period,
+    includeDomains: [...new Set(input.includeDomains ?? [])]
+      .map((domain) => domain.toLowerCase())
+      .sort(),
+  });
+  return createHash("sha256").update(value).digest("hex");
+}
+
 export function createOsintCacheKey(
   query: string,
   languages: OsintLanguage[],
@@ -24,7 +43,7 @@ export function createOsintCacheKey(
   providerIdentity = "gemini",
 ): string {
   const value = JSON.stringify({
-    pipelineVersion: 2,
+    pipelineVersion: 3,
     query: normalizeOsintQuery(query),
     languages: [...new Set(languages)].sort(),
     period,
@@ -55,21 +74,28 @@ export function normalizeOsintUrl(input: string): string | null {
 }
 
 export function similarOsintTitle(first: string, second: string): boolean {
-  const tokenize = (title: string) =>
-    new Set(
-      title
-        .normalize("NFKC")
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}]+/gu, " ")
-        .trim()
-        .split(/\s+/)
-        .filter((word) => word.length > 2),
-    );
-  const left = tokenize(first);
-  const right = tokenize(second);
+  const left = new Set(
+    normalizeOsintTitle(first)
+      .split(" ")
+      .filter((word) => word.length > 2),
+  );
+  const right = new Set(
+    normalizeOsintTitle(second)
+      .split(" ")
+      .filter((word) => word.length > 2),
+  );
   if (left.size === 0 || right.size === 0) return false;
   const overlap = [...left].filter((word) => right.has(word)).length;
   return overlap / Math.min(left.size, right.size) >= 0.8;
+}
+
+export function normalizeOsintTitle(title: string): string {
+  return title
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 export function isWithinOsintPeriod(
@@ -88,6 +114,7 @@ const osintScripts: Partial<Record<OsintLanguage, RegExp>> = {
   hy: /\p{Script=Armenian}/u,
   ru: /\p{Script=Cyrillic}/u,
   zh: /\p{Script=Han}/u,
+  ka: /\p{Script=Georgian}/u,
 };
 
 /** Rejects search results whose text is clearly written in a different script. */

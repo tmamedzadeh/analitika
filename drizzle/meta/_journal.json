@@ -71,6 +71,13 @@
       "when": 1792343000000,
       "tag": "0009_document_counts_and_request_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792390200000,
+      "tag": "0010_osint_quality",
+      "breakpoints": true
     }
   ]
 }

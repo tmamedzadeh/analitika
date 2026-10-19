@@ -3,11 +3,16 @@ import { describe, expect, it } from "vitest";
 import { isPublicIpAddress, resolvePublicHost } from "./ssrf";
 import {
   createOsintCacheKey,
+  createOsintSearchCacheKey,
   isWithinOsintPeriod,
   matchesOsintLanguageScript,
+  normalizeOsintTitle,
   normalizeOsintUrl,
   similarOsintTitle,
 } from "./urls";
+import { OSINT_LANGUAGES, osintLanguageLocale, osintLanguageNames } from "@/lib/osint";
+import { OSINT_PAGE_CACHE_TTL_MS } from "./page-cache";
+import { osintSearchCacheTtl } from "./search-cache";
 
 describe("OSINT URL and request guards", () => {
   it("normalizes public HTTP URLs and removes tracking parameters", () => {
@@ -68,5 +73,54 @@ describe("OSINT URL and request guards", () => {
     expect(createOsintCacheKey("query text", ["en"], "all", "exa:gemini-model")).not.toBe(
       createOsintCacheKey("query text", ["en"], "all", "gemini_grounding:gemini-model"),
     );
+  });
+
+  it("defines all seven language labels and locale mappings", () => {
+    expect(OSINT_LANGUAGES).toEqual(["fa", "hy", "ru", "zh", "en", "fr", "ka"]);
+    expect(Object.keys(osintLanguageNames)).toHaveLength(7);
+    expect(osintLanguageLocale).toMatchObject({
+      fa: { language: "FA", country: "IR" },
+      hy: { language: "AM", country: "AM" },
+      ru: { language: "RU", country: "RU" },
+      zh: { language: "CN", country: "CN" },
+      en: { language: "US", country: "US" },
+      fr: { language: "FR", country: "FR" },
+      ka: { language: "GE", country: "GE" },
+    });
+    expect(matchesOsintLanguageScript("ქართული ენა ტექსტი და ცნობები საქართველოში", "ka")).toBe(
+      true,
+    );
+  });
+
+  it("keys provider search cache by provider, language, query, period, and domain filters", () => {
+    const base = {
+      provider: "exa",
+      language: "en",
+      query: "regional talks",
+      period: "7d" as const,
+    };
+    const key = createOsintSearchCacheKey(base);
+    expect(createOsintSearchCacheKey({ ...base, query: " Regional   Talks " })).toBe(key);
+    expect(createOsintSearchCacheKey({ ...base, provider: "tavily" })).not.toBe(key);
+    expect(createOsintSearchCacheKey({ ...base, language: "fr" })).not.toBe(key);
+    expect(createOsintSearchCacheKey({ ...base, period: "30d" })).not.toBe(key);
+    expect(createOsintSearchCacheKey({ ...base, includeDomains: ["b.org", "a.org"] })).not.toBe(
+      key,
+    );
+    expect(createOsintSearchCacheKey({ ...base, includeDomains: ["B.org", "a.org"] })).toBe(
+      createOsintSearchCacheKey({ ...base, includeDomains: ["a.org", "b.org"] }),
+    );
+  });
+
+  it("uses the requested search-cache and page-cache TTLs", () => {
+    expect(osintSearchCacheTtl("24h")).toBe(3 * 60 * 60_000);
+    expect(osintSearchCacheTtl("7d")).toBe(12 * 60 * 60_000);
+    expect(osintSearchCacheTtl("30d")).toBe(72 * 60 * 60_000);
+    expect(osintSearchCacheTtl("all")).toBe(72 * 60 * 60_000);
+    expect(OSINT_PAGE_CACHE_TTL_MS).toBe(7 * 24 * 60 * 60_000);
+  });
+
+  it("centralizes title normalization for obvious publication duplicates", () => {
+    expect(normalizeOsintTitle("  Regional SECURITY—Report ")).toBe("regional security report");
   });
 });

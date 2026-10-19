@@ -24,6 +24,7 @@
     "db:verify:briefs-live": "bun run scripts/verify-briefs-live.ts",
     "db:verify:search": "bun run scripts/eval-retrieval.ts",
     "osint:pin": "bun run scripts/osint-pin.ts",
+    "osint:eval": "bun run scripts/osint-eval.ts",
     "osint:live:verify": "bun run scripts/verify-osint-live.ts",
     "osint:live:report": "bun run scripts/report-osint-live.ts",
     "db:eval:rerank": "bun run scripts/eval-rerank.ts",
