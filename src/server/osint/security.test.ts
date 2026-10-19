@@ -4,6 +4,7 @@ import { isPublicIpAddress, resolvePublicHost } from "./ssrf";
 import {
   createOsintCacheKey,
   isWithinOsintPeriod,
+  matchesOsintLanguageScript,
   normalizeOsintUrl,
   similarOsintTitle,
 } from "./urls";
@@ -35,7 +36,7 @@ describe("OSINT URL and request guards", () => {
     await expect(resolvePublicHost("127.0.0.1")).rejects.toThrow("Private address blocked");
   });
 
-  it("uses stable cache keys, deduplicates similar titles, and keeps undated results", () => {
+  it("uses stable cache keys, deduplicates similar titles, and enforces requested periods", () => {
     expect(createOsintCacheKey("  Query   text ", ["en", "ru"], "7d")).toBe(
       createOsintCacheKey("query text", ["ru", "en"], "7d"),
     );
@@ -43,7 +44,24 @@ describe("OSINT URL and request guards", () => {
       createOsintCacheKey("query text", ["en"], "30d"),
     );
     expect(similarOsintTitle("Report on regional security", "Regional security report")).toBe(true);
-    expect(isWithinOsintPeriod(null, "24h")).toBe(true);
+    const now = new Date("2026-10-19T12:00:00.000Z");
+    expect(isWithinOsintPeriod(null, "24h", now)).toBe(false);
+    expect(isWithinOsintPeriod(null, "all", now)).toBe(true);
+    expect(isWithinOsintPeriod(new Date("2026-10-19T11:00:00.000Z"), "24h", now)).toBe(true);
+    expect(isWithinOsintPeriod(new Date("2026-10-19T12:01:00.000Z"), "24h", now)).toBe(false);
+  });
+
+  it("rejects OSINT results whose text uses another language's writing system", () => {
+    expect(matchesOsintLanguageScript("آمادگی رزمی نیروهای مسلح در تمرین جدید", "fa")).toBe(true);
+    expect(
+      matchesOsintLanguageScript("Հայաստանի զինված ուժերի մարտական պատրաստություն", "hy"),
+    ).toBe(true);
+    expect(
+      matchesOsintLanguageScript("Комплексная проверка боевой и мобилизационной готовности", "fa"),
+    ).toBe(false);
+    expect(
+      matchesOsintLanguageScript("Комплексная проверка боевой и мобилизационной готовности", "hy"),
+    ).toBe(false);
   });
 
   it("keeps cached runs separate across provider and model settings", () => {

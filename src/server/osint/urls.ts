@@ -24,6 +24,7 @@ export function createOsintCacheKey(
   providerIdentity = "gemini",
 ): string {
   const value = JSON.stringify({
+    pipelineVersion: 2,
     query: normalizeOsintQuery(query),
     languages: [...new Set(languages)].sort(),
     period,
@@ -76,12 +77,28 @@ export function isWithinOsintPeriod(
   period: OsintPeriod,
   now = new Date(),
 ): boolean {
-  if (!date || period === "all") return true;
+  if (period === "all") return true;
+  if (!date || !Number.isFinite(date.getTime())) return false;
   const duration = { "24h": 24, "7d": 24 * 7, "30d": 24 * 30 }[period] * 60 * 60 * 1000;
-  return (
-    date.getTime() >= now.getTime() - duration &&
-    date.getTime() <= now.getTime() + 24 * 60 * 60 * 1000
-  );
+  return date.getTime() >= now.getTime() - duration && date.getTime() <= now.getTime();
+}
+
+const osintScripts: Partial<Record<OsintLanguage, RegExp>> = {
+  fa: /\p{Script=Arabic}/u,
+  hy: /\p{Script=Armenian}/u,
+  ru: /\p{Script=Cyrillic}/u,
+  zh: /\p{Script=Han}/u,
+};
+
+/** Rejects search results whose text is clearly written in a different script. */
+export function matchesOsintLanguageScript(text: string, language: OsintLanguage): boolean {
+  const expectedScript = osintScripts[language];
+  if (!expectedScript) return true;
+
+  const letters = text.match(/\p{L}/gu) ?? [];
+  if (letters.length < 12) return false;
+  const matchingLetters = letters.filter((letter) => expectedScript.test(letter)).length;
+  return matchingLetters >= 12 && matchingLetters / letters.length >= 0.2;
 }
 
 export function getPeriodStart(period: OsintPeriod, now = new Date()): string | undefined {
