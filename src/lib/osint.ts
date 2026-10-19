@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const OSINT_LANGUAGES = ["fa", "hy", "ru", "zh", "en", "fr", "ka"] as const;
-export const OSINT_PERIODS = ["24h", "7d", "30d", "all"] as const;
+export const OSINT_PERIODS = ["24h", "7d", "30d"] as const;
 export const OSINT_SEARCH_CALL_BUDGET = 24;
 export const OSINT_GEMINI_CALL_BUDGET = 10;
 

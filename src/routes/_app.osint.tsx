@@ -33,7 +33,6 @@ const periodLabels: Record<OsintPeriod, string> = {
   "24h": az.osint.periods["24h"],
   "7d": az.osint.periods["7d"],
   "30d": az.osint.periods["30d"],
-  all: az.osint.periods.all,
 };
 
 function interpolate(template: string, values: Record<string, string | number>) {
@@ -174,7 +173,7 @@ function Osint() {
           >
             {OSINT_PERIODS.map((value) => (
               <option key={value} value={value}>
-                {az.osint.period}: {periodLabels[value]}
+                {periodLabels[value]}
               </option>
             ))}
           </select>

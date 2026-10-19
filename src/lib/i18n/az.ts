@@ -437,7 +437,7 @@ export const az = {
     refresh: "Yenilə",
     languages: "Dillər",
     period: "Dövr",
-    periods: { "24h": "Son 24 saat", "7d": "Son 7 gün", "30d": "Son 30 gün", all: "Bütün dövr" },
+    periods: { "24h": "Son 24 saat", "7d": "Son 7 gün", "30d": "Son 30 gün" },
     progress: "Gedişat",
     noProgress: "Başlamaq üçün axtarış sorğusu daxil edin.",
     sourcesCount: "Mənbələr · {count}",
