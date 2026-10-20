@@ -63,7 +63,7 @@ describe("OSINT summary retry idempotency", () => {
     );
 
     expect(searchFailure.partial).toBe(true);
-    expect(searchFailure.progress.failedSteps).toContain("searching:az:timeout");
+    expect(searchFailure.progress["failedSteps"]).toContain("searching:az:timeout");
     expect(incompleteOutput.partial).toBe(true);
   });
 });
