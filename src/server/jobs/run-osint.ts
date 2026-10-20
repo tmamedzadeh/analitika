@@ -108,6 +108,7 @@ type Candidate = {
   title: string;
   domain: string;
   language: OsintLanguage;
+  originalLanguage?: OsintLanguage;
   searchText: string;
   pageText: string;
   fetched: boolean;
@@ -746,6 +747,7 @@ export async function runOsintJob(runId: string): Promise<void> {
         const affiliation = originAffiliation(origin) ?? classification.affiliation;
         let title = result.title;
         let publishedAt = published(result.publishedAt ?? result.publishedDate);
+        let originalLanguage: OsintLanguage | undefined;
         const providerText = result.providerFullText ? result.text.trim() : "";
         let text = providerText.length >= 800 ? providerText.slice(0, 12_000) : "";
         let fetchStatus: FetchStatus = text ? "provider_text" : "snippet_fallback";
@@ -774,6 +776,7 @@ export async function runOsintJob(runId: string): Promise<void> {
             }
             title = page.title?.trim() || title;
             if (!publishedAt && page.publishedAt) publishedAt = page.publishedAt;
+            originalLanguage = page.originalLanguage;
           } catch {
             fetchStatus = "dns_or_network_error";
           }
@@ -785,6 +788,7 @@ export async function runOsintJob(runId: string): Promise<void> {
           title,
           domain: origin.domain,
           language: result.language,
+          ...(originalLanguage ? { originalLanguage } : {}),
           searchText: snippet,
           pageText: text || snippet,
           fetched: Boolean(text),
@@ -820,6 +824,7 @@ export async function runOsintJob(runId: string): Promise<void> {
           url: source.url,
           domain: source.domain,
           language: source.language,
+          originalLanguage: source.originalLanguage ?? null,
           publishedAt: source.publishedAt ?? null,
           sourceType: source.sourceType,
           affiliation: source.affiliation ?? null,

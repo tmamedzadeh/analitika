@@ -7,6 +7,7 @@ import { getCurrentUser, documentAccessFilter } from "../server/db/access";
 import { getDb } from "../server/db";
 import { documents, infoRequests, requestAttachments } from "../server/db/schema";
 import { getStorage } from "../server/storage/s3";
+import { deleteObjectsBestEffort } from "../server/storage/delete-objects";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 import { az } from "./i18n/az";
 import {
@@ -310,16 +311,21 @@ export const deleteInfoRequest = createServerFn({ method: "POST" })
   .validator(requestIdSchema)
   .handler(async ({ data }) => {
     const db = getDb();
-    const files = await db
-      .select({ storageKey: requestAttachments.storageKey })
-      .from(requestAttachments)
-      .innerJoin(infoRequests, eq(requestAttachments.requestId, infoRequests.id))
-      .where(requestForCurrentUser(data.requestId));
-    await Promise.all(files.map((file) => getStorage().delete(file.storageKey)));
-    const [deleted] = await db
-      .delete(infoRequests)
-      .where(requestForCurrentUser(data.requestId))
-      .returning({ id: infoRequests.id });
-    if (!deleted) throw new Error(az.requests.missing);
-    return { ok: true };
+    const keys = await db.transaction(async (transaction) => {
+      const files = await transaction
+        .select({ storageKey: requestAttachments.storageKey })
+        .from(requestAttachments)
+        .innerJoin(infoRequests, eq(requestAttachments.requestId, infoRequests.id))
+        .where(requestForCurrentUser(data.requestId));
+      const [deleted] = await transaction
+        .delete(infoRequests)
+        .where(requestForCurrentUser(data.requestId))
+        .returning({ id: infoRequests.id });
+      if (!deleted) throw new Error(az.requests.missing);
+      return files.map(({ storageKey }) => storageKey);
+    });
+    const cleanupIncomplete = await deleteObjectsBestEffort(keys, (key) =>
+      getStorage().delete(key),
+    );
+    return { ok: true, cleanupIncomplete };
   });

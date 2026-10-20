@@ -348,7 +348,7 @@ function Analytics() {
           )}
         </div>
 
-        <label className="flex min-w-0 flex-col gap-1.5">
+        <label className="flex flex-col gap-1.5 text-sm">
           <span className="">{az.analytics.sourceReliabilityFilter}</span>
           <select
             className="field"
@@ -366,7 +366,7 @@ function Analytics() {
             ))}
           </select>
         </label>
-        <label className="flex min-w-0 flex-col gap-1.5">
+        <label className="flex flex-col gap-1.5 text-sm">
           <span className="">{az.analytics.infoReliabilityFilter}</span>
           <select
             className="field"
@@ -398,193 +398,198 @@ function Analytics() {
         </div>
       )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_352px]">
-        <section className="panel h-fit p-6">
-          <div className="flex flex-wrap justify-between gap-2">
-            <span className="label-mono text-primary!">{az.analytics.synthesis}</span>
-            <span className="label-mono">
-              {busy ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <ZirveLoader variant="inline" label="" />
-                  {az.analytics.generating}
-                </span>
-              ) : elapsedMs === null ? (
-                hasSearched ? (
-                  az.analytics.sourcesCount.replace("{count}", String(visibleSources.length))
-                ) : (
-                  az.analytics.waiting
-                )
-              ) : (
-                az.analytics.timing
-                  .replace("{seconds}", (elapsedMs / 1000).toFixed(1))
-                  .replace("{count}", String(visibleSources.length))
-              )}
-            </span>
-          </div>
-          {incomplete && (
-            <p className="mt-4 rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-amber-700">
-              {az.analytics.incompleteAnswer}
-            </p>
-          )}
-          <div aria-live="polite" className="mt-4">
-            {answer ? (
-              <BriefMarkdown
-                markdown={citationMarkdown(answer)}
-                linkRenderer={(href, children) => {
-                  const match = /^#citation-(\d+)$/.exec(href ?? "");
-                  if (!match) return undefined;
-                  const source = sources.find((candidate) => candidate.n === Number(match[1]));
-                  return source ? (
-                    <a
-                      className="cite"
-                      href={`#source-${source.n}`}
-                      aria-label={az.analytics.openSource.replace("{n}", String(source.n))}
-                    >
-                      [{children}]
-                    </a>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_352px]">
+        <div className="min-w-0 space-y-6">
+          <section className="panel h-fit p-6">
+            <div className="flex flex-wrap justify-between gap-2">
+              <span className="label-mono text-primary!">{az.analytics.synthesis}</span>
+              <span className="label-mono">
+                {busy ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <ZirveLoader variant="inline" label="" />
+                    {az.analytics.generating}
+                  </span>
+                ) : elapsedMs === null ? (
+                  hasSearched ? (
+                    az.analytics.sourcesCount.replace("{count}", String(visibleSources.length))
                   ) : (
-                    <span className="cite">[{children}]</span>
-                  );
-                }}
-              />
-            ) : busy ? (
-              <p className="text-muted-foreground">{az.analytics.generating}</p>
-            ) : sourceOnly && sources.length > 0 ? (
-              <p className="text-muted-foreground">{az.analytics.fragmentsOnly}</p>
-            ) : hasSearched ? (
-              <p className="text-muted-foreground">{az.analytics.noSources}</p>
-            ) : (
-              <p className="text-muted-foreground">{az.analytics.emptyState}</p>
+                    az.analytics.waiting
+                  )
+                ) : (
+                  az.analytics.timing
+                    .replace("{seconds}", (elapsedMs / 1000).toFixed(1))
+                    .replace("{count}", String(visibleSources.length))
+                )}
+              </span>
+            </div>
+            {incomplete && (
+              <p className="mt-4 rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-amber-700">
+                {az.analytics.incompleteAnswer}
+              </p>
             )}
-          </div>
-          <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
-            <button
-              className="pill disabled:opacity-50"
-              type="button"
-              disabled={!hasSearched || busy || noDirections}
-              onClick={() => void runSearch("sources")}
-            >
-              {az.analytics.showOnlyFragments}
-            </button>
-            <button
-              className="pill disabled:opacity-50"
-              type="button"
-              disabled={!hasSearched || busy || noDirections || question.trim().length === 0}
-              onClick={() => void runSearch("answer")}
-            >
-              {az.analytics.regenerate}
-            </button>
-            {selectedHistory && (
+            <div aria-live="polite" className="mt-4">
+              {answer ? (
+                <BriefMarkdown
+                  markdown={citationMarkdown(answer)}
+                  linkRenderer={(href, children) => {
+                    const match = /^#citation-(\d+)$/.exec(href ?? "");
+                    if (!match) return undefined;
+                    const source = sources.find((candidate) => candidate.n === Number(match[1]));
+                    return source ? (
+                      <a
+                        className="cite"
+                        href={`#source-${source.n}`}
+                        aria-label={az.analytics.openSource.replace("{n}", String(source.n))}
+                      >
+                        [{children}]
+                      </a>
+                    ) : (
+                      <span className="cite">[{children}]</span>
+                    );
+                  }}
+                />
+              ) : busy ? (
+                <p className="text-muted-foreground">{az.analytics.generating}</p>
+              ) : sourceOnly && sources.length > 0 ? (
+                <p className="text-muted-foreground">{az.analytics.fragmentsOnly}</p>
+              ) : hasSearched ? (
+                <p className="text-muted-foreground">{az.analytics.noSources}</p>
+              ) : (
+                <p className="text-muted-foreground">{az.analytics.emptyState}</p>
+              )}
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
               <button
                 className="pill disabled:opacity-50"
                 type="button"
-                disabled={busy || noDirections}
-                onClick={() =>
-                  void runSearch("answer", {
-                    query: selectedHistory.query,
-                    filters: selectedHistory.filters,
-                  })
-                }
+                disabled={!hasSearched || busy || noDirections}
+                onClick={() => void runSearch("sources")}
               >
-                {az.analytics.historyRerun}
+                {az.analytics.showOnlyFragments}
               </button>
-            )}
-          </div>
-        </section>
+              <button
+                className="pill disabled:opacity-50"
+                type="button"
+                disabled={!hasSearched || busy || noDirections || question.trim().length === 0}
+                onClick={() => void runSearch("answer")}
+              >
+                {az.analytics.regenerate}
+              </button>
+              {selectedHistory && (
+                <button
+                  className="pill disabled:opacity-50"
+                  type="button"
+                  disabled={busy || noDirections}
+                  onClick={() =>
+                    void runSearch("answer", {
+                      query: selectedHistory.query,
+                      filters: selectedHistory.filters,
+                    })
+                  }
+                >
+                  {az.analytics.historyRerun}
+                </button>
+              )}
+            </div>
+          </section>
 
-        <aside>
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="label-mono">{az.analytics.sources}</p>
-            {hasSearched && (!busy || sourceOnly) ? (
-              <span className="label-mono">
-                {az.analytics.sourcesCount.replace("{count}", String(visibleSources.length))}
-              </span>
-            ) : null}
-          </div>
-          {optionsQuery.isError && (
-            <p role="alert" className="mb-3 text-sm text-destructive">
-              {az.analytics.optionsFailed}
-            </p>
-          )}
-          <div className="space-y-3">
-            {selectedHistory
-              ? selectedHistory.sources.map((source) => (
-                  <article key={`${source.n}-${source.title}`} className="panel p-5">
-                    <h3 className="font-semibold">
-                      <span className="cite ml-0! mr-1">{source.n}</span>
-                      {source.title}
-                    </h3>
-                    {source.caption && <p className="label-mono mt-2">{source.caption}</p>}
-                    <p className="label-mono mt-2">
-                      {source.available
-                        ? source.usedInAnswer
-                          ? az.analytics.sourceUsedInAnswer
-                          : az.analytics.sourceNotUsedInAnswer
-                        : az.analytics.sourceUnavailable}
-                    </p>
-                  </article>
-                ))
-              : visibleSources.map((source) => (
-                  <article
-                    key={source.chunkId}
-                    id={`source-${source.n}`}
-                    className="panel scroll-mt-6 p-5"
-                    tabIndex={-1}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="font-semibold">
+          <section className="min-w-0">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="label-mono">{az.analytics.sources}</p>
+              {hasSearched && (!busy || sourceOnly) ? (
+                <span className="label-mono">
+                  {az.analytics.sourcesCount.replace("{count}", String(visibleSources.length))}
+                </span>
+              ) : null}
+            </div>
+            {optionsQuery.isError && (
+              <p role="alert" className="mb-3 text-sm text-destructive">
+                {az.analytics.optionsFailed}
+              </p>
+            )}
+            <div className="space-y-3">
+              {selectedHistory
+                ? selectedHistory.sources.map((source) => (
+                    <article key={`${source.n}-${source.title}`} className="panel p-5">
+                      <h3 className="break-words font-semibold [overflow-wrap:anywhere]">
                         <span className="cite ml-0! mr-1">{source.n}</span>
                         {source.title}
                       </h3>
-                      {source.sourceKind === "brief" ? (
-                        <span className="label-mono">
-                          {briefSearchLabel(source.briefDate ?? "")}
-                        </span>
-                      ) : (
-                        <ReliabilityBadges source={source} />
-                      )}
-                    </div>
-                    <p className="label-mono mt-2">
-                      {(source.sourceKind === "brief"
-                        ? [source.sectionTitle || az.analytics.sectionUnknown]
-                        : [
-                            directionLabel(source.direction) ?? az.directions.unassigned,
-                            source.sectionTitle || az.analytics.sectionUnknown,
-                            source.docDate,
-                          ]
-                      )
-                        .filter(Boolean)
-                        .join(" · ")}
-                      {source.isTable ? " · " + az.analytics.table : ""}
-                    </p>
-                    {source.quote && <p className="mt-2 text-sm">«{source.quote}»</p>}
-                    <a
-                      className="pill mt-3 inline-flex"
-                      href={sourceUrl(source)}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      {source.caption && <p className="label-mono mt-2">{source.caption}</p>}
+                      <p className="label-mono mt-2">
+                        {source.available
+                          ? source.usedInAnswer
+                            ? az.analytics.sourceUsedInAnswer
+                            : az.analytics.sourceNotUsedInAnswer
+                          : az.analytics.sourceUnavailable}
+                      </p>
+                    </article>
+                  ))
+                : visibleSources.map((source) => (
+                    <article
+                      key={source.chunkId}
+                      id={`source-${source.n}`}
+                      className="panel scroll-mt-6 p-5"
+                      tabIndex={-1}
                     >
-                      {source.sourceKind === "brief"
-                        ? briefSearchLabel(source.briefDate ?? "")
-                        : az.analytics.openDocument}
-                      {source.attachmentCount > 0
-                        ? " · " + source.attachmentCount + " " + az.analytics.photos
-                        : ""}
-                    </a>
-                  </article>
-                ))}
-            {hasSearched && visibleSources.length === 0 && !busy && !pageError && (
-              <div className="panel p-5 text-sm text-muted-foreground">
-                {az.analytics.noSources}
-              </div>
-            )}
-            {!hasSearched && !optionsQuery.isLoading && (
-              <div className="panel p-5 text-sm text-muted-foreground">
-                {az.analytics.sourcesHint}
-              </div>
-            )}
-          </div>
-          <section className="panel mt-6 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="break-words font-semibold [overflow-wrap:anywhere]">
+                          <span className="cite ml-0! mr-1">{source.n}</span>
+                          {source.title}
+                        </h3>
+                        {source.sourceKind === "brief" ? (
+                          <span className="label-mono">
+                            {briefSearchLabel(source.briefDate ?? "")}
+                          </span>
+                        ) : (
+                          <ReliabilityBadges source={source} />
+                        )}
+                      </div>
+                      <p className="label-mono mt-2">
+                        {(source.sourceKind === "brief"
+                          ? [source.sectionTitle || az.analytics.sectionUnknown]
+                          : [
+                              directionLabel(source.direction) ?? az.directions.unassigned,
+                              source.sectionTitle || az.analytics.sectionUnknown,
+                              source.docDate,
+                            ]
+                        )
+                          .filter(Boolean)
+                          .join(" · ")}
+                        {source.isTable ? " · " + az.analytics.table : ""}
+                      </p>
+                      {source.quote && <p className="mt-2 text-sm">«{source.quote}»</p>}
+                      <a
+                        className="pill mt-3 inline-flex"
+                        href={sourceUrl(source)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {source.sourceKind === "brief"
+                          ? briefSearchLabel(source.briefDate ?? "")
+                          : az.analytics.openDocument}
+                        {source.attachmentCount > 0
+                          ? " · " + source.attachmentCount + " " + az.analytics.photos
+                          : ""}
+                      </a>
+                    </article>
+                  ))}
+              {hasSearched && visibleSources.length === 0 && !busy && !pageError && (
+                <div className="panel p-5 text-sm text-muted-foreground">
+                  {az.analytics.noSources}
+                </div>
+              )}
+              {!hasSearched && !optionsQuery.isLoading && (
+                <div className="panel p-5 text-sm text-muted-foreground">
+                  {az.analytics.sourcesHint}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+
+        <aside>
+          <section className="panel p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h2 className="label-mono">{az.analytics.historyTitle}</h2>
               {historyQuery.isFetching && <ZirveLoader variant="inline" label="" />}

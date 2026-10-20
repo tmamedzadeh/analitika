@@ -9,10 +9,16 @@ import { imageMimeFromSignature } from "./briefs";
 import { documentIndexingRequested } from "../server/inngest/events";
 import { inngest } from "../server/inngest/client";
 import { getDb } from "../server/db";
-import { documentAccessFilter, getCurrentUser } from "../server/db/access";
+import {
+  canManageDocument,
+  documentAccessFilter,
+  documentManagementFilter,
+  getCurrentUser,
+} from "../server/db/access";
 import { allowedClassifications, canAccessClassification } from "@/server/auth";
 import { appUsers, attachments, chunks, documents, documentAcl } from "../server/db/schema";
 import { getStorage } from "../server/storage/s3";
+import { deleteObjectsBestEffort } from "../server/storage/delete-objects";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
@@ -330,7 +336,7 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
       .limit(1);
     if (!document) return null;
     const currentUser = getCurrentUser();
-    const canManageAcl = currentUser.role === "admin" || document.ownerId === currentUser.id;
+    const canManageAcl = canManageDocument(currentUser, document.ownerId);
 
     const [documentChunks, documentAttachments, aclRows, aclCandidates] = await Promise.all([
       db
@@ -400,8 +406,7 @@ export const updateDocumentAcl = createServerFn({ method: "POST" })
       .where(and(eq(documents.id, data.documentId), documentAccessFilter(user)))
       .limit(1);
     if (!document) throw new Error(az.documents.missing);
-    if (user.role !== "admin" && document.ownerId !== user.id)
-      throw new Error(az.documents.missing);
+    if (!canManageDocument(user, document.ownerId)) throw new Error(az.documents.missing);
     await validateAdditionalUsers(data.userIds, user.id);
     await db.transaction(async (transaction) => {
       await transaction.delete(documentAcl).where(eq(documentAcl.documentId, data.documentId));
@@ -417,21 +422,28 @@ export const updateDocumentAcl = createServerFn({ method: "POST" })
 export const deleteDocument = createServerFn({ method: "POST" })
   .validator(idSchema)
   .handler(async ({ data }) => {
+    const user = getCurrentUser();
     const db = getDb();
-    const [document] = await db
-      .select({ id: documents.id })
-      .from(documents)
-      .where(and(eq(documents.id, data.documentId), documentAccessFilter()))
-      .limit(1);
-    if (!document) throw new Error(az.documents.missing);
-
-    const files = await db
-      .select({ storageKey: attachments.storageKey })
-      .from(attachments)
-      .where(eq(attachments.documentId, data.documentId));
-    await Promise.all(files.map((file) => getStorage().delete(file.storageKey)));
-    await db
-      .delete(documents)
-      .where(and(eq(documents.id, data.documentId), documentAccessFilter()));
-    return { ok: true };
+    const keys = await db.transaction(async (transaction) => {
+      const [document] = await transaction
+        .select({ id: documents.id })
+        .from(documents)
+        .where(and(eq(documents.id, data.documentId), documentManagementFilter(user)))
+        .limit(1);
+      if (!document) throw new Error(az.documents.missing);
+      const files = await transaction
+        .select({ storageKey: attachments.storageKey })
+        .from(attachments)
+        .where(eq(attachments.documentId, data.documentId));
+      const [deleted] = await transaction
+        .delete(documents)
+        .where(and(eq(documents.id, data.documentId), documentManagementFilter(user)))
+        .returning({ id: documents.id });
+      if (!deleted) throw new Error(az.documents.missing);
+      return files.map(({ storageKey }) => storageKey);
+    });
+    const cleanupIncomplete = await deleteObjectsBestEffort(keys, (key) =>
+      getStorage().delete(key),
+    );
+    return { ok: true, cleanupIncomplete };
   });

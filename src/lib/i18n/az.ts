@@ -273,6 +273,8 @@ export const az = {
     delete: "Sorğunu sil",
     deleteConfirm: "Sorğunu və ona əlavə edilmiş bütün faylları silmək istəyirsiniz?",
     deleteFailed: "Sorğunu silmək mümkün olmadı.",
+    storageCleanupPending:
+      "Sorğu silindi, lakin bəzi qoşma faylları yaddaşdan silinmədi. Gündəlik təmizləmə onları yenidən yoxlayacaq.",
     validation: {
       required: "Bu sahə mütləq doldurulmalıdır.",
       department: "İdarə seçin.",
@@ -344,6 +346,8 @@ export const az = {
     delete: "Sil",
     deleteConfirm: "Brifi və ona əlavə edilmiş bütün fotoları silmək istəyirsiniz?",
     deleteFailed: "Brifi silmək mümkün olmadı.",
+    storageCleanupPending:
+      "Brif silindi, lakin bəzi fotolar yaddaşdan silinmədi. Gündəlik təmizləmə onları yenidən yoxlayacaq.",
     deleted: "Məlumat silindi.",
     markdown: "Mətn",
     validation: {
@@ -444,6 +448,8 @@ export const az = {
     delete: "Sənədi sil",
     deleteConfirm: "Sənədi və ona əlavə edilmiş bütün şəkilləri silmək istəyirsiniz?",
     deleted: "Sənəd silindi.",
+    storageCleanupPending:
+      "Sənəd silindi, lakin bəzi şəkillər yaddaşdan silinmədi. Gündəlik təmizləmə onları yenidən yoxlayacaq.",
     noPhotos: "Şəkil əlavə edilməyib.",
     chunks: "indeks fraqmenti",
     chunkHelp: "Sənəd axtarış üçün mətn hissələrinə bölünür; hər hissə ayrıca indekslənir.",

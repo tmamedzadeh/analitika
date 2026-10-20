@@ -86,7 +86,8 @@ function BriefDetail() {
     setDeleting(true);
     setError("");
     try {
-      await deleteBrief({ data: { briefId } });
+      const result = await deleteBrief({ data: { briefId } });
+      if (result.cleanupIncomplete) window.alert(az.briefs.storageCleanupPending);
       await queryClient.invalidateQueries({ queryKey: ["daily-briefs"] });
       await navigate({ to: "/" });
     } catch {

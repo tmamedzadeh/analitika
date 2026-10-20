@@ -98,7 +98,8 @@ function InfoRequestPage() {
     setBusy(true);
     setPageError("");
     try {
-      await deleteInfoRequest({ data: { requestId: id } });
+      const result = await deleteInfoRequest({ data: { requestId: id } });
+      if (result.cleanupIncomplete) window.alert(az.requests.storageCleanupPending);
       await queryClient.invalidateQueries({ queryKey: ["info-requests"] });
       await navigate({ to: "/sorgu" });
     } catch (error) {

@@ -6,9 +6,11 @@ import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import robotsParser from "robots-parser";
 
+import type { OsintLanguage } from "@/lib/osint";
 import { resolvePublicHost } from "./ssrf";
 import { decodeHtmlBytes } from "./charset";
 import { createPinnedLookup } from "./pinned-lookup";
+import { detectedPageLanguage } from "@/lib/osint-language";
 
 const MAX_PAGE_BYTES = 2 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
@@ -40,6 +42,7 @@ export type PublicPage = {
     | "invalid_url";
   title?: string;
   publishedAt?: Date;
+  originalLanguage?: OsintLanguage;
 };
 
 async function requestOnce(
@@ -304,6 +307,10 @@ export async function fetchPublicPage(url: string, timeoutMs = 8000): Promise<Pu
   );
   const document = window.document;
   const publishedAt = publicationDate(document);
+  const originalLanguage = detectedPageLanguage(
+    document.documentElement?.getAttribute("lang"),
+    document.querySelector('meta[property="og:locale"]')?.getAttribute("content"),
+  );
   const title =
     document.querySelector('meta[property="og:title"]')?.getAttribute("content")?.trim() ||
     document.title?.trim() ||
@@ -329,5 +336,6 @@ export async function fetchPublicPage(url: string, timeoutMs = 8000): Promise<Pu
     fetchStatus: text.length > 0 ? "fetched_full" : "snippet_fallback",
     ...(articleTitle ? { title: articleTitle } : {}),
     ...(publishedAt ? { publishedAt } : {}),
+    ...(originalLanguage ? { originalLanguage } : {}),
   };
 }

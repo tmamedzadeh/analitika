@@ -67,6 +67,7 @@ describe("OSINT caches", () => {
         title: "Cached report",
         publishedAt: null,
         language: "en",
+        originalLanguage: "az-AZ",
         status: "fetched_full",
         expiresAt: new Date(Date.now() + 60_000),
       },
@@ -74,7 +75,12 @@ describe("OSINT caches", () => {
 
     await expect(
       fetchCachedPublicPage("https://www.example.org/report/?utm_source=test#top", "en"),
-    ).resolves.toMatchObject({ fetched: true, title: "Cached report", text });
+    ).resolves.toMatchObject({
+      fetched: true,
+      title: "Cached report",
+      originalLanguage: "az",
+      text,
+    });
     expect(mocks.fetchPublicPage).not.toHaveBeenCalled();
   });
 });

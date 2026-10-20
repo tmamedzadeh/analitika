@@ -211,6 +211,7 @@ export const startOsintRun = createServerFn({ method: "POST" })
                 url: source.url,
                 domain: source.domain,
                 language: source.language,
+                originalLanguage: source.originalLanguage,
                 publishedAt: source.publishedAt,
                 sourceType: source.sourceType,
                 summary: source.summary,
@@ -356,6 +357,7 @@ export const getOsintRun = createServerFn({ method: "GET" })
       }),
       sources: states.map(({ source, state }) => ({
         ...source,
+        originalTitle: source.title,
         title: state.summary?.title ?? source.domain,
         summary: state.summary?.summary ?? null,
         structuredSummary: state.summary,

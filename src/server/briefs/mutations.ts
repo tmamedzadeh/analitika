@@ -16,6 +16,7 @@ import { briefAttachments, chunks, dailyBriefs } from "@/server/db/schema";
 import { briefIndexingRequested } from "@/server/inngest/events";
 import { inngest } from "@/server/inngest/client";
 import { getStorage } from "@/server/storage/s3";
+import { deleteObjectsBestEffort } from "@/server/storage/delete-objects";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 import { getCurrentUser, requireAdmin } from "@/server/auth";
 
@@ -306,20 +307,23 @@ export async function discardBriefUploads(
   await deleteUploadedKeys(parsed.keys);
 }
 
-export async function removeBrief(briefId: string): Promise<void> {
-  if (!canDeleteBrief(requireAdmin())) throw new Error(az.briefs.missing);
+export async function removeBrief(briefId: string): Promise<{ cleanupIncomplete: boolean }> {
+  const user = requireAdmin();
+  if (!canDeleteBrief(user)) throw new Error(az.briefs.missing);
   const db = getDb();
-  const files = await db
-    .select({ storageKey: briefAttachments.storageKey })
-    .from(briefAttachments)
-    .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
-    .where(and(eq(dailyBriefs.id, briefId), accessFilter()));
-  const [brief] = await db
-    .select({ id: dailyBriefs.id })
-    .from(dailyBriefs)
-    .where(and(eq(dailyBriefs.id, briefId), accessFilter()))
-    .limit(1);
-  if (!brief) throw new Error(az.briefs.missing);
-  await Promise.all(files.map((file) => getStorage().delete(file.storageKey)));
-  await db.delete(dailyBriefs).where(and(eq(dailyBriefs.id, briefId), accessFilter()));
+  const keys = await db.transaction(async (transaction) => {
+    const files = await transaction
+      .select({ storageKey: briefAttachments.storageKey })
+      .from(briefAttachments)
+      .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
+      .where(and(eq(dailyBriefs.id, briefId), accessFilter(user)));
+    const [brief] = await transaction
+      .delete(dailyBriefs)
+      .where(and(eq(dailyBriefs.id, briefId), accessFilter(user)))
+      .returning({ id: dailyBriefs.id });
+    if (!brief) throw new Error(az.briefs.missing);
+    return files.map(({ storageKey }) => storageKey);
+  });
+  const cleanupIncomplete = await deleteObjectsBestEffort(keys, (key) => getStorage().delete(key));
+  return { cleanupIncomplete };
 }

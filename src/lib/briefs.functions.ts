@@ -53,6 +53,6 @@ export const discardBriefUploads = createServerFn({ method: "POST" })
 export const deleteBrief = createServerFn({ method: "POST" })
   .validator(briefIdInputSchema)
   .handler(async ({ data }) => {
-    await removeBrief(data.briefId);
-    return { ok: true };
+    const cleanup = await removeBrief(data.briefId);
+    return { ok: true, ...cleanup };
   });

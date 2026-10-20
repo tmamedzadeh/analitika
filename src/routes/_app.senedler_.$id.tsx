@@ -96,7 +96,8 @@ function DocumentPage() {
     setBusyAction("delete");
     setPageError("");
     try {
-      await deleteDocument({ data: { documentId: id } });
+      const result = await deleteDocument({ data: { documentId: id } });
+      if (result.cleanupIncomplete) window.alert(az.documents.storageCleanupPending);
       await queryClient.invalidateQueries({ queryKey: ["documents", "recent"] });
       await navigate({ to: "/senedler" });
     } catch (error) {
@@ -226,15 +227,17 @@ function DocumentPage() {
             {busyAction === "retry" ? az.documents.retrying : az.documents.retry}
           </button>
         )}
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void remove()}
-          className="pill !border-destructive/50 !text-destructive"
-        >
-          {busyAction === "delete" && <ZirveLoader variant="inline" label="" />}
-          {az.documents.delete}
-        </button>
+        {document.canManageAcl && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void remove()}
+            className="pill !border-destructive/50 !text-destructive"
+          >
+            {busyAction === "delete" && <ZirveLoader variant="inline" label="" />}
+            {az.documents.delete}
+          </button>
+        )}
         {document.docDate && (
           <span className="label-mono">
             {new Date(`${document.docDate}T00:00:00`).toLocaleDateString("az-AZ")}

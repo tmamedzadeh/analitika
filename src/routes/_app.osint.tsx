@@ -4,6 +4,7 @@ import { Copy } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { OsintDiagnosticsPanel } from "@/components/OsintDiagnostics";
+import { OsintSourceCard } from "@/components/OsintSourceCard";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
 import { az } from "@/lib/i18n/az";
@@ -14,7 +15,6 @@ import {
   startOsintRun,
 } from "@/lib/osint.functions";
 import { buildReportHtml, buildReportMarkdown, writeReportToClipboard } from "@/lib/osint-copy";
-import { plainTextFragment } from "@/lib/osint-text";
 import {
   OSINT_LANGUAGES,
   OSINT_PERIODS,
@@ -59,77 +59,6 @@ function displayRunStep(step: string, status: string): string {
 }
 
 type OsintRunData = NonNullable<Awaited<ReturnType<typeof getOsintRun>>>;
-type RunSource = OsintRunData["sources"][number];
-
-function SourceCard({ source }: { source: RunSource }) {
-  const missingText = source.summary
-    ? null
-    : (az.osint.summaryStatus[source.summaryStatus as keyof typeof az.osint.summaryStatus] ??
-      az.osint.summaryFailed);
-  const relevanceLabel =
-    source.relevance === "tangential" || source.relevance === "offtopic"
-      ? az.osint.relevance[source.relevance]
-      : null;
-  return (
-    <article className="panel min-w-0 p-5" id={"osint-source-" + source.n}>
-      <h2 className="font-semibold leading-snug">
-        <span className="cite ml-0! mr-1">{source.n}</span>
-        {source.structuredSummary?.title || source.domain}
-      </h2>
-      {source.sourceType !== "other" ? (
-        <p className="label-mono mt-2">
-          {az.osint.sourceType[source.sourceType as keyof typeof az.osint.sourceType] ??
-            source.sourceType}
-        </p>
-      ) : null}
-      <p className="label-mono mt-2 break-all">
-        {source.domain} · {osintLanguageNames[source.language as OsintLanguage] ?? source.language}{" "}
-        · {source.fetched ? az.osint.fullText : az.osint.shortFragment}
-      </p>
-      {relevanceLabel ? <p className="mt-2 text-xs text-amber-700">{relevanceLabel}</p> : null}
-      <p className="mt-3 line-clamp-5 text-sm leading-6">
-        {source.summary ? plainTextFragment(source.summary, 1_600) : missingText}
-      </p>
-      {source.publishedAt ? (
-        <p className="mt-2 text-xs text-muted-foreground">
-          {az.osint.date}:{" "}
-          {new Intl.DateTimeFormat("az-AZ", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          }).format(new Date(source.publishedAt))}
-        </p>
-      ) : null}
-      {source.structuredSummary?.quote ? (
-        <blockquote className="mt-3 border-l-2 border-primary/40 pl-3 text-sm italic">
-          {source.structuredSummary.quote}
-          <span className="mt-1 block text-xs not-italic text-muted-foreground">
-            {az.osint.sourceQuote}
-          </span>
-        </blockquote>
-      ) : null}
-      {source.providers.length ? (
-        <details className="mt-3 text-xs text-muted-foreground">
-          <summary className="cursor-pointer">{az.osint.details}</summary>
-          <p className="mt-1">
-            {source.providers
-              .map((provider) => provider[0]?.toUpperCase() + provider.slice(1))
-              .join(" + ")}
-          </p>
-        </details>
-      ) : null}
-      <a className="pill mt-3 inline-flex" href={source.url} target="_blank" rel="noreferrer">
-        {az.osint.openOriginal}
-      </a>
-      {!source.summary ? (
-        <details className="mt-3 text-xs">
-          <summary className="cursor-pointer">{az.osint.originalFragment}</summary>
-          <p className="mt-2 whitespace-pre-wrap">{plainTextFragment(source.snippet || "")}</p>
-        </details>
-      ) : null}
-    </article>
-  );
-}
 
 function Osint() {
   const queryClient = useQueryClient();
@@ -634,7 +563,7 @@ function Osint() {
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {mainSources.map((source) => (
-                    <SourceCard key={source.id} source={source} />
+                    <OsintSourceCard key={source.id} source={source} />
                   ))}
                 </div>
                 {offTopicSources.length ? (
@@ -644,7 +573,7 @@ function Osint() {
                     </summary>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       {offTopicSources.map((source) => (
-                        <SourceCard key={source.id} source={source} />
+                        <OsintSourceCard key={source.id} source={source} />
                       ))}
                     </div>
                   </details>

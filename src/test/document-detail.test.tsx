@@ -100,6 +100,7 @@ describe("document detail route", () => {
     expect(
       await screen.findByText("Known source text for the selected document."),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: az.documents.delete })).toBeNull();
     await waitFor(() => {
       expect(getDocumentDetails).toHaveBeenCalledWith({ data: { documentId } });
     });
@@ -159,5 +160,16 @@ describe("document detail route", () => {
     render(<RouterProvider router={router} />);
 
     expect(await screen.findByText(az.documents.emptyContent)).toBeInTheDocument();
+  });
+
+  it("shows the delete action only to document managers", async () => {
+    vi.mocked(getDocumentDetails).mockResolvedValue({
+      ...detail,
+      canManageAcl: true,
+    } as Awaited<ReturnType<typeof getDocumentDetails>>);
+    const router = await makeRouter(`/senedler/${documentId}`);
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByRole("button", { name: az.documents.delete })).toBeInTheDocument();
   });
 });

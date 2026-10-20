@@ -1,4 +1,4 @@
-import { inArray, or, sql } from "drizzle-orm";
+import { eq, inArray, or, sql } from "drizzle-orm";
 
 import {
   allowedClassifications,
@@ -25,6 +25,14 @@ export function documentAccessFilter(user: CurrentUser = getCurrentUser()) {
     sql`exists (select 1 from document_acl where document_acl.document_id = ${documents.id} and document_acl.user_id = ${user.id})`,
     sql`${documents.ownerId} = ${user.id}`,
   )!;
+}
+
+export function canManageDocument(user: CurrentUser, ownerId: string) {
+  return user.role === "admin" || ownerId === user.id;
+}
+
+export function documentManagementFilter(user: CurrentUser = getCurrentUser()) {
+  return user.role === "admin" ? sql.raw("true") : eq(documents.ownerId, user.id);
 }
 
 // Trusted document indexing workers use this predicate; never use it in request handlers.

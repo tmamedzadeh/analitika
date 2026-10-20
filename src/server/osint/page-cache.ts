@@ -2,6 +2,7 @@ import { and, eq, gt } from "drizzle-orm";
 
 import { getDb } from "../db";
 import { osintPageCache } from "../db/schema";
+import { originalSourceLanguage } from "@/lib/osint-language";
 import type { PublicPage } from "./fetch-public-page";
 import { fetchPublicPage } from "./fetch-public-page";
 import { normalizeOsintUrl } from "./urls";
@@ -84,12 +85,14 @@ export async function fetchCachedPublicPage(
         )
         .limit(1);
       if (cached) {
+        const originalLanguage = originalSourceLanguage(cached.originalLanguage);
         return {
           fetched: cached.status === "fetched_full",
           text: cached.text,
           fetchStatus: cached.status as PublicPage["fetchStatus"],
           ...(cached.title ? { title: cached.title } : {}),
           ...(cached.publishedAt ? { publishedAt: cached.publishedAt } : {}),
+          ...(originalLanguage ? { originalLanguage } : {}),
         };
       }
     } catch {
@@ -107,6 +110,7 @@ export async function fetchCachedPublicPage(
           text: page.text,
           title: page.title ?? null,
           publishedAt: page.publishedAt ?? null,
+          originalLanguage: page.originalLanguage ?? null,
           language,
           status: page.fetchStatus,
           expiresAt: new Date(Date.now() + OSINT_PAGE_CACHE_TTL_MS),
@@ -117,6 +121,7 @@ export async function fetchCachedPublicPage(
             text: page.text,
             title: page.title ?? null,
             publishedAt: page.publishedAt ?? null,
+            originalLanguage: page.originalLanguage ?? null,
             language,
             status: page.fetchStatus,
             expiresAt: new Date(Date.now() + OSINT_PAGE_CACHE_TTL_MS),
