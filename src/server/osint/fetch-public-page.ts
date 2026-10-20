@@ -42,7 +42,12 @@ export type PublicPage = {
   publishedAt?: Date;
 };
 
-async function requestOnce(url: URL, timeoutMs: number, byteLimit: number): Promise<HttpResult> {
+async function requestOnce(
+  url: URL,
+  timeoutMs: number,
+  byteLimit: number,
+  method: "GET" | "HEAD" = "GET",
+): Promise<HttpResult> {
   const deadline = Date.now() + timeoutMs;
   const resolved = await resolvePublicHost(url.hostname, Math.min(timeoutMs, 1200));
   const remaining = deadline - Date.now();
@@ -51,7 +56,7 @@ async function requestOnce(url: URL, timeoutMs: number, byteLimit: number): Prom
     protocol: url.protocol,
     hostname: url.hostname.replace(/^\[|\]$/g, ""),
     port: url.port || undefined,
-    method: "GET",
+    method,
     path: `${url.pathname}${url.search}`,
     headers: {
       "user-agent": `${ROBOTS_AGENT}/1.0 (+public source research)`,
@@ -146,6 +151,43 @@ async function requestWithRedirects(
     }
   }
   return null;
+}
+
+/**
+ * Follows redirects with HEAD requests only (no body is read) and returns the last URL reached.
+ * Redirect targets are re-validated against the SSRF guard on every hop; any failure returns the
+ * last URL that was successfully reached, never throws.
+ */
+export async function resolveFinalUrl(initialUrl: string, timeoutMs = 4000): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+  let url: URL;
+  try {
+    url = new URL(initialUrl);
+  } catch {
+    return initialUrl;
+  }
+  let reached = url;
+  for (let redirects = 0; redirects < MAX_REDIRECTS; redirects += 1) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    if (url.protocol !== "http:" && url.protocol !== "https:") break;
+    if (url.port || url.username || url.password) break;
+    let result: HttpResult;
+    try {
+      result = await requestOnce(url, remaining, 1024, "HEAD");
+    } catch {
+      break;
+    }
+    reached = url;
+    const location = result.headers.location;
+    if (![301, 302, 303, 307, 308].includes(result.status) || !location) break;
+    try {
+      url = new URL(location, url);
+    } catch {
+      break;
+    }
+  }
+  return reached.toString();
 }
 
 async function isAllowedByRobots(url: URL, timeoutMs: number): Promise<boolean> {

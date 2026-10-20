@@ -9,6 +9,7 @@ import {
   osintFailureCategory,
   partitionSearchRequestBudget,
   planOsintSearchPhases,
+  statusFor,
 } from "./run-osint";
 import { GeminiQuotaExceededError } from "../ai/gemini-gateway";
 import { shouldReadOsintSearchCache, shouldServePinnedCache } from "../osint/cache";
@@ -142,5 +143,37 @@ describe("OSINT pipeline helpers", () => {
     expect(inferUnregisteredSourceType("regional-news.example")).toBe("media");
     expect(inferUnregisteredSourceType("policy-research.example")).toBe("think_tank");
     expect(inferUnregisteredSourceType("unlisted.example")).toBe("other");
+  });
+
+  it("applies registry, then structural, then cached model, then heuristic classification", () => {
+    const classified = new Map([
+      [
+        "model-only.example",
+        {
+          domain: "model-only.example",
+          type: "academic" as const,
+          source: "model" as const,
+          classifiedAt: new Date(),
+        },
+      ],
+      [
+        "regional-news.example",
+        {
+          domain: "regional-news.example",
+          type: "other" as const,
+          source: "model" as const,
+          classifiedAt: new Date(),
+        },
+      ],
+    ]);
+    expect(statusFor("www.reuters.com", "en", classified).type).toBe("agency");
+    expect(statusFor("doi.org", "en", classified).type).toBe("resolver");
+    expect(statusFor("web.archive.org", "en", classified).type).toBe("archive");
+    expect(statusFor("model-only.example", "en", classified)).toEqual({
+      type: "academic",
+      affiliation: "model-based classification",
+    });
+    expect(statusFor("regional-news.example", "en", classified).type).toBe("media");
+    expect(statusFor("unlisted.example", "en", classified)).toEqual({ type: "other" });
   });
 });

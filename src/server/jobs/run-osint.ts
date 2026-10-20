@@ -41,11 +41,18 @@ import {
   queryExpansionsSchema,
   type QueryExpansion,
 } from "../osint/query-expansion";
+import { registryDomains } from "../osint/source-registry";
 import {
-  registryDomains,
-  sourceRegistryEntry,
-  type RegistrySourceType,
-} from "../osint/source-registry";
+  classifyDomains,
+  classifyWithModel,
+  knownDomainClassification,
+  resolveSourceOrigin,
+  type DomainClassification,
+  type DomainType,
+  type OriginResolution,
+} from "../osint/domain-classification";
+import { createDbClassificationStore } from "../osint/domain-classification-store";
+import { resolveFinalUrl } from "../osint/fetch-public-page";
 import {
   assignSemanticRelevance,
   dedupeSearchSources,
@@ -76,7 +83,7 @@ type FetchStatus =
   | "non_html"
   | "timeout"
   | "invalid_url";
-type SourceType = RegistrySourceType | "official" | "think_tank" | "media" | "other";
+type SourceType = DomainType;
 type Progress = {
   percent: number;
   completedLanguages: number;
@@ -184,15 +191,33 @@ export function inferUnregisteredSourceType(hostname: string): SourceType {
   return "other";
 }
 
-function statusFor(
-  url: string,
+export function statusFor(
+  domain: string,
   language: OsintLanguage,
+  classified: ReadonlyMap<string, DomainClassification> = new Map(),
 ): { type: SourceType; affiliation?: string } {
-  const host = new URL(url).hostname.toLowerCase();
-  const registered = sourceRegistryEntry(host, language);
-  if (registered) return { type: registered.type, affiliation: registered.affiliation };
+  const host = domain.toLowerCase().replace(/^www./, "");
+  const known = knownDomainClassification(host, language) ?? knownDomainClassification(host);
+  if (known) {
+    return { type: known.type, ...(known.affiliation ? { affiliation: known.affiliation } : {}) };
+  }
+  const stored = classified.get(host);
+  if (stored && stored.type !== "other") {
+    return {
+      type: stored.type,
+      affiliation:
+        stored.source === "manual" ? "manual classification" : "model-based classification",
+    };
+  }
   const type = inferUnregisteredSourceType(host);
   return type === "other" ? { type } : { type, affiliation: "domain-based classification" };
+}
+
+function originAffiliation(origin: OriginResolution): string | undefined {
+  if (!origin.via) return undefined;
+  return origin.via === "archive"
+    ? "archived copy; original source " + origin.domain
+    : "resolved link; original source " + origin.domain;
 }
 function published(value?: string): Date | undefined {
   if (!value) return;
@@ -671,20 +696,54 @@ export async function runOsintJob(runId: string): Promise<void> {
       }
     }
     ranked = assignSemanticRelevance(run.query, ranked);
-    const selected = selectWithMmr(ranked, {
+    const mmrSelected = selectWithMmr(ranked, {
       lambda: env.OSINT_MMR_LAMBDA,
       threshold: env.OSINT_RELEVANCE_THRESHOLD,
       maxPerDomain: 5,
       maxSelected: 35,
     });
-    sourcesSelected = selected.length;
+    sourcesSelected = mmrSelected.length;
+
+    // Archive copies and DOI links are traced to their original domain; a copy whose original is
+    // already selected is dropped so the same publication is not counted as two independent sources.
+    const resolvedOrigins = await concurrent(mmrSelected, 5, (result) =>
+      remaining(start) > 5_000
+        ? resolveSourceOrigin(result.url, (url) =>
+            resolveFinalUrl(url, Math.min(4_000, remaining(start))),
+          )
+        : Promise.resolve<OriginResolution>({ url: result.url, domain: result.domain }),
+    );
+    const selectedUrls = new Set(mmrSelected.map((result) => result.url));
+    const selected: typeof mmrSelected = [];
+    const originByUrl = new Map<string, OriginResolution>();
+    for (const [index, result] of mmrSelected.entries()) {
+      const origin = resolvedOrigins[index]!;
+      const originalUrl = origin.originalUrl ? normalizeOsintUrl(origin.originalUrl) : null;
+      if (originalUrl && originalUrl !== result.url && selectedUrls.has(originalUrl)) continue;
+      originByUrl.set(result.url, origin);
+      selected.push(result);
+    }
+
+    let domainClassifications = new Map<string, DomainClassification>();
+    if (selected.length && remaining(start) > 10_000) {
+      const outcome = await classifyDomains(
+        selected.map((result) => originByUrl.get(result.url)!.domain),
+        {
+          store: createDbClassificationStore(),
+          classify: (domains) => classifyWithModel(domains, providers!.light, aborter.signal),
+        },
+      );
+      domainClassifications = outcome.classifications;
+    }
     await save("fetching", { percent: 34, sourcesFound: selected.length });
 
     const loaded = await concurrent(
       selected,
       5,
       async (result, index): Promise<Candidate | null> => {
-        const classification = statusFor(result.url, result.language);
+        const origin = originByUrl.get(result.url) ?? { url: result.url, domain: result.domain };
+        const classification = statusFor(origin.domain, result.language, domainClassifications);
+        const affiliation = originAffiliation(origin) ?? classification.affiliation;
         let title = result.title;
         let publishedAt = published(result.publishedAt ?? result.publishedDate);
         const providerText = result.providerFullText ? result.text.trim() : "";
@@ -724,7 +783,7 @@ export async function runOsintJob(runId: string): Promise<void> {
         const candidate: Candidate = {
           url: result.url,
           title,
-          domain: result.domain,
+          domain: origin.domain,
           language: result.language,
           searchText: snippet,
           pageText: text || snippet,
@@ -736,7 +795,7 @@ export async function runOsintJob(runId: string): Promise<void> {
           providers: result.providers ?? (result.provider ? [result.provider] : []),
           providerRank: result.providerRank ?? result.index,
           sourceType: classification.type,
-          ...(classification.affiliation ? { affiliation: classification.affiliation } : {}),
+          ...(affiliation ? { affiliation } : {}),
           semanticRelevance: result.semanticRelevance,
         };
         progress.fetchStatusCounts[fetchStatus]++;

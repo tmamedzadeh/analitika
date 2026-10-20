@@ -53,6 +53,23 @@ describe("descriptive source registry", () => {
     }
   });
 
+  it("lists only domains that passed the reachability probe and keeps unreachable candidates out", () => {
+    for (const domain of ["unikal.az", "yenisabah.az", "konkret.az", "ordu.az", "ednews.net"]) {
+      expect(sourceRegistryEntry(domain, "az")?.type).toBe("domestic_media");
+    }
+    expect(sourceRegistryEntry("armenianarchitecture.org", "hy")?.type).toBe("academic");
+    // arar.sci.am and sp.nuaca.am timed out when probed, so they are not registered.
+    expect(sourceRegistryEntry("arar.sci.am", "hy")).toBeUndefined();
+    expect(sourceRegistryEntry("sp.nuaca.am", "hy")).toBeUndefined();
+  });
+
+  it("does not use structural domains as search targets", () => {
+    for (const language of ["az", "en", "hy", "ru", "fa", "zh", "fr", "ka"] as const) {
+      expect(registryDomains(language)).not.toContain("doi.org");
+      expect(registryDomains(language)).not.toContain("web.archive.org");
+    }
+  });
+
   it("does not invent metadata for unregistered domains", () => {
     expect(sourceRegistryEntry("unlisted.example", "ka")).toBeUndefined();
   });
