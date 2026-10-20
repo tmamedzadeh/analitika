@@ -1,10 +1,6 @@
 import { and, asc, count, eq, isNull, ne, or } from "drizzle-orm";
 import { createGeminiProviders } from "../src/server/ai/gemini";
-import {
-  GeminiRequestBudget,
-  getGeminiQuotaKey,
-  isGeminiQuotaError,
-} from "../src/server/ai/gemini-gateway";
+import { getGeminiQuotaKey, isGeminiQuotaError } from "../src/server/ai/gemini-gateway";
 import { closeDb, getDb } from "../src/server/db";
 import { chunks, documents } from "../src/server/db/schema";
 
@@ -17,7 +13,6 @@ if (!MODEL) throw new Error("GEMINI_EMBED_MODEL is required.");
 
 const db = getDb();
 const provider = createGeminiProviders().embeddings;
-const budget = new GeminiRequestBudget(50_000);
 const needsReindex = or(ne(chunks.embeddingModel, MODEL), isNull(chunks.embedding));
 try {
   const [countRow] = await db.select({ total: count() }).from(chunks).where(needsReindex);
@@ -42,7 +37,7 @@ try {
     const input = rows.map((row) =>
       (row.title + " / " + row.sectionTitle + "\n" + row.text).trim(),
     );
-    const vectors = await provider.embedDocuments(input, { requestBudget: budget });
+    const vectors = await provider.embedDocuments(input);
     if (
       vectors.length !== rows.length ||
       vectors.some(

@@ -58,6 +58,7 @@ export type SearchDocumentChunksOptions = {
   embeddingModel?: string;
   enableRerank?: boolean;
   maxEmbeddingAttempts?: 1 | 2 | 3;
+  signal?: AbortSignal;
   rerankProvider?: RerankProvider;
 };
 
@@ -82,6 +83,7 @@ function sourceProjection() {
     tags: documents.tags,
     sourceReliability: documents.sourceReliability,
     infoCredibility: documents.infoCredibility,
+    classification: documents.classification,
   };
 }
 
@@ -110,12 +112,10 @@ export async function searchDocumentChunks(
   const embeddingModel = options.embeddingModel ?? providers.embeddings.model;
   const embedding =
     options.embedding ??
-    (await providers.embeddings.embedQuery(
-      query,
-      options.maxEmbeddingAttempts === undefined
-        ? {}
-        : { maxAttempts: options.maxEmbeddingAttempts },
-    ));
+    (await providers.embeddings.embedQuery(query, {
+      maxAttempts: options.maxEmbeddingAttempts ?? 1,
+      ...(options.signal ? { signal: options.signal } : {}),
+    }));
   if (embedding.length !== 768 || embedding.some((value) => !Number.isFinite(value))) {
     throw new Error("Query embedding must contain 768 finite dimensions.");
   }
@@ -219,6 +219,8 @@ export async function searchDocumentChunks(
     candidates.map(({ item }) => ({ id: item.chunkId, excerpt: item.text.slice(0, 500) })),
     rerankProvider,
     options.enableRerank ?? config.enableRerank,
+    undefined,
+    options.signal,
   );
   const candidateById = new Map(candidates.map((candidate) => [candidate.item.chunkId, candidate]));
   const fused = rerankedIds
@@ -281,6 +283,7 @@ export async function searchDocumentChunks(
       tags: item.tags ?? [],
       sourceReliability: item.sourceReliability as AnalyticsSource["sourceReliability"],
       infoCredibility: item.infoCredibility as AnalyticsSource["infoCredibility"],
+      classification: sourceKind === "document" ? item.classification : "open",
     };
   });
 }

@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   user: null as { id: string; username: string; passwordHash: string; active: boolean } | null,
   clearLoginAttempts: vi.fn(async (_key: string) => undefined),
   consumeLoginAttempt: vi.fn(async (_key: string, _maximum?: number) => true),
+  isLoginAttemptAllowed: vi.fn(async (_key: string, _maximum?: number) => true),
   createSession: vi.fn(async (_userId: string) => ({
     token: "session-token",
     sessionId: "session",
@@ -26,6 +27,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/server/auth", () => ({
   clearLoginAttempts: mocks.clearLoginAttempts,
   consumeLoginAttempt: mocks.consumeLoginAttempt,
+  isLoginAttemptAllowed: mocks.isLoginAttemptAllowed,
   createSession: mocks.createSession,
   loginRateLimitKeys: mocks.loginRateLimitKeys,
   pruneLoginAttempts: mocks.pruneLoginAttempts,
@@ -61,6 +63,7 @@ describe("authentication route handlers", () => {
     vi.clearAllMocks();
     mocks.user = null;
     mocks.consumeLoginAttempt.mockResolvedValue(true);
+    mocks.isLoginAttemptAllowed.mockResolvedValue(true);
     mocks.verifyPassword.mockResolvedValue(true);
     mocks.select.mockImplementation(() => ({
       from: () => ({ where: () => ({ limit: async () => (mocks.user ? [mocks.user] : []) }) }),
@@ -95,7 +98,8 @@ describe("authentication route handlers", () => {
     );
     expect(mocks.createSession).toHaveBeenCalledWith("user-1");
     expect(response.headers.get("set-cookie")).toContain("HttpOnly");
-    expect(mocks.clearLoginAttempts).toHaveBeenCalledTimes(2);
+    expect(mocks.clearLoginAttempts).toHaveBeenCalledTimes(1);
+    expect(mocks.clearLoginAttempts).toHaveBeenCalledWith("account-key");
   });
 
   it("returns the same credentials error for unknown, inactive, and wrong-password logins", async () => {
@@ -150,13 +154,14 @@ describe("authentication route handlers", () => {
     expect(crossSite.status).toBe(403);
     expect(mocks.consumeLoginAttempt).not.toHaveBeenCalled();
 
-    mocks.consumeLoginAttempt.mockResolvedValueOnce(false);
+    mocks.isLoginAttemptAllowed.mockResolvedValueOnce(false);
     const limited = await handleLoginRequest(
       post("/api/auth/login", JSON.stringify({ username: "analyst", password: "password" })),
     );
     expect(limited.status).toBe(429);
     expect(limited.headers.get("retry-after")).toBe("900");
     expect(mocks.select).not.toHaveBeenCalled();
+    expect(mocks.consumeLoginAttempt).not.toHaveBeenCalled();
   });
 
   it("rejects oversized bodies without a content-length header", async () => {

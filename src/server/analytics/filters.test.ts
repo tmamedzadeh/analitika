@@ -38,6 +38,8 @@ describe("analytics direction filters", () => {
 
     expect(query.sql).toContain('"documents"."direction" in');
     expect(query.sql).toContain('"documents"."classification" in');
+    expect(query.sql).toContain("exists (select 1 from document_acl");
+    expect(query.sql).toContain('"documents"."owner_id" =');
     expect(query.params).toContain("open");
     expect(query.params).toContain("secret");
     expect(query.params).toContain("OSINT");

@@ -75,9 +75,9 @@ describe("OSINT URL and request guards", () => {
     );
   });
 
-  it("defines all seven language labels and locale mappings", () => {
-    expect(OSINT_LANGUAGES).toEqual(["fa", "hy", "ru", "zh", "en", "fr", "ka"]);
-    expect(Object.keys(osintLanguageNames)).toHaveLength(7);
+  it("defines all eight language labels and locale mappings", () => {
+    expect(OSINT_LANGUAGES).toEqual(["fa", "hy", "ru", "zh", "en", "fr", "ka", "az"]);
+    expect(Object.keys(osintLanguageNames)).toHaveLength(8);
     expect(osintLanguageLocale).toMatchObject({
       fa: { language: "FA", country: "IR" },
       hy: { language: "AM", country: "AM" },
@@ -86,6 +86,7 @@ describe("OSINT URL and request guards", () => {
       en: { language: "US", country: "US" },
       fr: { language: "FR", country: "FR" },
       ka: { language: "GE", country: "GE" },
+      az: { language: "AZ", country: "AZ" },
     });
     expect(matchesOsintLanguageScript("ქართული ენა ტექსტი და ცნობები საქართველოში", "ka")).toBe(
       true,

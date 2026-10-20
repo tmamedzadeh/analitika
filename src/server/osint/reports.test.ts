@@ -1,26 +1,39 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  fallbackStructuredReport,
+  isStructuredReportAzerbaijani,
   keepExplicitTimelineDates,
   parseSourceSummaries,
   parseStructuredReport,
   quoteIsExact,
+  type StructuredReport,
 } from "./reports";
+import { looksAzerbaijani } from "./language";
 import { az } from "@/lib/i18n/az";
 
 function validReport(overrides: Record<string, unknown> = {}) {
   return {
-    bluf: "The sources describe talks.",
+    bluf: "M\u0259nb\u0259l\u0259r g\u00f6r\u00fc\u015fl\u0259ri t\u0259svir edir.",
     blufSourceNumbers: [1],
-    keyFindings: [{ text: "A meeting was announced.", sourceNumbers: [1, 99] }],
-    timeline: [
-      { date: "2026-10-18", event: "A meeting occurred.", sourceNumbers: [1] },
-      { date: "2026-10-20", event: "An unsupported date.", sourceNumbers: [1] },
+    keyFindings: [
+      {
+        text: "G\u00f6r\u00fc\u015f bar\u0259d\u0259 m\u0259lumat yay\u0131ld\u0131.",
+        sourceNumbers: [1, 99],
+      },
     ],
-    perspectives: [{ group: "official", summary: "Talks are continuing.", sourceNumbers: [1] }],
+    timeline: [
+      { date: "2026-10-18", event: "G\u00f6r\u00fc\u015f ke\u00e7irildi.", sourceNumbers: [1] },
+      { date: "2026-10-20", event: "Tarix t\u0259sdiql\u0259nm\u0259yib.", sourceNumbers: [1] },
+    ],
+    perspectives: [
+      {
+        group: "R\u0259smi m\u0259nb\u0259",
+        summary: "Dan\u0131\u015f\u0131qlar davam edir.",
+        sourceNumbers: [1],
+      },
+    ],
     disagreements: [],
-    entities: [{ name: "Example", sourceNumbers: [1] }],
+    entities: [{ name: "Moscow", sourceNumbers: [1] }],
     gaps: [],
     watch: [],
     caveats: [],
@@ -56,6 +69,43 @@ describe("structured OSINT reports", () => {
     ]);
   });
 
+  it("validates every user-facing report field while leaving entity names untouched", () => {
+    const report = validReport() as StructuredReport;
+    expect(isStructuredReportAzerbaijani(report)).toBe(true);
+    expect(isStructuredReportAzerbaijani({ ...report, bluf: "The sources describe talks." })).toBe(
+      false,
+    );
+    expect(
+      isStructuredReportAzerbaijani({
+        ...report,
+        entities: [{ name: "Москва", sourceNumbers: [1] }],
+      }),
+    ).toBe(true);
+  });
+
+  it("validates short and multilingual summary text as Azerbaijani Latin", () => {
+    expect(looksAzerbaijani("G\u00f6r\u00fc\u015f var.")).toBe(true);
+    expect(looksAzerbaijani("v\u0259")).toBe(true);
+    expect(
+      looksAzerbaijani(
+        "M\u0259lumat \u0130lham \u018fl\u0131yev v\u0259 Bak\u0131 il\u0259 ba\u011fl\u0131d\u0131r.",
+      ),
+    ).toBe(true);
+    expect(looksAzerbaijani("Baku haqq\u0131nda q\u0131sa m\u0259lumat verildi.")).toBe(true);
+    expect(looksAzerbaijani("The report and the analysis are ready.")).toBe(false);
+    expect(
+      looksAzerbaijani(
+        "\u0412\u0441\u0442\u0440\u0435\u0447\u0430 \u043f\u0440\u043e\u0448\u043b\u0430 \u0441\u0435\u0433\u043e\u0434\u043d\u044f.",
+      ),
+    ).toBe(false);
+    expect(
+      looksAzerbaijani(
+        "\u0645\u0644\u0627\u0642\u0627\u062a \u0627\u0645\u0631\u0648\u0632 \u0628\u0631\u06af\u0632\u0627\u0631 \u0634\u062f.",
+      ),
+    ).toBe(false);
+    expect(looksAzerbaijani("\u4eca\u5929\u4f1a\u8bae\u4e3e\u884c\u3002")).toBe(false);
+  });
+
   it("validates quotes as exact whitespace-normalized substrings under 25 words", () => {
     expect(quoteIsExact("A   short quote", "The article says A short quote today.")).toBe(true);
     expect(quoteIsExact("not present", "Article body")).toBe(false);
@@ -69,10 +119,11 @@ describe("structured OSINT reports", () => {
       sources: [
         {
           number: 1,
-          title: "Azerbaijani title",
-          summary: "Three sourced sentences.",
-          claims: ["An explicit claim."],
-          entities: ["Example"],
+          title: "Az\u0259rbaycanda g\u00f6r\u00fc\u015f haqq\u0131nda",
+          summary:
+            "M\u0259nb\u0259d\u0259 g\u00f6r\u00fc\u015f bar\u0259d\u0259 q\u0131sa m\u0259lumat verilir.",
+          claims: ["M\u0259lumat r\u0259smi olaraq a\u00e7\u0131qland\u0131."],
+          entities: ["Moscow"],
           eventDate: "2026-10-18",
           publicationDate: "not sourced",
           quote: "invented phrase",
@@ -85,11 +136,56 @@ describe("structured OSINT reports", () => {
     expect(summary).toMatchObject({ eventDate: "2026-10-18", publicationDate: null, quote: null });
   });
 
-  it("builds a safe cited fallback when final JSON is unavailable", () => {
-    const report = fallbackStructuredReport([
-      { number: 3, title: "Title", summary: "Source summary", claims: ["Claim"] },
-    ]);
-    expect(report.blufSourceNumbers).toEqual([3]);
-    expect(report.keyFindings[0]?.sourceNumbers).toEqual([3]);
+  it("drops source-language summaries instead of copying them through", () => {
+    const response = JSON.stringify({
+      sources: [
+        {
+          number: 1,
+          title: "Regional talks today",
+          summary: "The meeting happened today.",
+          claims: ["A meeting was announced."],
+          entities: ["Example"],
+          eventDate: null,
+          publicationDate: null,
+          quote: null,
+        },
+      ],
+    });
+    expect(parseSourceSummaries(response, [{ number: 1, title: "Title", text: "Text" }])).toEqual(
+      [],
+    );
+  });
+
+  it("keeps valid Azerbaijani rows when another source fails language validation", () => {
+    const response = JSON.stringify({
+      sources: [
+        {
+          number: 1,
+          title: "Bakı görüşü",
+          summary: "Mənbə görüşün Bakıda keçirildiyini bildirir.",
+          claims: ["Görüş Bakıda baş tutub."],
+          entities: ["Bakı"],
+          eventDate: null,
+          publicationDate: null,
+          quote: null,
+        },
+        {
+          number: 2,
+          title: "Regional talks today",
+          summary: "The meeting happened today.",
+          claims: ["A meeting was announced."],
+          entities: ["Example"],
+          eventDate: null,
+          publicationDate: null,
+          quote: null,
+        },
+      ],
+    });
+    expect(
+      parseSourceSummaries(response, [
+        { number: 1, title: "Title one", text: "Text one" },
+        { number: 2, title: "Title two", text: "Text two" },
+      ]).map((summary) => summary.number),
+    ).toEqual([1]);
   });
 });

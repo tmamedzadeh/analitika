@@ -1,5 +1,6 @@
 ﻿import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
 import { BriefMarkdown } from "@/components/BriefMarkdown";
@@ -7,7 +8,11 @@ import { DirectionMultiSelect } from "@/components/DirectionMultiSelect";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
 import type { AnalyticsFilters, AnalyticsSourcePreview } from "@/lib/analytics";
-import { getAnalyticsOptions } from "@/lib/analytics.functions";
+import {
+  getAnalyticsOptions,
+  getAnalyticsQueryHistory,
+  listRecentAnalyticsQueries,
+} from "@/lib/analytics.functions";
 import { directionIds, directionLabel } from "@/lib/directions";
 import { briefRouteForSearchSource, briefSearchLabel } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
@@ -34,6 +39,14 @@ export const Route = createFileRoute("/_app/axtaris")({
   }),
   component: Analytics,
 });
+
+function historyStatusLabel(status: string): string {
+  if (status === "running") return az.analytics.historyRunning;
+  if (status === "done") return az.analytics.historyDone;
+  if (status === "incomplete") return az.analytics.historyIncomplete;
+  if (status === "cancelled") return az.analytics.historyCancelled;
+  return az.analytics.historyFailedStatus;
+}
 
 function sourceUrl(source: AnalyticsSourcePreview): string {
   return briefRouteForSearchSource(source) ?? "#";
@@ -86,6 +99,7 @@ function ReliabilityBadges({ source }: { source: AnalyticsSourcePreview }) {
 }
 
 function Analytics() {
+  const queryClient = useQueryClient();
   const [question, setQuestion] = useState("");
   const [filters, setFilters] = useState<AnalyticsFilters>(initialFilters);
   const [sources, setSources] = useState<AnalyticsSourcePreview[]>([]);
@@ -97,6 +111,8 @@ function Analytics() {
   const [errorReference, setErrorReference] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [sourceOnly, setSourceOnly] = useState(false);
+  const [selectedHistory, setSelectedHistory] =
+    useState<Awaited<ReturnType<typeof getAnalyticsQueryHistory>>>(null);
   const noDirections = filters.directionIds.length === 0;
   const usedSourceNumbers = citedSourceNumbers(answer);
   const visibleSources = sourceOnly
@@ -107,14 +123,24 @@ function Analytics() {
     queryKey: ["analytics", "options"],
     queryFn: () => getAnalyticsOptions(),
   });
+  const historyQuery = useQuery({
+    queryKey: ["analytics", "history"],
+    queryFn: () => listRecentAnalyticsQueries(),
+    refetchInterval: busy ? 2_000 : false,
+  });
 
-  async function runSearch(mode: "answer" | "sources") {
-    const normalizedQuestion = question.trim();
+  async function runSearch(
+    mode: "answer" | "sources",
+    override?: { query: string; filters: AnalyticsFilters },
+  ) {
+    const normalizedQuestion = (override?.query ?? question).trim();
+    const activeFilters = override?.filters ?? filters;
     if (!normalizedQuestion || busy || noDirections) return;
     setBusy(true);
     setHasSearched(true);
     setSourceOnly(mode === "sources");
     setPageError("");
+    setSelectedHistory(null);
     setErrorReference("");
     setAnswer("");
     setSources([]);
@@ -128,7 +154,7 @@ function Analytics() {
       const response = await fetch("/api/analytics/search", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "text/event-stream" },
-        body: JSON.stringify({ query: normalizedQuestion, filters, mode }),
+        body: JSON.stringify({ query: normalizedQuestion, filters: activeFilters, mode }),
         signal: abortController.signal,
       });
       requestId = response.headers.get("x-analytics-request-id") ?? "";
@@ -218,6 +244,27 @@ function Analytics() {
     } finally {
       window.clearTimeout(timeoutId);
       setBusy(false);
+      void queryClient.invalidateQueries({ queryKey: ["analytics", "history"] });
+    }
+  }
+
+  async function openHistory(id: string) {
+    try {
+      const record = await getAnalyticsQueryHistory({ data: { id } });
+      if (!record) throw new Error(az.analytics.historyOpenFailed);
+      setSelectedHistory(record);
+      setQuestion(record.query);
+      setFilters(record.filters);
+      setSources([]);
+      setAnswer(record.answer);
+      setIncomplete(record.status === "incomplete");
+      setElapsedMs(record.durationMs);
+      setHasSearched(true);
+      setSourceOnly(false);
+      setPageError("");
+      setErrorReference("");
+    } catch {
+      setPageError(az.analytics.historyOpenFailed);
     }
   }
 
@@ -427,6 +474,21 @@ function Analytics() {
             >
               {az.analytics.regenerate}
             </button>
+            {selectedHistory && (
+              <button
+                className="pill disabled:opacity-50"
+                type="button"
+                disabled={busy || noDirections}
+                onClick={() =>
+                  void runSearch("answer", {
+                    query: selectedHistory.query,
+                    filters: selectedHistory.filters,
+                  })
+                }
+              >
+                {az.analytics.historyRerun}
+              </button>
+            )}
           </div>
         </section>
 
@@ -445,53 +507,72 @@ function Analytics() {
             </p>
           )}
           <div className="space-y-3">
-            {visibleSources.map((source) => (
-              <article
-                key={source.chunkId}
-                id={`source-${source.n}`}
-                className="panel scroll-mt-6 p-5"
-                tabIndex={-1}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-semibold">
-                    <span className="cite ml-0! mr-1">{source.n}</span>
-                    {source.title}
-                  </h3>
-                  {source.sourceKind === "brief" ? (
-                    <span className="label-mono">{briefSearchLabel(source.briefDate ?? "")}</span>
-                  ) : (
-                    <ReliabilityBadges source={source} />
-                  )}
-                </div>
-                <p className="label-mono mt-2">
-                  {(source.sourceKind === "brief"
-                    ? [source.sectionTitle || az.analytics.sectionUnknown]
-                    : [
-                        directionLabel(source.direction) ?? az.directions.unassigned,
-                        source.sectionTitle || az.analytics.sectionUnknown,
-                        source.docDate,
-                      ]
-                  )
-                    .filter(Boolean)
-                    .join(" · ")}
-                  {source.isTable ? " · " + az.analytics.table : ""}
-                </p>
-                {source.quote && <p className="mt-2 text-sm">«{source.quote}»</p>}
-                <a
-                  className="pill mt-3 inline-flex"
-                  href={sourceUrl(source)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {source.sourceKind === "brief"
-                    ? briefSearchLabel(source.briefDate ?? "")
-                    : az.analytics.openDocument}
-                  {source.attachmentCount > 0
-                    ? " · " + source.attachmentCount + " " + az.analytics.photos
-                    : ""}
-                </a>
-              </article>
-            ))}
+            {selectedHistory
+              ? selectedHistory.sources.map((source) => (
+                  <article key={`${source.n}-${source.title}`} className="panel p-5">
+                    <h3 className="font-semibold">
+                      <span className="cite ml-0! mr-1">{source.n}</span>
+                      {source.title}
+                    </h3>
+                    {source.caption && <p className="label-mono mt-2">{source.caption}</p>}
+                    <p className="label-mono mt-2">
+                      {source.available
+                        ? source.usedInAnswer
+                          ? az.analytics.sourceUsedInAnswer
+                          : az.analytics.sourceNotUsedInAnswer
+                        : az.analytics.sourceUnavailable}
+                    </p>
+                  </article>
+                ))
+              : visibleSources.map((source) => (
+                  <article
+                    key={source.chunkId}
+                    id={`source-${source.n}`}
+                    className="panel scroll-mt-6 p-5"
+                    tabIndex={-1}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-semibold">
+                        <span className="cite ml-0! mr-1">{source.n}</span>
+                        {source.title}
+                      </h3>
+                      {source.sourceKind === "brief" ? (
+                        <span className="label-mono">
+                          {briefSearchLabel(source.briefDate ?? "")}
+                        </span>
+                      ) : (
+                        <ReliabilityBadges source={source} />
+                      )}
+                    </div>
+                    <p className="label-mono mt-2">
+                      {(source.sourceKind === "brief"
+                        ? [source.sectionTitle || az.analytics.sectionUnknown]
+                        : [
+                            directionLabel(source.direction) ?? az.directions.unassigned,
+                            source.sectionTitle || az.analytics.sectionUnknown,
+                            source.docDate,
+                          ]
+                      )
+                        .filter(Boolean)
+                        .join(" · ")}
+                      {source.isTable ? " · " + az.analytics.table : ""}
+                    </p>
+                    {source.quote && <p className="mt-2 text-sm">«{source.quote}»</p>}
+                    <a
+                      className="pill mt-3 inline-flex"
+                      href={sourceUrl(source)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {source.sourceKind === "brief"
+                        ? briefSearchLabel(source.briefDate ?? "")
+                        : az.analytics.openDocument}
+                      {source.attachmentCount > 0
+                        ? " · " + source.attachmentCount + " " + az.analytics.photos
+                        : ""}
+                    </a>
+                  </article>
+                ))}
             {hasSearched && visibleSources.length === 0 && !busy && !pageError && (
               <div className="panel p-5 text-sm text-muted-foreground">
                 {az.analytics.noSources}
@@ -503,6 +584,37 @@ function Analytics() {
               </div>
             )}
           </div>
+          <section className="panel mt-6 p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="label-mono">{az.analytics.historyTitle}</h2>
+              {historyQuery.isFetching && <ZirveLoader variant="inline" label="" />}
+            </div>
+            {historyQuery.isError ? (
+              <p role="alert" className="text-sm text-destructive">
+                {az.analytics.historyFailed}
+              </p>
+            ) : historyQuery.data?.length ? (
+              <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
+                {historyQuery.data.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="w-full rounded-lg border border-border p-3 text-left hover:border-primary/40"
+                    onClick={() => void openHistory(item.id)}
+                  >
+                    <span className="block line-clamp-2 text-sm font-medium">{item.query}</span>
+                    <span className="label-mono mt-1 block">
+                      {historyStatusLabel(item.status)}
+                      {item.author ? ` · ${item.author}` : ""}
+                      {` · ${new Date(item.createdAt).toLocaleString("az-AZ")}`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{az.analytics.historyEmpty}</p>
+            )}
+          </section>
         </aside>
       </div>
     </Shell>

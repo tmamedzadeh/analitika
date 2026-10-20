@@ -32,30 +32,6 @@ export class GeminiQuotaExceededError extends Error {
   }
 }
 
-export class GeminiRequestBudgetExceededError extends Error {
-  constructor() {
-    super("Gemini request budget exhausted.");
-    this.name = "GeminiRequestBudgetExceededError";
-  }
-}
-
-export class GeminiRequestBudget {
-  calls = 0;
-
-  constructor(
-    readonly maxCalls: number,
-    private readonly onCall?: (calls: number) => void,
-    private readonly parent?: GeminiRequestBudget,
-  ) {}
-
-  reserve(): void {
-    if (this.calls >= this.maxCalls) throw new GeminiRequestBudgetExceededError();
-    this.parent?.reserve();
-    this.calls += 1;
-    this.onCall?.(this.calls);
-  }
-}
-
 async function acquireRequestSlot(): Promise<() => void> {
   if (activeRequests < MAX_CONCURRENT_REQUESTS) {
     activeRequests += 1;
@@ -245,7 +221,6 @@ const pause = (milliseconds: number) =>
 export async function withGeminiRequest<T>(
   quotaKey: GeminiQuotaKey,
   operation: () => Promise<T>,
-  budget?: GeminiRequestBudget,
   maxAttempts: GeminiAttemptLimit = MAX_ATTEMPTS,
 ): Promise<T> {
   let limitKind: GeminiLimitKind = "unknown";
@@ -256,7 +231,6 @@ export async function withGeminiRequest<T>(
     const release = await acquireRequestSlot();
     let failure: unknown;
     try {
-      budget?.reserve();
       return await operation();
     } catch (error) {
       failure = error;
@@ -295,7 +269,6 @@ export async function withGeminiRequest<T>(
 export async function* withGeminiStream<T>(
   quotaKey: GeminiQuotaKey,
   createStream: () => Promise<AsyncIterable<T>>,
-  budget?: GeminiRequestBudget,
   maxAttempts: GeminiAttemptLimit = MAX_ATTEMPTS,
 ): AsyncGenerator<T> {
   let limitKind: GeminiLimitKind = "unknown";
@@ -307,7 +280,6 @@ export async function* withGeminiStream<T>(
     let emitted = false;
     let failure: unknown;
     try {
-      budget?.reserve();
       const stream = await createStream();
       for await (const value of stream) {
         emitted = true;

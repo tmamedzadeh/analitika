@@ -21,13 +21,13 @@ export function staleOsintRunOutcome(input: {
       : {};
   if (input.hasSources) {
     return {
-      status: "done" as const,
+      status: "partial" as const,
       step: "partial",
-      summary: input.summary || az.osint.finalFallback,
+      summary: null,
       error: null,
       progress: {
         ...progress,
-        percent: 100,
+        percent: Math.min(typeof progress["percent"] === "number" ? progress["percent"] : 0, 99),
         partial: true,
         notice: az.osint.partialNotice,
       },

@@ -19,9 +19,13 @@ import type {
 } from "./types";
 
 function providerOptionsFor(input: TextGenerationInput, model: string) {
-  const isGemini3Or4 = model.startsWith("gemini-3.") || model.startsWith("gemini-4-");
-  if (!input.thinkingLevel || !isGemini3Or4) return undefined;
-  return { google: { thinkingConfig: { thinkingLevel: input.thinkingLevel } } };
+  const supportsThinking = /^gemini-(?:2\.5|3\.|4-)/.test(model);
+  if (!input.thinkingLevel || !supportsThinking) return undefined;
+  const thinkingLevel =
+    input.thinkingLevel === "minimal" && model.startsWith("gemini-2.5-")
+      ? "low"
+      : input.thinkingLevel;
+  return { google: { thinkingConfig: { thinkingLevel } } };
 }
 
 function signalFor(input: TextGenerationInput): AbortSignal | undefined {
@@ -40,8 +44,27 @@ function requestOptionsFor(input: TextGenerationInput, model: string) {
   };
 }
 
+function llmErrorClass(
+  error: unknown,
+): "rate_limit" | "timeout" | "invalid_json" | "language" | "other" {
+  if (!error || typeof error !== "object") return "other";
+  const value = error as Record<string, unknown>;
+  if (Number(value["statusCode"] ?? value["status"] ?? 0) === 429) return "rate_limit";
+  const message = `${String(value["name"] ?? "")} ${String(value["message"] ?? "")}`;
+  if (/timeout|abort/i.test(message)) return "timeout";
+  if (/json|structured output/i.test(message)) return "invalid_json";
+  if (/language/i.test(message)) return "language";
+  return "other";
+}
+
 export class GeminiLLMProvider implements LLMProvider {
-  readonly usageStats = { apiCalls: 0, inputTokens: 0, outputTokens: 0, usageReportedCalls: 0 };
+  readonly usageStats = {
+    apiCalls: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    thinkingTokens: 0,
+    usageReportedCalls: 0,
+  };
 
   constructor(
     readonly model: string,
@@ -52,65 +75,161 @@ export class GeminiLLMProvider implements LLMProvider {
   private withRequest<T>(
     input: TextGenerationInput,
     operation: (model: string) => Promise<T>,
-    onSuccess?: (result: T) => void,
   ): Promise<T> {
+    const perModel = new Map<
+      string,
+      {
+        attempts: number;
+        started: number;
+        inputTokens: number;
+        outputTokens: number;
+        thinkingTokens: number;
+        errorClass?: string;
+      }
+    >();
     const run = (model: string, quotaKey: GeminiQuotaKey, maxAttempts = input.maxAttempts) =>
       withGeminiRequest(
         quotaKey,
         async () => {
+          const observed = perModel.get(model) ?? {
+            attempts: 0,
+            started: Date.now(),
+            inputTokens: 0,
+            outputTokens: 0,
+            thinkingTokens: 0,
+          };
+          observed.attempts += 1;
+          perModel.set(model, observed);
           this.usageStats.apiCalls += 1;
-          const result = await operation(model);
-          onSuccess?.(result);
-          return result;
+          try {
+            const result = await operation(model);
+            const usage = this.recordUsage(result);
+            observed.inputTokens += usage.inputTokens;
+            observed.outputTokens += usage.outputTokens;
+            observed.thinkingTokens += usage.thinkingTokens;
+            return result;
+          } catch (error) {
+            observed.errorClass = llmErrorClass(error);
+            throw error;
+          }
         },
-        input.requestBudget,
         maxAttempts,
       );
     const primary = () => run(this.model, this.quotaKey);
-    if (this.quotaKey !== "AI_CHAT_MODEL") return primary();
-    const fallbackModel = this.fallbackModel;
-    return withGeminiQuotaFallback(
-      this.model,
-      fallbackModel,
-      primary,
-      fallbackModel ? () => run(fallbackModel, "AI_LIGHT_MODEL", 1) : undefined,
-    );
+    const fallbackModel = this.quotaKey === "AI_CHAT_MODEL" ? this.fallbackModel : undefined;
+    const operationResult = async () => {
+      if (!fallbackModel) return primary();
+      return withGeminiQuotaFallback(this.model, fallbackModel, primary, () =>
+        run(fallbackModel, "AI_LIGHT_MODEL", 1),
+      );
+    };
+    const started = Date.now();
+    let error: unknown;
+    return operationResult()
+      .catch((caught: unknown) => {
+        error = caught;
+        throw caught;
+      })
+      .finally(() => {
+        if (!input.telemetryStep) return;
+        const models: Array<
+          [
+            string,
+            {
+              attempts: number;
+              started: number;
+              inputTokens: number;
+              outputTokens: number;
+              thinkingTokens: number;
+              errorClass?: string;
+            },
+          ]
+        > = perModel.size
+          ? [...perModel]
+          : [
+              [
+                this.model,
+                { attempts: 0, started, inputTokens: 0, outputTokens: 0, thinkingTokens: 0 },
+              ],
+            ];
+        for (const [model, usage] of models) {
+          console.info(
+            "[OSINT LLM] step=" +
+              input.telemetryStep +
+              " model=" +
+              model +
+              " duration_ms=" +
+              (Date.now() - usage.started) +
+              " input_tokens=" +
+              usage.inputTokens +
+              " output_tokens=" +
+              usage.outputTokens +
+              " thinking_tokens=" +
+              usage.thinkingTokens +
+              " attempts=" +
+              usage.attempts +
+              " error=" +
+              (usage.errorClass ?? (error ? llmErrorClass(error) : "none")),
+          );
+        }
+      });
   }
 
-  private recordUsage(value: unknown): void {
-    if (!value || typeof value !== "object") return;
-    const usage = value as { inputTokens?: unknown; outputTokens?: unknown };
-    const inputTokens = usage.inputTokens;
-    const outputTokens = usage.outputTokens;
+  private recordUsage(value: unknown): {
+    inputTokens: number;
+    outputTokens: number;
+    thinkingTokens: number;
+  } {
+    const response = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+    const rawUsage =
+      response["usage"] && typeof response["usage"] === "object"
+        ? (response["usage"] as Record<string, unknown>)
+        : {};
+    const providerMetadata =
+      response["providerMetadata"] && typeof response["providerMetadata"] === "object"
+        ? (response["providerMetadata"] as Record<string, unknown>)
+        : {};
+    const googleMetadata =
+      providerMetadata["google"] && typeof providerMetadata["google"] === "object"
+        ? (providerMetadata["google"] as Record<string, unknown>)
+        : {};
+    const rawGoogleUsage =
+      googleMetadata["usageMetadata"] && typeof googleMetadata["usageMetadata"] === "object"
+        ? (googleMetadata["usageMetadata"] as Record<string, unknown>)
+        : {};
+    const numeric = (value: unknown) =>
+      typeof value === "number" && Number.isFinite(value) ? value : 0;
+    const inputTokens = numeric(rawUsage["inputTokens"]);
+    const outputTokens = numeric(rawUsage["outputTokens"]);
+    const thinkingTokens = numeric(
+      rawUsage["reasoningTokens"] ?? rawGoogleUsage["thoughtsTokenCount"],
+    );
     if (typeof inputTokens === "number" && Number.isFinite(inputTokens)) {
       this.usageStats.inputTokens += inputTokens;
     }
     if (typeof outputTokens === "number" && Number.isFinite(outputTokens)) {
       this.usageStats.outputTokens += outputTokens;
     }
+    this.usageStats.thinkingTokens += thinkingTokens;
     if (typeof inputTokens === "number" || typeof outputTokens === "number") {
       this.usageStats.usageReportedCalls += 1;
     }
+    return { inputTokens, outputTokens, thinkingTokens };
   }
 
   async generateTextWithMetadata(
     input: TextGenerationInput,
   ): Promise<{ text: string; finishReason: string }> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
-    const result = await this.withRequest(
-      input,
-      (model) =>
-        generateText({
-          model: google(model),
-          ...(input.system ? { system: input.system } : {}),
-          prompt: input.prompt,
-          ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
-          ...(input.maxOutputTokens === undefined
-            ? {}
-            : { maxOutputTokens: input.maxOutputTokens }),
-          ...requestOptionsFor(input, model),
-        }),
-      (response) => this.recordUsage(response.usage),
+    const result = await this.withRequest(input, (model) =>
+      generateText({
+        model: google(model),
+        ...(input.system ? { system: input.system } : {}),
+        prompt: input.prompt,
+        ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+        ...(input.maxOutputTokens === undefined ? {} : { maxOutputTokens: input.maxOutputTokens }),
+        ...requestOptionsFor(input, model),
+      }),
     );
     return { text: result.text, finishReason: result.finishReason };
   }
@@ -124,21 +243,16 @@ export class GeminiLLMProvider implements LLMProvider {
     schema: TSchema,
   ): Promise<z.output<TSchema>> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
-    const result = await this.withRequest(
-      input,
-      (model) =>
-        generateText({
-          model: google(model),
-          ...(input.system ? { system: input.system } : {}),
-          prompt: input.prompt,
-          output: Output.object({ schema }),
-          ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
-          ...(input.maxOutputTokens === undefined
-            ? {}
-            : { maxOutputTokens: input.maxOutputTokens }),
-          ...requestOptionsFor(input, model),
-        }),
-      (response) => this.recordUsage(response.usage),
+    const result = await this.withRequest(input, (model) =>
+      generateText({
+        model: google(model),
+        ...(input.system ? { system: input.system } : {}),
+        prompt: input.prompt,
+        output: Output.object({ schema }),
+        ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+        ...(input.maxOutputTokens === undefined ? {} : { maxOutputTokens: input.maxOutputTokens }),
+        ...requestOptionsFor(input, model),
+      }),
     );
     if (result.output === undefined) throw new Error("Gemini returned no structured output.");
     return result.output;
@@ -166,7 +280,6 @@ export class GeminiLLMProvider implements LLMProvider {
             ...requestOptionsFor(input, model),
           }).textStream;
         },
-        input.requestBudget,
         maxAttempts,
       );
     const primary = createStream(this.model, this.quotaKey);
@@ -182,24 +295,21 @@ export class GeminiLLMProvider implements LLMProvider {
 
   async generateGroundedSearch(input: GroundedSearchInput) {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
-    const result = await this.withRequest(
-      input,
-      (model) =>
-        generateText({
-          model: google(model),
-          ...(input.system ? { system: input.system } : {}),
-          prompt: input.prompt,
-          tools: {
-            google_search: google.tools.googleSearch({
-              ...(input.startTime && input.endTime
-                ? { timeRangeFilter: { startTime: input.startTime, endTime: input.endTime } }
-                : {}),
-            }) as never,
-          },
-          ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
-          ...requestOptionsFor(input, model),
-        }),
-      (response) => this.recordUsage(response.usage),
+    const result = await this.withRequest(input, (model) =>
+      generateText({
+        model: google(model),
+        ...(input.system ? { system: input.system } : {}),
+        prompt: input.prompt,
+        tools: {
+          google_search: google.tools.googleSearch({
+            ...(input.startTime && input.endTime
+              ? { timeRangeFilter: { startTime: input.startTime, endTime: input.endTime } }
+              : {}),
+          }) as never,
+        },
+        ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+        ...requestOptionsFor(input, model),
+      }),
     );
     const providerMetadata = result.providerMetadata?.["google"] as
       | {
@@ -266,11 +376,11 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
           model: google.embedding(this.model),
           value: this.prepareValue(value, "RETRIEVAL_DOCUMENT"),
           providerOptions: this.options("RETRIEVAL_DOCUMENT"),
+          ...(request.signal ? { abortSignal: request.signal } : {}),
         });
         this.recordTokenUsage(result.usage.tokens);
         return result;
       },
-      request.requestBudget,
       request.maxAttempts,
     );
     return result.embedding;
@@ -292,11 +402,11 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
             model: google.embedding(this.model),
             values: batch.map((value) => this.prepareValue(value, "RETRIEVAL_DOCUMENT")),
             providerOptions: this.options("RETRIEVAL_DOCUMENT"),
+            ...(request.signal ? { abortSignal: request.signal } : {}),
           });
           this.recordTokenUsage(response.usage.tokens);
           return response;
         },
-        request.requestBudget,
         request.maxAttempts,
       );
       embeddings.push(...result.embeddings);
@@ -313,11 +423,11 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
           model: google.embedding(this.model),
           value: this.prepareValue(value, "RETRIEVAL_QUERY"),
           providerOptions: this.options("RETRIEVAL_QUERY"),
+          ...(request.signal ? { abortSignal: request.signal } : {}),
         });
         this.recordTokenUsage(result.usage.tokens);
         return result;
       },
-      request.requestBudget,
       request.maxAttempts,
     );
     return result.embedding;
@@ -336,11 +446,11 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
             model: google.embedding(this.model),
             values: batch.map((value) => this.prepareValue(value, "RETRIEVAL_QUERY")),
             providerOptions: this.options("RETRIEVAL_QUERY"),
+            ...(request.signal ? { abortSignal: request.signal } : {}),
           });
           this.recordTokenUsage(response.usage.tokens);
           return response;
         },
-        request.requestBudget,
         request.maxAttempts,
       );
       embeddings.push(...result.embeddings);

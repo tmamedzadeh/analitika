@@ -88,6 +88,7 @@ const countryNames: Record<string, string> = {
   IR: "iran",
   RU: "russia",
   US: "united states",
+  AZ: "azerbaijan",
 };
 
 export class TavilyProvider implements SearchProvider {

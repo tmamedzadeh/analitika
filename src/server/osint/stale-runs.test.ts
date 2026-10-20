@@ -18,10 +18,10 @@ describe("stale OSINT run recovery", () => {
       summary: "Existing summary",
       progress: { completedLanguages: 1, percent: 64 },
     });
-    expect(result.status).toBe("done");
+    expect(result.status).toBe("partial");
     expect(result.step).toBe("partial");
-    expect(result.summary).toBe("Existing summary");
-    expect(result.progress).toMatchObject({ percent: 100, partial: true, completedLanguages: 1 });
+    expect(result.summary).toBeNull();
+    expect(result.progress).toMatchObject({ percent: 64, partial: true, completedLanguages: 1 });
     expect("notice" in result.progress && result.progress.notice).toBeTruthy();
   });
 

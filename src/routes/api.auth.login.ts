@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   clearLoginAttempts,
   consumeLoginAttempt,
+  isLoginAttemptAllowed,
   createSession,
   loginRateLimitKeys,
   pruneLoginAttempts,
@@ -85,7 +86,7 @@ export async function handleLoginRequest(request: Request): Promise<Response> {
   const keys = loginRateLimitKeys(request, username);
   await pruneLoginAttempts();
   const limits = await Promise.all(
-    keys.map((key, index) => consumeLoginAttempt(key, index === 0 ? 10 : 60)),
+    keys.map((key, index) => isLoginAttemptAllowed(key, index === 0 ? 10 : 60)),
   );
   if (limits.some((allowed) => !allowed)) {
     return json({ message: "Too many attempts. Try again later." }, 429, {
@@ -107,10 +108,11 @@ export async function handleLoginRequest(request: Request): Promise<Response> {
     : [];
   const passwordMatches = await verifyPassword(password, user?.passwordHash ?? null);
   if (!parsed.success || !user?.active || !passwordMatches) {
+    await Promise.all(keys.map((key, index) => consumeLoginAttempt(key, index === 0 ? 10 : 60)));
     return json({ message: "Invalid username or password." }, 401);
   }
 
-  await Promise.all(keys.map((key) => clearLoginAttempts(key)));
+  await clearLoginAttempts(keys[0]!);
   const { token } = await createSession(user.id);
   return json(
     { ok: true, redirect: safeInternalRedirect((body as { redirect?: unknown }).redirect) },

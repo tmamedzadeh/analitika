@@ -25,10 +25,13 @@
     "db:verify:search": "bun run scripts/eval-retrieval.ts",
     "osint:pin": "bun run scripts/osint-pin.ts",
     "osint:eval": "bun run scripts/osint-eval.ts",
+    "osint:probe": "bun run scripts/osint-probe.ts",
+    "osint:verify-registry": "bun run scripts/verify-osint-registry.ts",
     "osint:live:verify": "bun run scripts/verify-osint-live.ts",
     "osint:live:report": "bun run scripts/report-osint-live.ts",
     "db:eval:rerank": "bun run scripts/eval-rerank.ts",
     "db:migrate": "drizzle-kit migrate",
+    "db:check-drift": "bun run scripts/db-check-drift.ts",
     "auth:create-admin": "bun run scripts/create-admin.ts"
   },
   "overrides": {

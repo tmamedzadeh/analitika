@@ -24,11 +24,32 @@ describe("descriptive source registry", () => {
   });
 
   it("keeps registry coverage available for each selected language", () => {
-    for (const language of ["fa", "hy", "ru", "zh", "en", "fr", "ka"] as const) {
+    for (const language of ["fa", "hy", "ru", "zh", "en", "fr", "ka", "az"] as const) {
       expect(registryForLanguage(language).length).toBeGreaterThan(0);
       expect(registryDomains(language)).toEqual(
         registryForLanguage(language).map((entry) => entry.domain),
       );
+    }
+  });
+
+  it("includes the requested Azerbaijani outlets and public institutions", () => {
+    const expected = new Map([
+      ["apa.az", "agency"],
+      ["report.az", "domestic_media"],
+      ["trend.az", "agency"],
+      ["azertag.az", "agency"],
+      ["1news.az", "domestic_media"],
+      ["musavat.com", "domestic_media"],
+      ["turan.az", "agency"],
+      ["azadliq.org", "international_media"],
+      ["meydan.tv", "independent_media"],
+      ["president.az", "official"],
+      ["mfa.gov.az", "official"],
+      ["mod.gov.az", "official"],
+      ["aircenter.az", "think_tank"],
+    ]);
+    for (const [domain, type] of expected) {
+      expect(sourceRegistryEntry(domain, "az")?.type).toBe(type);
     }
   });
 

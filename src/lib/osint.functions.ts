@@ -1,29 +1,35 @@
 import { and, desc, eq, gt, inArray, lte } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import {
-  OSINT_GEMINI_CALL_BUDGET,
-  OSINT_SEARCH_CALL_BUDGET,
-  osintRunIdSchema,
-  osintSearchSchema,
-} from "./osint";
+import { osintRunIdSchema, osintSearchSchema } from "./osint";
 import { az } from "./i18n/az";
+import { getCurrentUser } from "@/server/auth";
 import { getDb } from "@/server/db";
 import {
   osintCache,
   osintPageCache,
   osintRuns,
   osintSearchCache,
+  osintQueryCache,
   osintSources,
+  appUsers,
 } from "@/server/db/schema";
-import { osintRunRequested } from "@/server/inngest/events";
+import { osintRunRequested, osintSummaryRetryRequested } from "@/server/inngest/events";
 import { inngest } from "@/server/inngest/client";
 import { createOsintCacheKey } from "@/server/osint/urls";
 import { getAppConfig } from "@/server/config";
 import { findPinnedOsintRun, shouldServePinnedCache } from "@/server/osint/cache";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 import { markStaleOsintRuns } from "@/server/osint/stale-runs";
+import { canAccessOsintRun, osintRunHistoryFilter } from "@/server/osint/access";
 import type { SourceSummary, StructuredReport } from "@/server/osint/reports";
+import {
+  isStructuredReportAzerbaijani,
+  sourceSummarySchema,
+  structuredReportSchema,
+} from "@/server/osint/reports";
+import { looksAzerbaijani } from "@/server/osint/language";
+import { plainTextFragment } from "@/lib/osint-text";
 
 type OsintProgress = {
   percent: number;
@@ -31,62 +37,86 @@ type OsintProgress = {
   totalLanguages: number;
   sourcesFound: number;
   sourcesProcessed: number;
-  providerCalls: number;
-  providerCallBudget: number;
-  searchCalls: number;
-  llmCalls: number;
-  llmCallBudget: number;
-  llmInputTokens: number;
-  llmOutputTokens: number;
-  llmUsageReportedCalls: number;
-  fetchStatusCounts: Record<string, number>;
-  failedSteps: string[];
-  currentLanguage?: string;
+  failureClass?: "llm" | "limit" | "search" | "page";
   partial?: boolean;
   notice?: string;
   fallbackProvider?: boolean;
-  fallbackReason?: string;
 };
 function serializeProgress(value: unknown): OsintProgress {
   const p = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const failures = Array.isArray(p["failedSteps"])
+    ? p["failedSteps"].filter((item): item is string => typeof item === "string")
+    : [];
+  const fetchCounts =
+    p["fetchStatusCounts"] && typeof p["fetchStatusCounts"] === "object"
+      ? (p["fetchStatusCounts"] as Record<string, unknown>)
+      : {};
+  const pageFailure = [
+    "robots_denied",
+    "dns_or_network_error",
+    "http_error",
+    "non_html",
+    "timeout",
+    "invalid_url",
+  ].some((status) => Number(fetchCounts[status] ?? 0) > 0);
+  const failureClass = failures.some((failure) =>
+    /limit|rate_limit|429|search_budget/i.test(failure),
+  )
+    ? "limit"
+    : failures.some((failure) => /searching|search/i.test(failure))
+      ? "search"
+      : pageFailure
+        ? "page"
+        : failures.length
+          ? "llm"
+          : undefined;
   return {
     percent: typeof p["percent"] === "number" ? p["percent"] : 0,
     completedLanguages: typeof p["completedLanguages"] === "number" ? p["completedLanguages"] : 0,
     totalLanguages: typeof p["totalLanguages"] === "number" ? p["totalLanguages"] : 0,
     sourcesFound: typeof p["sourcesFound"] === "number" ? p["sourcesFound"] : 0,
     sourcesProcessed: typeof p["sourcesProcessed"] === "number" ? p["sourcesProcessed"] : 0,
-    providerCalls: typeof p["providerCalls"] === "number" ? p["providerCalls"] : 0,
-    providerCallBudget:
-      typeof p["providerCallBudget"] === "number"
-        ? p["providerCallBudget"]
-        : OSINT_SEARCH_CALL_BUDGET,
-    searchCalls: typeof p["searchCalls"] === "number" ? p["searchCalls"] : 0,
-    llmCalls: typeof p["llmCalls"] === "number" ? p["llmCalls"] : 0,
-    llmCallBudget: OSINT_GEMINI_CALL_BUDGET,
-    llmInputTokens: typeof p["llmInputTokens"] === "number" ? p["llmInputTokens"] : 0,
-    llmOutputTokens: typeof p["llmOutputTokens"] === "number" ? p["llmOutputTokens"] : 0,
-    llmUsageReportedCalls:
-      typeof p["llmUsageReportedCalls"] === "number" ? p["llmUsageReportedCalls"] : 0,
-    fetchStatusCounts:
-      p["fetchStatusCounts"] && typeof p["fetchStatusCounts"] === "object"
-        ? (p["fetchStatusCounts"] as Record<string, number>)
-        : {},
-    failedSteps: Array.isArray(p["failedSteps"])
-      ? p["failedSteps"].filter((x): x is string => typeof x === "string")
-      : [],
-    ...(typeof p["currentLanguage"] === "string" ? { currentLanguage: p["currentLanguage"] } : {}),
+    ...(failureClass ? { failureClass } : {}),
     ...(typeof p["partial"] === "boolean" ? { partial: p["partial"] } : {}),
     ...(typeof p["notice"] === "string" ? { notice: p["notice"] } : {}),
     ...(typeof p["fallbackProvider"] === "boolean"
       ? { fallbackProvider: p["fallbackProvider"] }
       : {}),
-    ...(typeof p["fallbackReason"] === "string" ? { fallbackReason: p["fallbackReason"] } : {}),
   };
+}
+
+function safeSourceSummary(value: unknown): SourceSummary | null {
+  const parsed = sourceSummarySchema.safeParse(value);
+  if (
+    !parsed.success ||
+    !looksAzerbaijani(parsed.data.title) ||
+    !looksAzerbaijani(parsed.data.summary) ||
+    parsed.data.claims.some((claim) => !looksAzerbaijani(claim))
+  ) {
+    return null;
+  }
+  return parsed.data;
+}
+
+function safeStructuredReport(value: unknown): StructuredReport | null {
+  const parsed = structuredReportSchema.safeParse(value);
+  return parsed.success && isStructuredReportAzerbaijani(parsed.data) ? parsed.data : null;
+}
+
+function reportSummary(report: StructuredReport | null): string | null {
+  if (!report) return null;
+  const citations = (numbers: number[]) => numbers.map((number) => `[${number}]`).join(" ");
+  return [
+    report.bluf +
+      (report.blufSourceNumbers.length ? ` ${citations(report.blufSourceNumbers)}` : ""),
+    ...report.keyFindings.map((finding) => `${finding.text} ${citations(finding.sourceNumbers)}`),
+  ].join("\n");
 }
 
 export const startOsintRun = createServerFn({ method: "POST" })
   .validator(osintSearchSchema)
   .handler(async ({ data }) => {
+    const user = getCurrentUser();
     if (!(await consumeIpRateLimit("osint-start", getRequest(), 6, 60 * 60_000))) {
       throw new Error(az.analytics.rateLimited);
     }
@@ -108,12 +138,17 @@ export const startOsintRun = createServerFn({ method: "POST" })
       now = new Date();
     await db.delete(osintCache).where(lte(osintCache.expiresAt, now));
     await db.delete(osintSearchCache).where(lte(osintSearchCache.expiresAt, now));
+    await db.delete(osintQueryCache).where(lte(osintQueryCache.expiresAt, now));
     await db.delete(osintPageCache).where(lte(osintPageCache.expiresAt, now));
     const [active] = await db
       .select({ id: osintRuns.id })
       .from(osintRuns)
       .where(
-        and(eq(osintRuns.cacheKey, cacheKey), inArray(osintRuns.status, ["queued", "running"])),
+        and(
+          eq(osintRuns.cacheKey, cacheKey),
+          eq(osintRuns.createdBy, user.id),
+          inArray(osintRuns.status, ["queued", "running"]),
+        ),
       )
       .limit(1);
     if (active) return { runId: active.id, cacheHit: false, pinned: false };
@@ -130,7 +165,7 @@ export const startOsintRun = createServerFn({ method: "POST" })
         return { runId: pinned.id, cacheHit: true, pinned: true };
       }
       const [cached] = await db
-        .select({ id: osintRuns.id })
+        .select({ id: osintRuns.id, createdBy: osintRuns.createdBy })
         .from(osintCache)
         .innerJoin(osintRuns, eq(osintCache.runId, osintRuns.id))
         .where(
@@ -141,12 +176,72 @@ export const startOsintRun = createServerFn({ method: "POST" })
           ),
         )
         .limit(1);
-      if (cached) return { runId: cached.id, cacheHit: true, pinned: false };
+      if (cached) {
+        if (cached.createdBy === user.id)
+          return { runId: cached.id, cacheHit: true, pinned: false };
+        const [sourceRun] = await db
+          .select()
+          .from(osintRuns)
+          .where(eq(osintRuns.id, cached.id))
+          .limit(1);
+        if (!sourceRun) throw new Error(az.osint.failed);
+        const cloneId = crypto.randomUUID();
+        const cachedSources = await db
+          .select()
+          .from(osintSources)
+          .where(eq(osintSources.runId, sourceRun.id))
+          .orderBy(osintSources.n);
+        await db.transaction(async (transaction) => {
+          await transaction.insert(osintRuns).values({
+            id: cloneId,
+            query: sourceRun.query,
+            languages: sourceRun.languages,
+            period: sourceRun.period,
+            status: sourceRun.status,
+            step: sourceRun.step,
+            progress: sourceRun.progress,
+            summary: sourceRun.summary,
+            structuredReport: sourceRun.structuredReport,
+            cacheKey: sourceRun.cacheKey,
+            cacheBypass: false,
+            createdBy: user.id,
+            clonedFromRunId: sourceRun.id,
+            pinned: false,
+            heartbeatAt: sourceRun.heartbeatAt,
+            createdAt: now,
+            finishedAt: sourceRun.finishedAt,
+          });
+          if (cachedSources.length) {
+            await transaction.insert(osintSources).values(
+              cachedSources.map((source) => ({
+                runId: cloneId,
+                n: source.n,
+                title: source.title,
+                url: source.url,
+                domain: source.domain,
+                language: source.language,
+                publishedAt: source.publishedAt,
+                sourceType: source.sourceType,
+                summary: source.summary,
+                structuredSummary: source.structuredSummary,
+                providers: source.providers,
+                providerRank: source.providerRank,
+                affiliation: source.affiliation,
+                snippet: source.snippet,
+                fetched: source.fetched,
+                fetchStatus: source.fetchStatus,
+              })),
+            );
+          }
+        });
+        return { runId: cloneId, cacheHit: true, pinned: false };
+      }
     }
     const [inserted] = await db
       .insert(osintRuns)
       .values({
         id: crypto.randomUUID(),
+        createdBy: user.id,
         query: data.query,
         languages,
         period: data.period,
@@ -161,14 +256,6 @@ export const startOsintRun = createServerFn({ method: "POST" })
           totalLanguages: languages.length,
           sourcesFound: 0,
           sourcesProcessed: 0,
-          providerCalls: 0,
-          providerCallBudget: OSINT_SEARCH_CALL_BUDGET,
-          searchCalls: 0,
-          llmCalls: 0,
-          llmCallBudget: OSINT_GEMINI_CALL_BUDGET,
-          llmInputTokens: 0,
-          llmOutputTokens: 0,
-          llmUsageReportedCalls: 0,
           fetchStatusCounts: {},
           failedSteps: [],
         },
@@ -180,7 +267,11 @@ export const startOsintRun = createServerFn({ method: "POST" })
         .select({ id: osintRuns.id })
         .from(osintRuns)
         .where(
-          and(eq(osintRuns.cacheKey, cacheKey), inArray(osintRuns.status, ["queued", "running"])),
+          and(
+            eq(osintRuns.cacheKey, cacheKey),
+            eq(osintRuns.createdBy, user.id),
+            inArray(osintRuns.status, ["queued", "running"]),
+          ),
         )
         .limit(1);
       if (!existing) throw new Error(az.osint.failed);
@@ -200,6 +291,7 @@ export const startOsintRun = createServerFn({ method: "POST" })
   });
 
 export const listOsintRuns = createServerFn({ method: "GET" }).handler(async () => {
+  const user = getCurrentUser();
   await markStaleOsintRuns();
   const rows = await getDb()
     .select({
@@ -210,12 +302,15 @@ export const listOsintRuns = createServerFn({ method: "GET" }).handler(async () 
       status: osintRuns.status,
       step: osintRuns.step,
       progress: osintRuns.progress,
-      summary: osintRuns.summary,
       error: osintRuns.error,
       pinned: osintRuns.pinned,
       createdAt: osintRuns.createdAt,
+      createdBy: osintRuns.createdBy,
+      author: appUsers.username,
     })
     .from(osintRuns)
+    .innerJoin(appUsers, eq(osintRuns.createdBy, appUsers.id))
+    .where(osintRunHistoryFilter(user))
     .orderBy(desc(osintRuns.createdAt))
     .limit(30);
   return rows.map((row) => ({
@@ -227,25 +322,100 @@ export const listOsintRuns = createServerFn({ method: "GET" }).handler(async () 
 export const getOsintRun = createServerFn({ method: "GET" })
   .validator(osintRunIdSchema)
   .handler(async ({ data }) => {
+    const user = getCurrentUser();
     await markStaleOsintRuns();
     const db = getDb(),
       [run] = await db.select().from(osintRuns).where(eq(osintRuns.id, data.runId)).limit(1);
     if (!run) return null;
+    if (!canAccessOsintRun(user, run)) return null;
     const sources = await db
       .select()
       .from(osintSources)
       .where(eq(osintSources.runId, data.runId))
       .orderBy(osintSources.n);
+    const structuredReport = safeStructuredReport(run.structuredReport);
+    const [author] = await db
+      .select({ username: appUsers.username })
+      .from(appUsers)
+      .where(eq(appUsers.id, run.createdBy))
+      .limit(1);
     return {
       ...run,
-      structuredReport: run.structuredReport as StructuredReport | null,
+      author: author?.username ?? "",
+      structuredReport,
+      summary: reportSummary(structuredReport),
       progress: serializeProgress(run.progress),
       createdAt: run.createdAt.toISOString(),
       finishedAt: run.finishedAt?.toISOString() ?? null,
-      sources: sources.map((source) => ({
-        ...source,
-        structuredSummary: source.structuredSummary as SourceSummary | null,
-        publishedAt: source.publishedAt?.toISOString() ?? null,
-      })),
+      sources: sources.map((source) => {
+        const structuredSummary = safeSourceSummary(source.structuredSummary);
+        return {
+          ...source,
+          title: structuredSummary?.title ?? source.domain,
+          summary: structuredSummary?.summary ?? null,
+          structuredSummary,
+          snippet: structuredSummary ? "" : plainTextFragment(source.snippet, 300),
+          publishedAt: source.publishedAt?.toISOString() ?? null,
+        };
+      }),
     };
+  });
+
+export const retryOsintSummary = createServerFn({ method: "POST" })
+  .validator(osintRunIdSchema)
+  .handler(async ({ data }) => {
+    const db = getDb();
+    const user = getCurrentUser();
+    const [run] = await db
+      .select({
+        id: osintRuns.id,
+        createdBy: osintRuns.createdBy,
+        pinned: osintRuns.pinned,
+        status: osintRuns.status,
+        step: osintRuns.step,
+        progress: osintRuns.progress,
+        structuredReport: osintRuns.structuredReport,
+      })
+      .from(osintRuns)
+      .where(eq(osintRuns.id, data.runId))
+      .limit(1);
+    if (!run || !canAccessOsintRun(user, run)) {
+      throw new Error(az.osint.loadFailed);
+    }
+    if (run.status === "running" && run.step === "summary_retrying") return { accepted: true };
+    if (!(["partial", "done"] as string[]).includes(run.status) || run.structuredReport) {
+      throw new Error(az.osint.loadFailed);
+    }
+    const [source] = await db
+      .select({ id: osintSources.id })
+      .from(osintSources)
+      .where(eq(osintSources.runId, run.id))
+      .limit(1);
+    if (!source) throw new Error(az.osint.loadFailed);
+    const progress =
+      run.progress && typeof run.progress === "object"
+        ? (run.progress as Record<string, unknown>)
+        : {};
+    const [claimed] = await db
+      .update(osintRuns)
+      .set({
+        status: "running",
+        step: "summary_retrying",
+        progress: { ...progress, percent: Math.min(Number(progress["percent"] ?? 90), 99) },
+        heartbeatAt: new Date(),
+        error: null,
+      })
+      .where(and(eq(osintRuns.id, run.id), inArray(osintRuns.status, ["partial", "done"])))
+      .returning({ id: osintRuns.id });
+    if (!claimed) return { accepted: true };
+    try {
+      await inngest.send(osintSummaryRetryRequested.create({ runId: run.id }));
+    } catch {
+      await db
+        .update(osintRuns)
+        .set({ status: "partial", step: "partial", heartbeatAt: new Date() })
+        .where(and(eq(osintRuns.id, run.id), eq(osintRuns.step, "summary_retrying")));
+      throw new Error(az.osint.failed);
+    }
+    return { accepted: true };
   });

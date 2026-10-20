@@ -20,6 +20,8 @@ export const serverEnvSchema = z.object({
   AI_LIGHT_MODEL: optionalValue,
   GEMINI_EMBED_MODEL: optionalValue,
   ANALYTICS_THINKING_LEVEL: z.enum(["low", "medium", "high"]).default("medium"),
+  OSINT_THINKING_LEVEL: z.enum(["minimal", "low", "medium", "high"]).default("low"),
+  ANALYTICS_HISTORY_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
   EXA_API_KEY: optionalValue,
   TAVILY_API_KEY: optionalValue,
   HASDATA_API_KEY: optionalValue,

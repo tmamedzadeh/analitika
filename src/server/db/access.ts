@@ -1,4 +1,4 @@
-import { inArray, sql } from "drizzle-orm";
+import { inArray, or, sql } from "drizzle-orm";
 
 import {
   allowedClassifications,
@@ -20,7 +20,11 @@ export function accessFilter(_user: CurrentUser = getCurrentUser()) {
 }
 
 export function documentAccessFilter(user: CurrentUser = getCurrentUser()) {
-  return inArray(documents.classification, allowedClassifications(user));
+  return or(
+    inArray(documents.classification, allowedClassifications(user)),
+    sql`exists (select 1 from document_acl where document_acl.document_id = ${documents.id} and document_acl.user_id = ${user.id})`,
+    sql`${documents.ownerId} = ${user.id}`,
+  )!;
 }
 
 // Trusted document indexing workers use this predicate; never use it in request handlers.

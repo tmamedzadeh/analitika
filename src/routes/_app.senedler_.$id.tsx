@@ -12,6 +12,7 @@ import {
   deleteDocument,
   getDocumentDetails,
   retryDocumentIndexing,
+  updateDocumentAcl,
   updateDocumentDirection,
 } from "@/lib/documents.functions";
 
@@ -36,11 +37,15 @@ function DocumentPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const parsedId = z.string().uuid().safeParse(id);
-  const [busyAction, setBusyAction] = useState<"retry" | "delete" | "direction" | null>(null);
+  const [busyAction, setBusyAction] = useState<"retry" | "delete" | "direction" | "acl" | null>(
+    null,
+  );
   const busy = busyAction !== null;
   const [pageError, setPageError] = useState("");
   const [direction, setDirection] = useState<DirectionId | "">("");
   const [directionSaved, setDirectionSaved] = useState(false);
+  const [aclUserIds, setAclUserIds] = useState<string[]>([]);
+  const [aclSaved, setAclSaved] = useState(false);
   const documentQuery = useQuery({
     queryKey: ["document", id],
     enabled: parsedId.success,
@@ -59,6 +64,10 @@ function DocumentPage() {
     const parsedDirection = directionIdSchema.safeParse(document?.direction);
     setDirection(parsedDirection.success ? parsedDirection.data : "");
   }, [document?.direction]);
+  useEffect(() => {
+    setAclUserIds(document?.aclUsers.map((user) => user.id) ?? []);
+    setAclSaved(false);
+  }, [document?.aclUsers]);
   useEffect(() => {
     if (!selectedChunkId || !document) return;
     const frame = requestAnimationFrame(() => {
@@ -111,6 +120,21 @@ function DocumentPage() {
       setDirectionSaved(true);
     } catch (error) {
       setPageError(error instanceof Error ? error.message : az.directions.saveFailed);
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function saveAcl() {
+    setBusyAction("acl");
+    setPageError("");
+    setAclSaved(false);
+    try {
+      await updateDocumentAcl({ data: { documentId: id, userIds: aclUserIds } });
+      await queryClient.invalidateQueries({ queryKey: ["document", id] });
+      setAclSaved(true);
+    } catch {
+      setPageError(az.documents.acl.saveFailed);
     } finally {
       setBusyAction(null);
     }
@@ -273,6 +297,51 @@ function DocumentPage() {
           </p>
         )}
       </section>
+
+      {document.canManageAcl && (
+        <section className="panel mb-5 space-y-3 p-5">
+          <h2 className="text-lg font-semibold">{az.documents.acl.title}</h2>
+          <p className="text-sm text-muted-foreground">{az.documents.acl.hint}</p>
+          <div className="grid max-h-56 gap-2 overflow-y-auto rounded-lg border border-border p-3 sm:grid-cols-2">
+            {document.aclCandidates.map((user) => (
+              <label key={user.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={aclUserIds.includes(user.id)}
+                  onChange={(event) => {
+                    const checked = event.currentTarget.checked;
+                    setAclSaved(false);
+                    setAclUserIds((current) =>
+                      checked
+                        ? current.length < 50 && !current.includes(user.id)
+                          ? [...current, user.id]
+                          : current
+                        : current.filter((id) => id !== user.id),
+                    );
+                  }}
+                />
+                {user.username}
+              </label>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className="pill"
+              disabled={busy || aclUserIds.length > 50}
+              onClick={() => void saveAcl()}
+            >
+              {busyAction === "acl" && <ZirveLoader variant="inline" label="" />}
+              {az.documents.acl.save}
+            </button>
+            {aclSaved && (
+              <p role="status" className="text-sm text-success">
+                {az.documents.acl.saved}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       {document.status === "processing" && (
         <div className="panel mb-5 p-4">

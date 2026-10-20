@@ -1,4 +1,4 @@
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
@@ -36,11 +36,9 @@ function safeFileName(value: string): string {
 
 function requestForCurrentUser(requestId: string) {
   const user = getCurrentUser();
-  const ownerCondition =
-    user.role === "admin"
-      ? or(eq(infoRequests.requesterId, user.id), eq(infoRequests.requesterId, "admin"))
-      : eq(infoRequests.requesterId, user.id);
-  return and(eq(infoRequests.id, requestId), ownerCondition);
+  return user.role === "admin"
+    ? eq(infoRequests.id, requestId)
+    : and(eq(infoRequests.id, requestId), eq(infoRequests.requesterId, user.id));
 }
 
 const requestUploadSchema = requestAttachmentMetadataSchema
@@ -90,10 +88,7 @@ export const listInfoRequests = createServerFn({ method: "GET" }).handler(async 
     )
     .where(
       getCurrentUser().role === "admin"
-        ? or(
-            eq(infoRequests.requesterId, getCurrentUser().id),
-            eq(infoRequests.requesterId, "admin"),
-          )
+        ? undefined
         : eq(infoRequests.requesterId, getCurrentUser().id),
     )
     .orderBy(desc(infoRequests.requestDate), desc(infoRequests.createdAt))

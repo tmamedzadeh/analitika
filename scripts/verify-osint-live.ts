@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 
 import { OSINT_LANGUAGES, type OsintPeriod } from "../src/lib/osint";
 import { closeDb, getDb } from "../src/server/db";
-import { osintRuns, osintSources } from "../src/server/db/schema";
+import { appUsers, osintRuns, osintSources } from "../src/server/db/schema";
 import { getAppConfig } from "../src/server/config";
 import { createOsintCacheKey } from "../src/server/osint/urls";
 import { runOsintJob } from "../src/server/jobs/run-osint";
@@ -35,24 +35,25 @@ function onlyHandledUrlRejections(steps: string): boolean {
 
 type RunResult = {
   label: string;
+  status: string;
   languages: Record<(typeof OSINT_LANGUAGES)[number], number>;
   exaText: number;
   fetchedFull: number;
   snippets: number;
   fetchErrors: string;
   seconds: number;
-  exaCalls: number;
-  geminiCalls: number;
-  inputTokens: number;
-  outputTokens: number;
-  reportedTokenCalls: number;
   failedSteps: string;
   cacheHit: boolean;
-  cacheProviderCalls: number;
 };
 
 async function runCase(item: (typeof cases)[number]): Promise<RunResult> {
   const db = getDb();
+  const [runOwner] = await db
+    .select({ id: appUsers.id })
+    .from(appUsers)
+    .where(eq(appUsers.role, "admin"))
+    .limit(1);
+  if (!runOwner) throw new Error("An administrator account is required for this live check.");
   const config = getAppConfig();
   const languages = [...OSINT_LANGUAGES];
   const cacheKey = createOsintCacheKey(
@@ -70,6 +71,7 @@ async function runCase(item: (typeof cases)[number]): Promise<RunResult> {
   await db.insert(osintRuns).values({
     id: runId,
     query: item.query,
+    createdBy: runOwner.id,
     languages,
     period,
     cacheKey,
@@ -133,21 +135,15 @@ async function runCase(item: (typeof cases)[number]): Promise<RunResult> {
       .join(", ") || "none";
   return {
     label: item.label,
+    status: run.status,
     languages: languagesByCount,
     exaText: fetchCounts["provider_text"] ?? 0,
     fetchedFull: fetchCounts["fetched_full"] ?? 0,
     snippets: fetchCounts["snippet_fallback"] ?? 0,
     fetchErrors,
     seconds: Number(durationSeconds.toFixed(1)),
-    exaCalls: typeof progress["searchCalls"] === "number" ? progress["searchCalls"] : 0,
-    geminiCalls: typeof progress["llmCalls"] === "number" ? progress["llmCalls"] : 0,
-    inputTokens: typeof progress["llmInputTokens"] === "number" ? progress["llmInputTokens"] : 0,
-    outputTokens: typeof progress["llmOutputTokens"] === "number" ? progress["llmOutputTokens"] : 0,
-    reportedTokenCalls:
-      typeof progress["llmUsageReportedCalls"] === "number" ? progress["llmUsageReportedCalls"] : 0,
     failedSteps,
     cacheHit,
-    cacheProviderCalls: cacheHit ? 0 : -1,
   };
 }
 
@@ -157,10 +153,11 @@ try {
     const row = await runCase(item);
     rows.push(row);
     const hasUnhandledFailure = !onlyHandledUrlRejections(row.failedSteps);
-    if (row.geminiCalls === 0 || hasUnhandledFailure) {
+    if (hasUnhandledFailure || row.status !== "done") {
       console.table(
         rows.map((result) => ({
           query: result.label,
+          status: result.status,
           fa: result.languages.fa,
           hy: result.languages.hy,
           ru: result.languages.ru,
@@ -172,17 +169,11 @@ try {
           snippets: result.snippets,
           errors: result.fetchErrors,
           seconds: result.seconds,
-          Exa: result.exaCalls,
-          Gemini: result.geminiCalls,
-          inputTokens: result.inputTokens,
-          outputTokens: result.outputTokens,
           failedSteps: result.failedSteps,
           cacheHit: result.cacheHit,
         })),
       );
-      console.error(
-        "OSINT live check stopped after the first query could not complete its Gemini steps.",
-      );
+      console.error("OSINT live check stopped because a run did not complete.");
       process.exitCode = 1;
       break;
     }
@@ -191,6 +182,7 @@ try {
     console.table(
       rows.map((result) => ({
         query: result.label,
+        status: result.status,
         fa: result.languages.fa,
         hy: result.languages.hy,
         ru: result.languages.ru,
@@ -202,17 +194,12 @@ try {
         snippets: result.snippets,
         errors: result.fetchErrors,
         seconds: result.seconds,
-        Exa: result.exaCalls,
-        Gemini: result.geminiCalls,
-        inputTokens: result.inputTokens,
-        outputTokens: result.outputTokens,
         failedSteps: result.failedSteps,
         cacheHit: result.cacheHit,
-        cacheCalls: result.cacheProviderCalls,
       })),
     );
     console.log(
-      "Each live run is capped at 8 Exa requests and 10 Gemini calls; queries are not logged.",
+      "Live check completion status and source counts are shown; query text is not logged.",
     );
   }
 } catch {

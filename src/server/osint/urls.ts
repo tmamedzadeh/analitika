@@ -43,7 +43,7 @@ export function createOsintCacheKey(
   providerIdentity = "gemini",
 ): string {
   const value = JSON.stringify({
-    pipelineVersion: 3,
+    pipelineVersion: 4,
     query: normalizeOsintQuery(query),
     languages: [...new Set(languages)].sort(),
     period,

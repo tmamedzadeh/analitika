@@ -99,6 +99,13 @@
       "when": 1792420000000,
       "tag": "0013_auth_users_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792450767215,
+      "tag": "0014_clever_kid_colt",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import {
   canAccessClassification,
   getCurrentUser,
   loginRateLimitKeys,
+  loginAttemptDelay,
   requireAdmin,
   safeInternalRedirect,
   withCurrentUser,
@@ -35,13 +36,17 @@ describe("account authentication helpers", () => {
     await expect(verifyPassword(password, null)).resolves.toBe(false);
   });
 
-  it("keeps clearance checks fail-closed for classified values", () => {
-    expect(allowedClassifications({ clearance: "secret" })).toEqual(["open", "secret"]);
-    expect(canAccessClassification(user, "open")).toBe(true);
-    expect(canAccessClassification(user, "secret")).toBe(true);
-    expect(canAccessClassification(user, "top_secret")).toBe(false);
-    expect(canAccessClassification(user, "special")).toBe(false);
-    expect(canAccessClassification({ clearance: "open" }, "secret")).toBe(false);
+  it("applies the full hierarchical classification matrix", () => {
+    const levels = ["open", "secret", "top_secret", "special"] as const;
+    for (const [clearanceIndex, clearance] of levels.entries()) {
+      expect(allowedClassifications({ clearance })).toEqual(levels.slice(0, clearanceIndex + 1));
+      for (const [classificationIndex, classification] of levels.entries()) {
+        expect(canAccessClassification({ clearance }, classification)).toBe(
+          classificationIndex <= clearanceIndex,
+        );
+      }
+    }
+    expect(canAccessClassification({ clearance: "open" }, "unknown")).toBe(false);
   });
 
   it("accepts only internal redirect targets", () => {
@@ -61,11 +66,18 @@ describe("account authentication helpers", () => {
     const sameAddress = new Request("https://app.example/login", {
       headers: { "x-real-ip": "192.0.2.4" },
     });
-    const [accountKey, addressKey] = loginRateLimitKeys(first, "analyst");
-    expect(accountKey).toBe(loginRateLimitKeys(sameAccount, "analyst")[0]);
+    const [loginIpKey, addressKey] = loginRateLimitKeys(first, "analyst");
+    expect(loginIpKey).not.toBe(loginRateLimitKeys(sameAccount, "analyst")[0]);
     expect(addressKey).toBe(loginRateLimitKeys(sameAddress, "different-user")[1]);
-    expect(accountKey).not.toContain("analyst");
+    expect(loginIpKey).not.toContain("analyst");
     expect(addressKey).not.toContain("192.0.2.4");
+  });
+
+  it("increases login retry pauses and caps the maximum delay", () => {
+    expect(loginAttemptDelay(1)).toBe(0);
+    expect(loginAttemptDelay(3)).toBe(250);
+    expect(loginAttemptDelay(4)).toBe(500);
+    expect(loginAttemptDelay(20)).toBe(8_000);
   });
 
   it("keeps authenticated context request-scoped", async () => {

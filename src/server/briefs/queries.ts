@@ -11,6 +11,7 @@ import {
 } from "@/lib/briefs";
 import { accessFilter } from "@/server/db/access";
 import { getDb } from "@/server/db";
+import { getCurrentUser } from "@/server/auth";
 import { briefAttachments, chunks, dailyBriefs } from "@/server/db/schema";
 import { afterBriefPosition, beforeBriefPosition } from "./pagination";
 
@@ -72,7 +73,6 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
       status: dailyBriefs.status,
       indexStatus: dailyBriefs.indexStatus,
       indexProgress: dailyBriefs.indexProgress,
-      author: dailyBriefs.authorId,
       publishedAt: dailyBriefs.publishedAt,
     })
     .from(dailyBriefs)
@@ -112,7 +112,6 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
     status: row.status as BriefListItem["status"],
     indexStatus: row.indexStatus as BriefListItem["indexStatus"],
     indexProgress: briefProgress(row.indexProgress),
-    author: row.author,
     photoCount: countByBrief.get(row.id) ?? 0,
     coverUrl: row.id === featuredRow?.id ? coverUrl : null,
   }));
@@ -134,8 +133,11 @@ export async function getBriefDetails(
   brief: Brief;
   previousId: string | null;
   nextId: string | null;
+  canEdit: boolean;
+  canDelete: boolean;
 } | null> {
   const db = getDb();
+  const user = getCurrentUser();
   const [row] = await db
     .select()
     .from(dailyBriefs)
@@ -185,7 +187,6 @@ export async function getBriefDetails(
       status: row.status as Brief["status"],
       indexStatus: row.indexStatus as Brief["indexStatus"],
       indexProgress: briefProgress(row.indexProgress),
-      author: row.authorId,
       photos,
       publishedAt: row.publishedAt?.toISOString() ?? null,
       highlight: highlightChunk
@@ -194,6 +195,8 @@ export async function getBriefDetails(
     },
     previousId: older?.id ?? null,
     nextId: newer?.id ?? null,
+    canEdit: user.role === "admin" || row.authorId === user.id,
+    canDelete: user.role === "admin",
   };
 }
 
