@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { az } from "@/lib/i18n/az";
+import { looksAzerbaijani } from "./language";
 
 export const sourceSummarySchema = z
   .object({
@@ -12,9 +13,37 @@ export const sourceSummarySchema = z
     publicationDate: z.string().trim().min(1).max(60).nullable(),
     quote: z.string().trim().min(1).max(500).nullable(),
   })
-  .strict();
+  .strict()
+  .describe(
+    "output language: Azerbaijani (az-Latn); do not copy source-language sentences; entity names and quote keep original script.",
+  );
 
 export type SourceSummary = z.infer<typeof sourceSummarySchema>;
+
+export const sourceSummaryBatchSchema = z
+  .object({
+    sources: z.array(sourceSummarySchema).min(1).max(5),
+  })
+  .describe(
+    "output language: Azerbaijani (az-Latn); do not copy source-language sentences; entity names and quote keep original script.",
+  );
+
+export const simplifiedSourceSummaryBatchSchema = z
+  .object({
+    sources: z
+      .array(
+        z.object({
+          number: z.number().int().positive(),
+          title: z.string().trim().min(1).max(300),
+          summary: z.string().trim().min(1).max(1600),
+        }),
+      )
+      .min(1)
+      .max(5),
+  })
+  .describe(
+    "output language: Azerbaijani (az-Latn); do not copy source-language sentences; entity names and quote keep original script.",
+  );
 
 const sourceNumbers = z.array(z.number().int().positive()).min(1).max(40);
 const blufNumbers = z.array(z.number().int().positive()).max(40);
@@ -75,12 +104,66 @@ export const structuredReportSchema = z
     watch: z.array(citedItem).max(12),
     caveats: z.array(citedItem).max(12),
   })
-  .strict();
+  .strict()
+  .describe(
+    "output language: Azerbaijani (az-Latn); do not copy source-language sentences; entity names and quote keep original script.",
+  );
 
 export type StructuredReport = z.infer<typeof structuredReportSchema>;
 
+export const simplifiedStructuredReportSchema = z
+  .object({
+    bluf: z.string().trim().min(1).max(2400),
+    blufSourceNumbers: blufNumbers,
+    keyFindings: z.array(citedItem).max(8),
+  })
+  .strict()
+  .describe(
+    "output language: Azerbaijani (az-Latn); do not copy source-language sentences; entity names and quote keep original script.",
+  );
+
+export function completeSimplifiedReport(
+  report: z.infer<typeof simplifiedStructuredReportSchema>,
+): StructuredReport {
+  return {
+    ...report,
+    timeline: [],
+    perspectives: [],
+    disagreements: [],
+    entities: [],
+    gaps: [],
+    watch: [],
+    caveats: [],
+  };
+}
+
+export function isStructuredReportAzerbaijani(report: StructuredReport): boolean {
+  return (
+    looksAzerbaijani(report.bluf) &&
+    report.keyFindings.every((item) => looksAzerbaijani(item.text)) &&
+    report.timeline.every((item) => looksAzerbaijani(item.event)) &&
+    report.perspectives.every(
+      (item) => looksAzerbaijani(item.group) && looksAzerbaijani(item.summary),
+    ) &&
+    report.disagreements.every(
+      (item) =>
+        looksAzerbaijani(item.topic) &&
+        item.positions.every(
+          (position) => looksAzerbaijani(position.group) && looksAzerbaijani(position.text),
+        ),
+    ) &&
+    report.gaps.every((item) => looksAzerbaijani(item.text)) &&
+    report.watch.every((item) => looksAzerbaijani(item.text)) &&
+    report.caveats.every((item) => looksAzerbaijani(item.text))
+  );
+}
+
 function extractJson(value: string): unknown {
-  return JSON.parse(value.trim()) as unknown;
+  const unwrapped = value
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "");
+  return JSON.parse(unwrapped) as unknown;
 }
 
 function normalizedWhitespace(value: string): string {
@@ -122,6 +205,13 @@ export function parseSourceSummaries(
     if (!result.success) continue;
     const source = byNumber.get(result.data.number);
     if (!source) continue;
+    if (
+      !looksAzerbaijani(result.data.title) ||
+      !looksAzerbaijani(result.data.summary) ||
+      result.data.claims.some((claim) => !looksAzerbaijani(claim))
+    ) {
+      continue;
+    }
     const eventDate = explicitDateExists(result.data.eventDate, source.text)
       ? result.data.eventDate
       : null;
@@ -262,47 +352,5 @@ export function keepExplicitTimelineDates(
       });
       return hasExplicitDate ? item : { ...item, date: az.osint.eventDateUnknown };
     }),
-  };
-}
-
-export function fallbackStructuredReport(
-  sources: readonly {
-    number: number;
-    title: string;
-    summary: string;
-    claims: string[];
-    eventDate?: string | null;
-  }[],
-): StructuredReport {
-  const first = sources[0];
-  const sourceNumbers = sources.map((source) => source.number);
-  return {
-    bluf: first ? first.summary : az.osint.noSources,
-    blufSourceNumbers: first ? [first.number] : [],
-    keyFindings: sources
-      .flatMap((source) =>
-        source.claims.slice(0, 1).map((text) => ({ text, sourceNumbers: [source.number] })),
-      )
-      .slice(0, 8),
-    timeline: sources
-      .flatMap((source) =>
-        source.eventDate
-          ? [{ date: source.eventDate, event: source.summary, sourceNumbers: [source.number] }]
-          : [],
-      )
-      .slice(0, 12),
-    perspectives: [],
-    disagreements: [],
-    entities: [],
-    gaps: [],
-    watch: [],
-    caveats: sourceNumbers.length
-      ? [
-          {
-            text: az.osint.finalFallback,
-            sourceNumbers: [sourceNumbers[0]!],
-          },
-        ]
-      : [],
   };
 }

@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
+import { and, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 
 import type { OsintLanguage } from "@/lib/osint";
+import { getDb } from "@/server/db";
+import { osintQueryCache } from "@/server/db/schema";
 
 export const queryExpansionSchema = z
   .object({
@@ -13,58 +16,88 @@ export const queryExpansionSchema = z
 export type QueryExpansion = z.infer<typeof queryExpansionSchema>;
 
 const CACHE_TTL_MS = 72 * 60 * 60_000;
-const cache = new Map<string, { value: QueryExpansion; expiresAt: number }>();
 
-function cacheKey(query: string, language: OsintLanguage): string {
+export function queryExpansionsSchema(languages: readonly OsintLanguage[]) {
+  const shape = Object.fromEntries(
+    languages.map((language) => [language, queryExpansionSchema]),
+  ) as Record<OsintLanguage, typeof queryExpansionSchema>;
+  return z.object(shape).strict();
+}
+
+function cacheKey(query: string, languages: readonly OsintLanguage[]): string {
   return createHash("sha256")
     .update(
-      JSON.stringify({ version: 1, query: query.normalize("NFKC").trim().toLowerCase(), language }),
+      JSON.stringify({
+        version: 3,
+        query: query.normalize("NFKC").trim().toLowerCase(),
+        languages: [...languages].sort(),
+      }),
     )
     .digest("hex");
 }
 
-export function parseQueryExpansion(value: string, fallbackMain: string): QueryExpansion {
-  try {
-    const parsed: unknown = JSON.parse(value.trim());
-    const result = queryExpansionSchema.safeParse(parsed);
-    if (!result.success) {
-      const main =
-        parsed &&
-        typeof parsed === "object" &&
-        typeof (parsed as Record<string, unknown>)["main"] === "string"
-          ? ((parsed as Record<string, unknown>)["main"] as string).trim()
-          : fallbackMain;
-      return { main: main.length >= 2 ? main.slice(0, 500) : fallbackMain, variants: [] };
-    }
-    const main = result.data.main;
-    const normalizedMain = main.normalize("NFKC").toLocaleLowerCase();
-    const variants = [...new Set(result.data.variants.map((variant) => variant.trim()))]
-      .filter((variant) => variant.normalize("NFKC").toLocaleLowerCase() !== normalizedMain)
-      .slice(0, 2);
-    return { main, variants };
-  } catch {
-    return { main: fallbackMain, variants: [] };
-  }
+function normalizeExpansion(value: unknown, fallbackMain: string): QueryExpansion {
+  const result = queryExpansionSchema.safeParse(value);
+  if (!result.success) return { main: fallbackMain, variants: [] };
+  const main = result.data.main;
+  const normalizedMain = main.normalize("NFKC").toLocaleLowerCase();
+  const variants = [...new Set(result.data.variants.map((variant) => variant.trim()))]
+    .filter((variant) => variant.normalize("NFKC").toLocaleLowerCase() !== normalizedMain)
+    .slice(0, 2);
+  return { main, variants };
 }
 
-export async function cachedQueryExpansion(
+export async function cachedQueryExpansions(
   query: string,
-  language: OsintLanguage,
-  fallbackMain: string,
-  generate: () => Promise<string>,
-): Promise<QueryExpansion> {
-  const key = cacheKey(query, language);
-  const cached = cache.get(key);
-  if (cached && cached.expiresAt > Date.now()) return cached.value;
-  const value = parseQueryExpansion(await generate(), fallbackMain);
-  if (cache.size >= 500) {
-    const first = cache.keys().next().value;
-    if (first) cache.delete(first);
+  languages: readonly OsintLanguage[],
+  generate: () => Promise<unknown>,
+): Promise<Record<OsintLanguage, QueryExpansion>> {
+  const key = cacheKey(query, languages);
+  try {
+    const [cached] = await getDb()
+      .select({ result: osintQueryCache.result })
+      .from(osintQueryCache)
+      .where(and(eq(osintQueryCache.cacheKey, key), gt(osintQueryCache.expiresAt, new Date())))
+      .limit(1);
+    if (cached) {
+      const parsed = queryExpansionsSchema(languages).safeParse(cached.result);
+      if (parsed.success) {
+        return normalizeQueryExpansions(parsed.data, query, languages);
+      }
+    }
+  } catch {
+    // A cache read failure does not prevent the search from proceeding.
   }
-  cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
-  return value;
+
+  const generated = await generate();
+  const parsed = queryExpansionsSchema(languages).safeParse(generated);
+  if (!parsed.success) throw new Error("Invalid query expansion object.");
+  const output = normalizeQueryExpansions(parsed.data, query, languages);
+  try {
+    await getDb()
+      .insert(osintQueryCache)
+      .values({ cacheKey: key, result: output, expiresAt: new Date(Date.now() + CACHE_TTL_MS) })
+      .onConflictDoUpdate({
+        target: osintQueryCache.cacheKey,
+        set: { result: output, expiresAt: new Date(Date.now() + CACHE_TTL_MS) },
+      });
+  } catch {
+    // Persisted expansion caching is an optimization; a failed write is harmless.
+  }
+  return output;
 }
 
-export function clearQueryExpansionCache(): void {
-  cache.clear();
+export function normalizeQueryExpansions(
+  value: unknown,
+  originalQuery: string,
+  languages: readonly OsintLanguage[],
+): Record<OsintLanguage, QueryExpansion> {
+  const source = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const output = {} as Record<OsintLanguage, QueryExpansion>;
+  for (const language of languages) {
+    const normalized = normalizeExpansion(source[language], originalQuery);
+    output[language] =
+      language === "az" ? { main: originalQuery, variants: normalized.variants } : normalized;
+  }
+  return output;
 }

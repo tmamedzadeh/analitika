@@ -51,11 +51,14 @@ export function canAccessClassification(
   user: Pick<SessionUser, "clearance">,
   classification: string,
 ) {
-  return classification === "open" || classification === user.clearance;
+  const userLevel = clearanceValues.indexOf(user.clearance);
+  const requestedLevel = clearanceValues.indexOf(classification as Clearance);
+  return userLevel >= 0 && requestedLevel >= 0 && requestedLevel <= userLevel;
 }
 
 export function allowedClassifications(user: Pick<SessionUser, "clearance">): Clearance[] {
-  return user.clearance === "open" ? ["open"] : ["open", user.clearance];
+  const level = clearanceValues.indexOf(user.clearance);
+  return level < 0 ? [] : clearanceValues.slice(0, level + 1);
 }
 
 export function readSessionCookie(request: Request): string | null {
@@ -169,12 +172,21 @@ export function loginRateLimitKeys(request: Request, username: string): string[]
   const forwarded =
     request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for")?.split(",", 1)[0];
   const address = (forwarded ?? "unknown").trim().slice(0, 100);
-  const accountKey = createHash("sha256").update(`account\u0000${username}`).digest("hex");
-  const keys = [accountKey];
-  if (address !== "unknown") {
-    keys.push(createHash("sha256").update(`address\u0000${address}`).digest("hex"));
-  }
-  return keys;
+  const loginIpKey = createHash("sha256")
+    .update(`login-ip\u0000${username}\u0000${address}`)
+    .digest("hex");
+  const ipKey = createHash("sha256").update(`ip\u0000${address}`).digest("hex");
+  return [loginIpKey, ipKey];
+}
+
+export async function isLoginAttemptAllowed(key: string, maximum = 10): Promise<boolean> {
+  const [attempt] = await getDb()
+    .select({ attempts: authLoginAttempts.attempts, windowStart: authLoginAttempts.windowStart })
+    .from(authLoginAttempts)
+    .where(eq(authLoginAttempts.key, key))
+    .limit(1);
+  if (!attempt || attempt.windowStart <= new Date(Date.now() - 15 * 60_000)) return true;
+  return attempt.attempts < maximum;
 }
 
 export async function consumeLoginAttempt(key: string, maximum = 10): Promise<boolean> {
@@ -194,7 +206,14 @@ export async function consumeLoginAttempt(key: string, maximum = 10): Promise<bo
       },
     })
     .returning({ attempts: authLoginAttempts.attempts });
-  return (attempt?.attempts ?? maximum + 1) <= maximum;
+  const attempts = attempt?.attempts ?? maximum + 1;
+  const delayMs = loginAttemptDelay(attempts);
+  if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
+  return attempts <= maximum;
+}
+
+export function loginAttemptDelay(attempts: number): number {
+  return attempts < 3 ? 0 : Math.min(8_000, 250 * 2 ** Math.min(attempts - 3, 5));
 }
 
 export async function pruneLoginAttempts(): Promise<void> {

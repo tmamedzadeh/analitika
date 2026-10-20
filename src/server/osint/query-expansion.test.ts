@@ -1,49 +1,87 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const mocks = vi.hoisted(() => ({
+  result: null as unknown,
+  database: {
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          limit: vi.fn(async () => (mocks.result ? [{ result: mocks.result }] : [])),
+        })),
+      })),
+    })),
+    insert: vi.fn(() => ({
+      values: vi.fn((value: { result: unknown }) => ({
+        onConflictDoUpdate: vi.fn(async () => {
+          mocks.result = value.result;
+        }),
+      })),
+    })),
+  },
+}));
+
+vi.mock("@/server/db", () => ({ getDb: () => mocks.database }));
+
 import {
-  cachedQueryExpansion,
-  clearQueryExpansionCache,
-  parseQueryExpansion,
+  cachedQueryExpansions,
+  normalizeQueryExpansions,
+  queryExpansionsSchema,
 } from "./query-expansion";
 
-describe("OSINT query expansion", () => {
-  beforeEach(() => clearQueryExpansionCache());
-
-  it("accepts a strict main query and at most two useful variants", () => {
-    expect(
-      parseQueryExpansion(
-        '{"main":"tensions in Georgia","variants":["Georgia border talks","Georgia military exercise"]}',
-        "original",
-      ),
-    ).toEqual({
-      main: "tensions in Georgia",
-      variants: ["Georgia border talks", "Georgia military exercise"],
-    });
-    expect(
-      parseQueryExpansion('{"main":"topic","variants":["topic","other"]}', "original").variants,
-    ).toEqual(["other"]);
+describe("OSINT structured query expansion", () => {
+  beforeEach(() => {
+    mocks.result = null;
+    vi.clearAllMocks();
   });
 
-  it("uses only the fallback main query for invalid JSON and never attempts repair", async () => {
-    expect(parseQueryExpansion("not json", "fallback query")).toEqual({
-      main: "fallback query",
-      variants: [],
+  it("validates one expansion object for every selected language", () => {
+    const languages = ["az", "en", "ru"] as const;
+    const schema = queryExpansionsSchema(languages);
+    expect(
+      schema.parse({
+        az: { main: "sor\u011fu", variants: ["alternativ"] },
+        en: { main: "query", variants: [] },
+        ru: { main: "query ru", variants: [] },
+      }),
+    ).toMatchObject({
+      az: { main: "sor\u011fu" },
+      en: { main: "query" },
+      ru: { main: "query ru" },
     });
-    const generate = vi.fn().mockResolvedValue("not json");
-    await expect(cachedQueryExpansion("topic", "ka", "fallback query", generate)).resolves.toEqual({
-      main: "fallback query",
-      variants: [],
+    expect(() =>
+      schema.parse({
+        az: { main: "sor\u011fu", variants: ["a", "b", "c"] },
+        en: { main: "query", variants: [] },
+        ru: { main: "query ru", variants: [] },
+      }),
+    ).toThrow();
+  });
+
+  it("keeps the original Azerbaijani query and removes duplicate variants", () => {
+    const languages = ["az", "en"] as const;
+    const normalized = normalizeQueryExpansions(
+      {
+        az: { main: "translated Azerbaijani", variants: ["variant", "variant"] },
+        en: { main: "English query", variants: [] },
+      },
+      "original request",
+      languages,
+    );
+    expect(normalized.az).toEqual({ main: "original request", variants: ["variant"] });
+    expect(normalized.en.main).toBe("English query");
+  });
+
+  it("persists and reuses expansion results without an in-memory cache", async () => {
+    const languages = ["az", "en"] as const;
+    const generate = vi.fn().mockResolvedValue({
+      az: { main: "ignored", variants: ["alternativ"] },
+      en: { main: "English query", variants: [] },
     });
+    const first = await cachedQueryExpansions("original request", languages, generate);
+    const second = await cachedQueryExpansions("original request", languages, generate);
+    expect(first).toEqual(second);
+    expect(first.az.main).toBe("original request");
     expect(generate).toHaveBeenCalledTimes(1);
-  });
-
-  it("caches an expansion by query and language", async () => {
-    const generate = vi
-      .fn()
-      .mockResolvedValue('{"main":"topic ru","variants":["topic ru source"]}');
-    await cachedQueryExpansion("topic", "ru", "fallback", generate);
-    await cachedQueryExpansion(" topic ", "ru", "fallback", generate);
-    await cachedQueryExpansion("topic", "fa", "fallback", generate);
-    expect(generate).toHaveBeenCalledTimes(2);
+    expect(mocks.database.insert).toHaveBeenCalledTimes(1);
   });
 });

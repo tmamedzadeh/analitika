@@ -1,6 +1,12 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
+import {
+  hasOriginMetadata,
+  isSignedInngestPath,
+  isUnsafeMethod,
+  shouldRejectMissingOrigin,
+} from "./lib/security/csrf";
 import { getUserForRequest, safeInternalRedirect, withCurrentUser } from "./server/auth";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
@@ -22,7 +28,21 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 // file opts out, so re-add it explicitly to keep server functions protected
 // from cross-site requests.
 const csrfMiddleware = createCsrfMiddleware({
-  filter: (ctx) => ctx.handlerType === "serverFn",
+  filter: ({ request }) =>
+    isUnsafeMethod(request.method) && !isSignedInngestPath(new URL(request.url).pathname),
+  allowRequestsWithoutOriginCheck: true,
+});
+
+const csrfMissingHeadersMiddleware = createMiddleware().server(async ({ next, request }) => {
+  if (!isUnsafeMethod(request.method) || isSignedInngestPath(new URL(request.url).pathname)) {
+    return next();
+  }
+  if (hasOriginMetadata(request)) return next();
+  const user = await getUserForRequest(request);
+  if (!user && shouldRejectMissingOrigin(request, false)) {
+    return new Response("Forbidden", { status: 403, headers: { "cache-control": "no-store" } });
+  }
+  return next();
 });
 
 const sessionMiddleware = createMiddleware().server(async ({ next, request }) => {
@@ -89,5 +109,10 @@ const sessionMiddleware = createMiddleware().server(async ({ next, request }) =>
 });
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [errorMiddleware, csrfMiddleware, sessionMiddleware],
+  requestMiddleware: [
+    errorMiddleware,
+    csrfMiddleware,
+    csrfMissingHeadersMiddleware,
+    sessionMiddleware,
+  ],
 }));

@@ -34,7 +34,13 @@ export const documentStatus = pgEnum("document_status", [
   "ready",
   "failed",
 ]);
-export const osintRunStatus = pgEnum("osint_run_status", ["queued", "running", "done", "failed"]);
+export const osintRunStatus = pgEnum("osint_run_status", [
+  "queued",
+  "running",
+  "done",
+  "partial",
+  "failed",
+]);
 export const osintSourceType = pgEnum("osint_source_type", [
   "state_media",
   "independent_media",
@@ -119,7 +125,9 @@ export const documents = pgTable(
     classification: text("classification").notNull().default("open"),
     sourceReliability: char("source_reliability", { length: 1 }).notNull().default("F"),
     infoCredibility: smallint("info_credibility").notNull().default(6),
-    ownerId: text("owner_id").notNull().default("admin"),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "restrict" }),
     status: documentStatus("status").notNull().default("queued"),
     chunkCount: integer("chunk_count").notNull().default(0),
     step: text("step").notNull().default("queued"),
@@ -164,7 +172,10 @@ export const dailyBriefs = pgTable(
     title: text("title").notNull(),
     body: text("body").notNull(),
     status: text("status").notNull().default("published"),
-    authorId: text("author_id").notNull().default("admin"),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "restrict" }),
+    updatedBy: text("updated_by").references(() => appUsers.id, { onDelete: "set null" }),
     indexStatus: text("index_status").notNull().default("none"),
     indexProgress: jsonb("index_progress").notNull().default(emptyJsonObject),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -190,7 +201,9 @@ export const documentAcl = pgTable(
     documentId: uuid("document_id")
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
-    userId: text("user_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.documentId, table.userId] })],
 );
@@ -344,6 +357,10 @@ export const osintRuns = pgTable(
     error: text("error"),
     cacheKey: text("cache_key"),
     cacheBypass: boolean("cache_bypass").notNull().default(false),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    clonedFromRunId: uuid("cloned_from_run_id"),
     pinned: boolean("pinned").notNull().default(false),
     heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -351,12 +368,13 @@ export const osintRuns = pgTable(
   },
   (table) => [
     index("osint_runs_created_idx").on(table.createdAt),
+    index("osint_runs_created_by_idx").on(table.createdBy, table.createdAt.desc()),
     index("osint_runs_pinned_cache_idx").on(table.cacheKey, table.createdAt),
     index("osint_runs_active_heartbeat_idx")
       .on(table.heartbeatAt)
       .where(sql.raw("status IN ('queued', 'running')")),
-    uniqueIndex("osint_runs_active_cache_key_unique_idx")
-      .on(table.cacheKey)
+    uniqueIndex("osint_runs_active_cache_user_unique_idx")
+      .on(table.cacheKey, table.createdBy)
       .where(sql.raw("cache_key IS NOT NULL AND status IN ('queued', 'running')")),
   ],
 );
@@ -374,6 +392,38 @@ export const rateLimits = pgTable(
   ],
 );
 
+export const analyticsQueryStatus = pgEnum("analytics_query_status", [
+  "running",
+  "done",
+  "incomplete",
+  "failed",
+  "cancelled",
+]);
+
+export const analyticsQueries = pgTable(
+  "analytics_queries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    query: text("query").notNull(),
+    filters: jsonb("filters").notNull(),
+    status: analyticsQueryStatus("status").notNull().default("running"),
+    answer: text("answer"),
+    sources: jsonb("sources").notNull().default(emptyJsonObject),
+    maxClassification: text("max_classification").notNull().default("open"),
+    model: text("model"),
+    durationMs: integer("duration_ms"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("analytics_queries_created_user_idx").on(table.createdBy, table.createdAt.desc()),
+    index("analytics_queries_created_at_idx").on(table.createdAt),
+  ],
+);
+
 export const osintSources = pgTable(
   "osint_sources",
   {
@@ -388,7 +438,7 @@ export const osintSources = pgTable(
     language: text("language").notNull(),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     sourceType: osintSourceType("source_type").notNull().default("other"),
-    summary: text("summary").notNull().default(""),
+    summary: text("summary"),
     structuredSummary: jsonb("structured_summary"),
     providers: text("providers").array().notNull().default(emptyTextArray),
     providerRank: integer("provider_rank"),
@@ -447,6 +497,16 @@ export const osintPageCache = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("osint_page_cache_expires_idx").on(table.expiresAt)],
+);
+
+export const osintQueryCache = pgTable(
+  "osint_query_cache",
+  {
+    cacheKey: text("cache_key").primaryKey(),
+    result: jsonb("result").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [index("osint_query_cache_expires_idx").on(table.expiresAt)],
 );
 
 export const queryLogs = pgTable("query_logs", {

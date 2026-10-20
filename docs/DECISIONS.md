@@ -15,11 +15,15 @@
 - Analytics SSE streams send comment keepalives every 15 seconds; the browser aborts a stalled search after 100 seconds. The Vercel analytics function gets a 120-second maximum runtime.
 - Application access uses individual accounts and database-backed sessions. Vercel Deployment Protection remains a separate platform setting.
 - Deleting a document sets `info_requests.answer_document_id` to null so the request record survives.
+- `app_users` and `app_sessions` live in `public` without RLS in v1. The project's Data API must stay disabled until v2 adds database-side policies.
+- Analytics history stores query and answer text for `ANALYTICS_HISTORY_DAYS` (90 days by default). Only the author and administrators can view a record; record and source access are checked again when it is opened.
+- Document access always applies the clearance hierarchy `open < secret < top_secret < special`, with an additional allow path for document ACL members and the document owner. Uploads cannot exceed the uploader's clearance.
+- Migration `0014` maps existing documents, briefs, and OSINT runs to the earliest-created administrator before adding owner foreign keys. When multiple administrators exist, the earliest `created_at` wins.
+- `drizzle/meta/0013_snapshot.json` records the schema already represented by migration journal entry `0013_auth_users_sessions`; only new schema changes are added in later migrations.
 
 ## Accepted risks and deferred work
 
 - Supabase row-level security is deferred to v2; current access filtering remains application-enforced.
-- Document classification remains deferred to v2.
 - Detailed operational logging remains deferred. Error details are currently redacted in worker logs to avoid exposing user content.
 - The model for final OSINT synthesis remains a deployment choice and is not fixed by this change.
 - The in-process Gemini concurrency limiter is best-effort across multiple server instances.

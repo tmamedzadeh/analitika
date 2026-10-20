@@ -22,7 +22,6 @@ export type Brief = {
   status: BriefStatus;
   indexStatus: BriefIndexStatus;
   indexProgress: BriefIndexProgress;
-  author: string;
   photos: BriefPhoto[];
   publishedAt: string | null;
   highlight: { chunkId: string; start: number; end: number } | null;

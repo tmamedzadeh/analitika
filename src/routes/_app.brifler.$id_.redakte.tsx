@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_app/brifler/$id_/redakte")({
 
 function EditBrief() {
   const data = Route.useLoaderData();
-  if (data?.brief) return <BriefEditor existing={data.brief} />;
+  if (data?.brief && data.canEdit) return <BriefEditor existing={data.brief} />;
   return (
     <div className="p-8">
       {az.briefs.missing}{" "}

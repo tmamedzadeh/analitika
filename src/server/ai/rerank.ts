@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import { GeminiRequestBudget } from "./gemini-gateway";
 import { GeminiLLMProvider } from "./gemini";
 
 export const RERANK_TIMEOUT_MS = 4_000;
@@ -62,6 +61,7 @@ export async function rerankOrderOrOriginal(
   provider: RerankProvider | undefined,
   enabled: boolean,
   timeoutMs = RERANK_TIMEOUT_MS,
+  signal?: AbortSignal,
 ): Promise<string[]> {
   const expectedIds = candidates.slice(0, RERANK_INPUT_LIMIT).map(({ id }) => id);
   if (!enabled || !provider || expectedIds.length === 0) return expectedIds;
@@ -80,7 +80,10 @@ export async function rerankOrderOrOriginal(
   });
   try {
     const proposed = await Promise.race([
-      provider.rerank(query, input, { timeoutMs, signal: controller.signal }),
+      provider.rerank(query, input, {
+        timeoutMs,
+        signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal,
+      }),
       timeout,
     ]);
     return proposed ? completeOrder(proposed, expectedIds) : expectedIds;
@@ -114,7 +117,6 @@ export class GeminiRerankProvider implements RerankProvider {
         timeoutMs: options.timeoutMs ?? RERANK_TIMEOUT_MS,
         ...(options.signal ? { signal: options.signal } : {}),
         maxAttempts: 1,
-        requestBudget: new GeminiRequestBudget(1),
       },
       rerankOutputSchema,
     );

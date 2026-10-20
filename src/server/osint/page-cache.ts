@@ -8,6 +8,63 @@ import { normalizeOsintUrl } from "./urls";
 
 export const OSINT_PAGE_CACHE_TTL_MS = 7 * 24 * 60 * 60_000;
 
+export async function readCachedPublicPageText(url: string): Promise<string | null> {
+  const normalizedUrl = normalizeOsintUrl(url);
+  if (!normalizedUrl) return null;
+  try {
+    const [cached] = await getDb()
+      .select({ text: osintPageCache.text })
+      .from(osintPageCache)
+      .where(
+        and(
+          eq(osintPageCache.normalizedUrl, normalizedUrl),
+          gt(osintPageCache.expiresAt, new Date()),
+        ),
+      )
+      .limit(1);
+    return cached?.text ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function cachePublicPageText(input: {
+  url: string;
+  language: string;
+  text: string;
+  title?: string | null;
+  publishedAt?: Date | null;
+}): Promise<void> {
+  const normalizedUrl = normalizeOsintUrl(input.url);
+  if (!normalizedUrl || input.text.trim().length < 800) return;
+  try {
+    await getDb()
+      .insert(osintPageCache)
+      .values({
+        normalizedUrl,
+        text: input.text,
+        title: input.title ?? null,
+        publishedAt: input.publishedAt ?? null,
+        language: input.language,
+        status: "fetched_full",
+        expiresAt: new Date(Date.now() + OSINT_PAGE_CACHE_TTL_MS),
+      })
+      .onConflictDoUpdate({
+        target: osintPageCache.normalizedUrl,
+        set: {
+          text: input.text,
+          title: input.title ?? null,
+          publishedAt: input.publishedAt ?? null,
+          language: input.language,
+          status: "fetched_full",
+          expiresAt: new Date(Date.now() + OSINT_PAGE_CACHE_TTL_MS),
+        },
+      });
+  } catch {
+    // The search result remains usable when this optional cache write fails.
+  }
+}
+
 export async function fetchCachedPublicPage(
   url: string,
   language: string,

@@ -2,8 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   GeminiQuotaExceededError,
-  GeminiRequestBudget,
-  GeminiRequestBudgetExceededError,
   isGeminiQuotaError,
   withGeminiQuotaFallback,
   withGeminiQuotaFallbackStream,
@@ -72,20 +70,6 @@ describe("Gemini request gateway", () => {
     await vi.runAllTimersAsync();
     await rejection;
     expect(calls).toBe(3);
-  });
-
-  it("counts retries against the per-run call budget", async () => {
-    const budget = new GeminiRequestBudget(1);
-    await expect(
-      withGeminiRequest(
-        "AI_LIGHT_MODEL",
-        async () => {
-          throw Object.assign(new Error("quota"), { statusCode: 429 });
-        },
-        budget,
-      ),
-    ).rejects.toBeInstanceOf(GeminiRequestBudgetExceededError);
-    expect(budget.calls).toBe(1);
   });
 
   it("provides a typed quota error for UI-safe handling", () => {

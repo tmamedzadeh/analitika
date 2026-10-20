@@ -19,18 +19,19 @@ import { az } from "@/lib/i18n/az";
 import {
   prepareDocumentUploads,
   createDocumentSchema,
+  getDocumentFormContext,
   listRecentDocuments,
   retryDocumentIndexing,
   saveDocument,
 } from "@/lib/documents.functions";
 
-const classifications = ["open", "secret", "top_secret", "special"] as const;
 const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxImageSize = 10 * 1024 * 1024;
 
 type DocumentSummary = Awaited<ReturnType<typeof listRecentDocuments>>[number];
 
 export const Route = createFileRoute("/_app/senedler")({
+  loader: () => getDocumentFormContext(),
   head: () => ({
     meta: [
       { title: "Məlumat bazası · Analitika" },
@@ -58,15 +59,18 @@ function progressPercent(progress: unknown): number {
 }
 
 function AddDoc() {
+  const formContext = Route.useLoaderData();
   const formRef = useRef<HTMLFormElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-  const [classification, setClassification] = useState<(typeof classifications)[number][0]>("open");
+  const [classification, setClassification] =
+    useState<(typeof formContext.classifications)[number]>("open");
   const [sourceReliability, setSourceReliability] = useState<SourceReliability>("F");
   const [infoCredibility, setInfoCredibility] = useState<InfoCredibility>(6);
   const [docDate, setDocDate] = useState("");
   const [body, setBody] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
+  const [additionalUserIds, setAdditionalUserIds] = useState<string[]>([]);
   const [photoError, setPhotoError] = useState("");
   const [formError, setFormError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -121,6 +125,7 @@ function AddDoc() {
         .map((tag) => tag.trim())
         .filter(Boolean),
       classification,
+      additionalUserIds,
       sourceReliability,
       infoCredibility,
       photos: photos.map((file) => ({ name: file.name, mime: file.type, size: file.size })),
@@ -165,6 +170,7 @@ function AddDoc() {
       setBody("");
       setPhotos([]);
       setClassification("open");
+      setAdditionalUserIds([]);
       setSourceReliability("F");
       setInfoCredibility(6);
       if (photoInputRef.current) photoInputRef.current.value = "";
@@ -261,7 +267,7 @@ function AddDoc() {
               <span className="label-mono">· {az.documents.demo}</span>
             </legend>
             <div className="flex flex-wrap gap-2">
-              {classifications.map((value) => (
+              {formContext.classifications.map((value) => (
                 <label key={value} className="cursor-pointer">
                   <input
                     type="radio"
@@ -274,6 +280,31 @@ function AddDoc() {
                   <span className={classification === value ? "pill pill-active" : "pill"}>
                     {az.documents.classification[value]}
                   </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset className="grid gap-2 border-0 p-0">
+            <legend className="mb-2 p-0 text-sm font-semibold">{az.documents.acl.title}</legend>
+            <p className="text-sm text-muted-foreground">{az.documents.acl.hint}</p>
+            <div className="grid max-h-48 gap-2 overflow-y-auto rounded-lg border border-border p-3 sm:grid-cols-2">
+              {formContext.activeUsers.map((user) => (
+                <label key={user.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={additionalUserIds.includes(user.id)}
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
+                      setAdditionalUserIds((current) =>
+                        checked
+                          ? current.length < 50 && !current.includes(user.id)
+                            ? [...current, user.id]
+                            : current
+                          : current.filter((id) => id !== user.id),
+                      );
+                    }}
+                  />
+                  {user.username}
                 </label>
               ))}
             </div>

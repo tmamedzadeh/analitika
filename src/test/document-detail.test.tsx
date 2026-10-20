@@ -4,13 +4,18 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { routeTree } from "@/routeTree.gen";
-import { getDocumentDetails, listRecentDocuments } from "@/lib/documents.functions";
+import {
+  getDocumentDetails,
+  getDocumentFormContext,
+  listRecentDocuments,
+} from "@/lib/documents.functions";
 import { az } from "@/lib/i18n/az";
 
 vi.mock("@/lib/documents.functions", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/documents.functions")>();
   return {
     ...actual,
+    getDocumentFormContext: vi.fn(),
     getDocumentDetails: vi.fn(),
     listRecentDocuments: vi.fn(),
   };
@@ -41,6 +46,9 @@ const detail = {
   updatedAt: "2026-10-18T10:00:00.000Z",
   chunks: [],
   photos: [],
+  canManageAcl: false,
+  aclUsers: [],
+  aclCandidates: [],
 };
 
 const recentDocument = {
@@ -72,6 +80,10 @@ async function makeRouter(path: string) {
 describe("document detail route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getDocumentFormContext).mockResolvedValue({
+      classifications: ["open", "secret", "top_secret", "special"],
+      activeUsers: [],
+    });
     vi.mocked(listRecentDocuments).mockResolvedValue([recentDocument]);
     vi.mocked(getDocumentDetails).mockResolvedValue(
       detail as Awaited<ReturnType<typeof getDocumentDetails>>,

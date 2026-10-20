@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
@@ -10,8 +10,8 @@ import { documentIndexingRequested } from "../server/inngest/events";
 import { inngest } from "../server/inngest/client";
 import { getDb } from "../server/db";
 import { documentAccessFilter, getCurrentUser } from "../server/db/access";
-import { canAccessClassification } from "@/server/auth";
-import { attachments, chunks, documents } from "../server/db/schema";
+import { allowedClassifications, canAccessClassification } from "@/server/auth";
+import { appUsers, attachments, chunks, documents, documentAcl } from "../server/db/schema";
 import { getStorage } from "../server/storage/s3";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 
@@ -58,6 +58,7 @@ export const createDocumentSchema = z.object({
   tags: z.array(z.string().trim().min(1).max(64)).max(30),
   direction: directionIdSchema,
   classification: z.enum(["open", "secret", "top_secret", "special"]),
+  additionalUserIds: z.array(z.string().min(1).max(100)).max(50).default([]),
   sourceReliability: z.enum(["A", "B", "C", "D", "E", "F"]),
   infoCredibility: z.number().int().min(1).max(6),
   photos: z.array(imageInputSchema).max(10),
@@ -68,6 +69,29 @@ const documentUploadSchema = imageInputSchema.extend({ key: z.string().min(1).ma
 const saveDocumentSchema = createDocumentSchema
   .omit({ photos: true })
   .extend({ documentId: z.string().uuid(), uploads: z.array(documentUploadSchema).max(10) });
+
+async function validateAdditionalUsers(ids: string[], currentUserId: string) {
+  if (new Set(ids).size !== ids.length || ids.includes(currentUserId)) {
+    throw new Error(az.documents.form.aclSaveFailed);
+  }
+  if (!ids.length) return;
+  const activeUsers = await getDb()
+    .select({ id: appUsers.id })
+    .from(appUsers)
+    .where(and(inArray(appUsers.id, ids), eq(appUsers.active, true)));
+  if (activeUsers.length !== ids.length) throw new Error(az.documents.form.aclSaveFailed);
+}
+
+export const getDocumentFormContext = createServerFn({ method: "GET" }).handler(async () => {
+  const user = getCurrentUser();
+  const activeUsers = await getDb()
+    .select({ id: appUsers.id, username: appUsers.username })
+    .from(appUsers)
+    .where(and(eq(appUsers.active, true), ne(appUsers.id, user.id)))
+    .orderBy(appUsers.username)
+    .limit(1000);
+  return { classifications: allowedClassifications(user), activeUsers };
+});
 
 function safeFileName(value: string): string {
   const name = value
@@ -156,6 +180,11 @@ export function documentUploadMatches(input: {
 export const prepareDocumentUploads = createServerFn({ method: "POST" })
   .validator(createDocumentSchema)
   .handler(async ({ data }) => {
+    const user = getCurrentUser();
+    if (!canAccessClassification(user, data.classification)) {
+      throw new Error("Your clearance does not allow this classification.");
+    }
+    await validateAdditionalUsers(data.additionalUserIds, user.id);
     if (!(await consumeIpRateLimit("upload-prepare", getRequest(), 30, 10 * 60_000))) {
       throw new Error(az.analytics.rateLimited);
     }
@@ -193,6 +222,7 @@ export const saveDocument = createServerFn({ method: "POST" })
     if (!canAccessClassification(user, data.classification)) {
       throw new Error("Your clearance does not allow this classification.");
     }
+    await validateAdditionalUsers(data.additionalUserIds, user.id);
     const db = getDb();
     const storage = getStorage();
     try {
@@ -248,6 +278,13 @@ export const saveDocument = createServerFn({ method: "POST" })
           })),
         );
       }
+      if (data.additionalUserIds.length > 0) {
+        await transaction
+          .insert(documentAcl)
+          .values(
+            data.additionalUserIds.map((userId) => ({ documentId: data.documentId, userId })),
+          );
+      }
     });
 
     await queueDocumentIndexing(data.documentId);
@@ -292,8 +329,10 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
       .where(and(eq(documents.id, data.documentId), documentAccessFilter()))
       .limit(1);
     if (!document) return null;
+    const currentUser = getCurrentUser();
+    const canManageAcl = currentUser.role === "admin" || document.ownerId === currentUser.id;
 
-    const [documentChunks, documentAttachments] = await Promise.all([
+    const [documentChunks, documentAttachments, aclRows, aclCandidates] = await Promise.all([
       db
         .select({
           id: chunks.id,
@@ -308,6 +347,21 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
         .where(eq(chunks.documentId, data.documentId))
         .orderBy(asc(chunks.ord)),
       db.select().from(attachments).where(eq(attachments.documentId, data.documentId)),
+      canManageAcl
+        ? db
+            .select({ id: appUsers.id, username: appUsers.username })
+            .from(documentAcl)
+            .innerJoin(appUsers, eq(documentAcl.userId, appUsers.id))
+            .where(eq(documentAcl.documentId, data.documentId))
+        : Promise.resolve([]),
+      canManageAcl
+        ? db
+            .select({ id: appUsers.id, username: appUsers.username })
+            .from(appUsers)
+            .where(and(eq(appUsers.active, true), ne(appUsers.id, currentUser.id)))
+            .orderBy(appUsers.username)
+            .limit(1000)
+        : Promise.resolve([]),
     ]);
     const storage = getStorage();
     const photos = documentAttachments.map((attachment) => ({
@@ -324,7 +378,40 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
       updatedAt: document.updatedAt.toISOString(),
       chunks: documentChunks,
       photos,
+      canManageAcl,
+      aclUsers: aclRows,
+      aclCandidates,
     };
+  });
+
+export const updateDocumentAcl = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      documentId: z.string().uuid(),
+      userIds: z.array(z.string().min(1).max(100)).max(50),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const user = getCurrentUser();
+    const db = getDb();
+    const [document] = await db
+      .select({ ownerId: documents.ownerId })
+      .from(documents)
+      .where(and(eq(documents.id, data.documentId), documentAccessFilter(user)))
+      .limit(1);
+    if (!document) throw new Error(az.documents.missing);
+    if (user.role !== "admin" && document.ownerId !== user.id)
+      throw new Error(az.documents.missing);
+    await validateAdditionalUsers(data.userIds, user.id);
+    await db.transaction(async (transaction) => {
+      await transaction.delete(documentAcl).where(eq(documentAcl.documentId, data.documentId));
+      if (data.userIds.length) {
+        await transaction
+          .insert(documentAcl)
+          .values(data.userIds.map((userId) => ({ documentId: data.documentId, userId })));
+      }
+    });
+    return { ok: true };
   });
 
 export const deleteDocument = createServerFn({ method: "POST" })

@@ -17,6 +17,7 @@ import { briefIndexingRequested } from "@/server/inngest/events";
 import { inngest } from "@/server/inngest/client";
 import { getStorage } from "@/server/storage/s3";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
+import { getCurrentUser, requireAdmin } from "@/server/auth";
 
 const photoListSchema = z.array(briefPhotoMetadataSchema).max(MAX_BRIEF_PHOTOS);
 const idListSchema = z
@@ -43,6 +44,14 @@ const discardUploadsSchema = z.object({
   briefId: briefIdSchema,
   keys: z.array(z.string().min(1).max(600)).max(MAX_BRIEF_PHOTOS),
 });
+
+export function canEditBrief(user: { id: string; role: "admin" | "user" }, authorId: string) {
+  return user.role === "admin" || user.id === authorId;
+}
+
+export function canDeleteBrief(user: { role: "admin" | "user" }) {
+  return user.role === "admin";
+}
 
 function safeFileName(value: string): string {
   const name = value
@@ -100,11 +109,13 @@ export async function prepareBriefUploadUrls(
 
   if (!isNew) {
     const [brief] = await db
-      .select({ id: dailyBriefs.id })
+      .select({ id: dailyBriefs.id, authorId: dailyBriefs.authorId })
       .from(dailyBriefs)
       .where(and(eq(dailyBriefs.id, briefId), accessFilter()))
       .limit(1);
     if (!brief) throw new Error(az.briefs.missing);
+    const user = getCurrentUser();
+    if (!canEditBrief(user, brief.authorId)) throw new Error(az.briefs.missing);
     currentAttachments = await db
       .select()
       .from(briefAttachments)
@@ -166,6 +177,7 @@ export async function saveBriefRecord(
 ): Promise<{ ok: true; briefId: string; queueFailed: boolean; cleanupIncomplete: boolean }> {
   const parsed = saveBriefSchema.parse(input);
   const db = getDb();
+  const user = getCurrentUser();
   const uploadedKeys = parsed.uploads.map((upload) => upload.key);
 
   try {
@@ -183,6 +195,9 @@ export async function saveBriefRecord(
           .limit(1);
     if (parsed.isNew && existingBrief) throw new Error(az.briefs.saveFailed);
     if (!parsed.isNew && !existingBrief) throw new Error(az.briefs.missing);
+    if (!parsed.isNew && !canEditBrief(user, existingBrief!.authorId)) {
+      throw new Error(az.briefs.missing);
+    }
 
     const existingAttachments = parsed.isNew
       ? []
@@ -208,6 +223,8 @@ export async function saveBriefRecord(
           title: parsed.title,
           body: parsed.body,
           status: "published",
+          authorId: user.id,
+          updatedBy: user.id,
           indexStatus: "queued",
           indexProgress: { percent: 0, totalChunks: 0, completedChunks: 0 },
           publishedAt: now,
@@ -220,6 +237,7 @@ export async function saveBriefRecord(
             briefDate: parsed.date,
             title: parsed.title,
             body: parsed.body,
+            updatedBy: user.id,
             status: "published",
             indexStatus: "queued",
             indexProgress: { percent: 0, totalChunks: 0, completedChunks: 0 },
@@ -289,6 +307,7 @@ export async function discardBriefUploads(
 }
 
 export async function removeBrief(briefId: string): Promise<void> {
+  if (!canDeleteBrief(requireAdmin())) throw new Error(az.briefs.missing);
   const db = getDb();
   const files = await db
     .select({ storageKey: briefAttachments.storageKey })

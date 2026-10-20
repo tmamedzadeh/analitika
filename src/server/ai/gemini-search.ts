@@ -44,7 +44,9 @@ export class GeminiGroundingProvider implements SearchProvider {
       ...(input.startPublishedDate && input.endPublishedDate
         ? { startTime: input.startPublishedDate, endTime: input.endPublishedDate }
         : {}),
-      ...(input.llmRequestBudget ? { requestBudget: input.llmRequestBudget } : {}),
+      ...(input.thinkingLevel ? { thinkingLevel: input.thinkingLevel } : {}),
+      maxOutputTokens: input.maxOutputTokens ?? 500,
+      telemetryStep: "search",
     });
     return result.sources.slice(0, input.limit).map((source, index) => ({
       url: source.url,

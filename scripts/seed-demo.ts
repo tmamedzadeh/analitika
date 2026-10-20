@@ -2,17 +2,18 @@ import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
-import { inArray, or, sql } from "drizzle-orm";
+import { asc, eq, inArray, or, sql } from "drizzle-orm";
 import postgres from "postgres";
 import { z } from "zod";
 
 import { formatBriefEmbeddingText } from "../src/lib/briefs";
-import { OSINT_GEMINI_CALL_BUDGET, OSINT_LANGUAGES, OSINT_PERIODS } from "../src/lib/osint";
+import { OSINT_LANGUAGES, OSINT_PERIODS } from "../src/lib/osint";
 import { createGeminiProviders } from "../src/server/ai/gemini";
 import { getAppConfig } from "../src/server/config";
 import { closeDb, getDb } from "../src/server/db";
 import {
   attachments,
+  appUsers,
   briefAttachments,
   chunks,
   dailyBriefs,
@@ -426,14 +427,6 @@ function makeOsintProgress(languageCount: number, sourceCount: number, notice: s
     totalLanguages: languageCount,
     sourcesFound: sourceCount,
     sourcesProcessed: sourceCount,
-    providerCalls: 0,
-    providerCallBudget: OSINT_GEMINI_CALL_BUDGET,
-    searchCalls: 0,
-    llmCalls: 0,
-    llmCallBudget: OSINT_GEMINI_CALL_BUDGET,
-    llmInputTokens: 0,
-    llmOutputTokens: 0,
-    llmUsageReportedCalls: 0,
     fetchStatusCounts,
     failedSteps: [],
     notice,
@@ -482,6 +475,13 @@ async function resetAndInsert(
 ): Promise<void> {
   const db = getDb();
   const now = new Date();
+  const [seedAdmin] = await db
+    .select({ id: appUsers.id })
+    .from(appUsers)
+    .where(eq(appUsers.role, "admin"))
+    .orderBy(asc(appUsers.createdAt))
+    .limit(1);
+  if (!seedAdmin) throw new Error("Seed requires an active administrator account.");
   const config = getAppConfig();
   const providerIdentity = `${config.searchProvider}:${config.analyticsModel}:${config.lightModel}`;
   const preparedRuns = dataset.osintRuns.map((run) => {
@@ -589,7 +589,7 @@ async function resetAndInsert(
         classification: "open",
         sourceReliability: document.sourceReliability,
         infoCredibility: document.infoCredibility,
-        ownerId: document.ownerId,
+        ownerId: seedAdmin.id,
         status: "ready" as const,
         step: "ready",
         progress: {
@@ -608,7 +608,8 @@ async function resetAndInsert(
         title: brief.title,
         body: brief.body,
         status: "published",
-        authorId: brief.authorId,
+        authorId: seedAdmin.id,
+        updatedBy: seedAdmin.id,
         indexStatus: "ready",
         indexProgress: briefIndexProgress(sourceChunks.length),
         publishedAt: new Date(brief.publishedAt),
@@ -618,6 +619,7 @@ async function resetAndInsert(
     await transaction.insert(osintRuns).values(
       preparedRuns.map(({ id, run, cacheKey, pinned }) => ({
         id,
+        createdBy: seedAdmin.id,
         query: run.query,
         languages: run.languages,
         period: run.period,

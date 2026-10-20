@@ -1,15 +1,16 @@
-import type { GeminiAttemptLimit, GeminiRequestBudget } from "./gemini-gateway";
+import type { GeminiAttemptLimit } from "./gemini-gateway";
 import type { z } from "zod";
 
 export type ProviderRequestOptions = {
   maxAttempts?: GeminiAttemptLimit;
-  requestBudget?: GeminiRequestBudget;
+  signal?: AbortSignal;
 };
 
 export type ProviderUsageStats = {
   apiCalls: number;
   inputTokens: number;
   outputTokens: number;
+  thinkingTokens?: number;
   webSearchCalls?: number;
   usageReportedCalls?: number;
 };
@@ -33,7 +34,8 @@ export type SearchInput = {
   timeoutMs?: number;
   signal?: AbortSignal;
   requestBudget?: RequestCallBudget;
-  llmRequestBudget?: GeminiRequestBudget;
+  thinkingLevel?: "minimal" | "low" | "medium" | "high";
+  maxOutputTokens?: number;
 };
 
 export type SearchSource = {
@@ -74,11 +76,11 @@ export type TextGenerationInput = {
   prompt: string;
   temperature?: number;
   maxOutputTokens?: number;
-  thinkingLevel?: "low" | "medium" | "high";
+  thinkingLevel?: "minimal" | "low" | "medium" | "high";
   timeoutMs?: number;
   signal?: AbortSignal;
   maxAttempts?: GeminiAttemptLimit;
-  requestBudget?: GeminiRequestBudget;
+  telemetryStep?: "expansion" | "search" | "summary" | "report";
 };
 
 export type GroundedSearchInput = TextGenerationInput & {

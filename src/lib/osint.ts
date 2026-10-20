@@ -1,9 +1,8 @@
 import { z } from "zod";
 
-export const OSINT_LANGUAGES = ["fa", "hy", "ru", "zh", "en", "fr", "ka"] as const;
-export const OSINT_PERIODS = ["24h", "7d", "30d"] as const;
+export const OSINT_LANGUAGES = ["fa", "hy", "ru", "zh", "en", "fr", "ka", "az"] as const;
+export const OSINT_PERIODS = ["24h", "7d", "30d", "all"] as const;
 export const OSINT_SEARCH_CALL_BUDGET = 24;
-export const OSINT_GEMINI_CALL_BUDGET = 10;
 
 export const osintSearchSchema = z
   .object({
@@ -26,6 +25,7 @@ export const osintLanguageNames: Record<OsintLanguage, string> = {
   en: "English",
   fr: "Fran\u00e7ais",
   ka: "\u10e5\u10d0\u10e0\u10d7\u10e3\u10da\u10d8",
+  az: "Az\u0259rbaycanca",
 };
 
 export const osintLanguageLocale: Record<OsintLanguage, { language: string; country: string }> = {
@@ -36,4 +36,5 @@ export const osintLanguageLocale: Record<OsintLanguage, { language: string; coun
   en: { language: "US", country: "US" },
   fr: { language: "FR", country: "FR" },
   ka: { language: "GE", country: "GE" },
+  az: { language: "AZ", country: "AZ" },
 };

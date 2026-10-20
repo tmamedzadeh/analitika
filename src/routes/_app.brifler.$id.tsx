@@ -103,42 +103,46 @@ function BriefDetail() {
       badges={[]}
       actions={
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" className="rounded-full">
-            <Link to="/brifler/$id/redakte" params={{ id: brief.id }}>
-              {az.briefs.edit}
-            </Link>
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                className="rounded-full"
-                disabled={deleting}
-                aria-busy={deleting}
-              >
-                {deleting && <ZirveLoader variant="inline" label="" />}
-                <Trash2 />
-                {az.briefs.delete}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{az.briefs.delete}</AlertDialogTitle>
-                <AlertDialogDescription>{az.briefs.deleteConfirm}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{az.briefs.cancel}</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={(event) => {
-                    event.preventDefault();
-                    void confirmDelete();
-                  }}
+          {data.canEdit && (
+            <Button asChild variant="outline" className="rounded-full">
+              <Link to="/brifler/$id/redakte" params={{ id: brief.id }}>
+                {az.briefs.edit}
+              </Link>
+            </Button>
+          )}
+          {data.canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  className="rounded-full"
+                  disabled={deleting}
+                  aria-busy={deleting}
                 >
+                  {deleting && <ZirveLoader variant="inline" label="" />}
+                  <Trash2 />
                   {az.briefs.delete}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{az.briefs.delete}</AlertDialogTitle>
+                  <AlertDialogDescription>{az.briefs.deleteConfirm}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{az.briefs.cancel}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(event) => {
+                      event.preventDefault();
+                      void confirmDelete();
+                    }}
+                  >
+                    {az.briefs.delete}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       }
     >

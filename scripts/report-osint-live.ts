@@ -90,11 +90,6 @@ try {
       seconds: run.finishedAt
         ? Number(((run.finishedAt.getTime() - run.createdAt.getTime()) / 1000).toFixed(1))
         : "running",
-      Exa: typeof progress["searchCalls"] === "number" ? progress["searchCalls"] : 0,
-      Gemini: typeof progress["llmCalls"] === "number" ? progress["llmCalls"] : 0,
-      inputTokens: typeof progress["llmInputTokens"] === "number" ? progress["llmInputTokens"] : 0,
-      outputTokens:
-        typeof progress["llmOutputTokens"] === "number" ? progress["llmOutputTokens"] : 0,
       failures: failedSteps,
       pinned: run.pinned,
       error: run.error ?? "none",

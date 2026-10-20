@@ -44,6 +44,7 @@ export type AnalyticsSource = {
   tags: string[];
   sourceReliability: SourceReliability | null;
   infoCredibility: InfoCredibility | null;
+  classification: string | null;
 };
 
 export type AnalyticsSourcePreview = Omit<AnalyticsSource, "text" | "charStart" | "charEnd">;
