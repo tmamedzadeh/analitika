@@ -1,4 +1,4 @@
-import { looksAzerbaijani } from "./language";
+import { isAzerbaijaniSummaryContent } from "./language";
 import {
   SUMMARY_STATUSES,
   sourceSummaryStoredSchema,
@@ -21,12 +21,7 @@ export type StoredSourceSummary = {
 
 export function readStoredSummary(value: unknown, number: number): StoredSourceSummary | null {
   const parsed = sourceSummaryStoredSchema.safeParse(value);
-  if (
-    !parsed.success ||
-    !looksAzerbaijani(parsed.data.title) ||
-    !looksAzerbaijani(parsed.data.summary) ||
-    parsed.data.claims.some((claim) => !looksAzerbaijani(claim))
-  ) {
+  if (!parsed.success || !isAzerbaijaniSummaryContent(parsed.data.summary, parsed.data.claims)) {
     return null;
   }
   return { ...parsed.data, number, relevance: parsed.data.relevance ?? "direct" };

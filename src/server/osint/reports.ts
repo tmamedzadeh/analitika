@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { az } from "@/lib/i18n/az";
-import { looksAzerbaijani } from "./language";
+import { isAzerbaijaniSummaryContent, looksAzerbaijani } from "./language";
 
 export const AZERBAIJANI_OUTPUT_RULE =
   "output language: Azerbaijani (az-Latn); do not copy source-language sentences; entity names and quote keep original script.";
@@ -299,11 +299,7 @@ export function parseSourceSummariesDetailed(
       failures.set(source.number, "schema");
       continue;
     }
-    if (
-      !looksAzerbaijani(result.title) ||
-      !looksAzerbaijani(result.summary) ||
-      result.claims.some((claim) => !looksAzerbaijani(claim))
-    ) {
+    if (!isAzerbaijaniSummaryContent(result.summary, result.claims)) {
       failures.set(source.number, "language");
       continue;
     }

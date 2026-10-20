@@ -8,7 +8,7 @@ import {
   quoteIsExact,
   type StructuredReport,
 } from "./reports";
-import { looksAzerbaijani } from "./language";
+import { isAzerbaijaniSummaryContent, looksAzerbaijani } from "./language";
 import { az } from "@/lib/i18n/az";
 
 function validReport(overrides: Record<string, unknown> = {}) {
@@ -135,6 +135,80 @@ describe("structured OSINT reports", () => {
       { number: 1, title: "Title", text: "The meeting happened on 2026-10-18." },
     ]);
     expect(summary).toMatchObject({ eventDate: "2026-10-18", publicationDate: null, quote: null });
+  });
+
+  it("keeps an Azerbaijani summary with an original-language title, entity, and exact quote", () => {
+    const quote = "Встреча состоялась в Москве.";
+    const summary =
+      "The Guardian qəzetinin məlumatına görə görüş Bakıda keçirilib və Москва şəhəri ilə bağlı nəticələr açıqlanacaq.";
+    const claims = ["Görüşün nəticələri növbəti həftə açıqlanacaq."];
+    const response = JSON.stringify({
+      sources: [
+        {
+          number: 1,
+          title: "The Guardian",
+          summary,
+          claims,
+          entities: ["The Guardian", "Москва"],
+          eventDate: null,
+          publicationDate: null,
+          quote,
+          relevance: "direct",
+        },
+      ],
+    });
+
+    expect(isAzerbaijaniSummaryContent(summary, claims)).toBe(true);
+    const parsed = parseSourceSummaries(response, [
+      { number: 1, title: "Source title", text: `Article text. ${quote}` },
+    ]);
+
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]).toMatchObject({ title: "The Guardian", quote });
+  });
+
+  it("accepts a short Azerbaijani summary with a foreign-language title", () => {
+    const response = JSON.stringify({
+      sources: [
+        {
+          number: 1,
+          title: "Regional meeting",
+          summary: "Görüş var.",
+          claims: [],
+          entities: ["Moscow"],
+          eventDate: null,
+          publicationDate: null,
+          quote: null,
+          relevance: "direct",
+        },
+      ],
+    });
+
+    expect(
+      parseSourceSummaries(response, [{ number: 1, title: "Source", text: "Text" }]),
+    ).toHaveLength(1);
+  });
+
+  it("still rejects a mixed-language summary even when its title is foreign-language", () => {
+    const response = JSON.stringify({
+      sources: [
+        {
+          number: 1,
+          title: "The Guardian",
+          summary: "Görüş barədə məlumat yayımlandı. The report was published today.",
+          claims: [],
+          entities: ["The Guardian"],
+          eventDate: null,
+          publicationDate: null,
+          quote: null,
+          relevance: "direct",
+        },
+      ],
+    });
+
+    expect(parseSourceSummaries(response, [{ number: 1, title: "Source", text: "Text" }])).toEqual(
+      [],
+    );
   });
 
   it("drops source-language summaries instead of copying them through", () => {

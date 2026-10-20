@@ -50,8 +50,11 @@ describe("readStoredSummary", () => {
     expect(readStoredSummary(stored({ relevance: "offtopic" }), 2)?.relevance).toBe("offtopic");
   });
 
-  it("rejects non-Azerbaijani title, summary or claims", () => {
-    expect(readStoredSummary(stored({ title: "New transport project in the city" }), 1)).toBeNull();
+  it("accepts a foreign-language title when the summary content is Azerbaijani", () => {
+    expect(readStoredSummary(stored({ title: "The Guardian" }), 1)).not.toBeNull();
+  });
+
+  it("rejects non-Azerbaijani summary or claims", () => {
     expect(
       readStoredSummary(stored({ summary: "The project is implemented in the capital city." }), 1),
     ).toBeNull();

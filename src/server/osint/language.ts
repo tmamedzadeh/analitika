@@ -20,3 +20,7 @@ export function looksAzerbaijani(value: string): boolean {
 
   return latinRatio >= 0.9 && englishRatio < 0.12 && markerWords > 0 && markerRatio >= 0.04;
 }
+
+export function isAzerbaijaniSummaryContent(summary: string, claims: readonly string[]): boolean {
+  return looksAzerbaijani(summary) && claims.every(looksAzerbaijani);
+}
