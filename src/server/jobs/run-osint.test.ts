@@ -17,6 +17,7 @@ import { ExaRequestError } from "../ai/exa";
 import { SearchRequestBudget } from "../ai/exa";
 import { searchFallbackReason } from "../ai/provider-fallback";
 import { OSINT_LANGUAGES } from "@/lib/osint";
+import { generateQueryExpansionsWithFallback } from "../osint/query-expansion";
 
 describe("OSINT pipeline helpers", () => {
   it("uses Exa page text first, fetched page second, and a snippet as fallback", () => {
@@ -87,6 +88,39 @@ describe("OSINT pipeline helpers", () => {
       },
     );
     expect(phases).toEqual(["main", "registry", "variants"]);
+  });
+
+  it("continues main search with original queries when primary and fallback expansion fail", async () => {
+    const languages = ["az", "fa", "en"] as const;
+    let fallbackCalls = 0;
+    const expansion = await generateQueryExpansionsWithFallback(
+      "original query",
+      languages,
+      async () => {
+        throw new Error("primary expansion failed");
+      },
+      async (requested) => {
+        fallbackCalls += 1;
+        expect(requested).toEqual(["fa", "en"]);
+        throw new Error("fallback expansion failed");
+      },
+    );
+    const plan = planOsintSearchPhases(languages, expansion.expansions, new Map());
+    const searched: string[] = [];
+
+    await executeOsintSearchPhases(
+      async () => {
+        searched.push(...plan.main.map((task) => task.query));
+      },
+      () => plan.registry,
+      plan.variants,
+      () => false,
+      async () => undefined,
+    );
+
+    expect(fallbackCalls).toBe(1);
+    expect(expansion.fallbackFailed).toBe(true);
+    expect(searched).toEqual(["original query", "original query", "original query"]);
   });
 
   it("spends the search request allowance in order and skips later phases at the cap", async () => {

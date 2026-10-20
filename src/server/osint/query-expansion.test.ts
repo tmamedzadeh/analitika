@@ -31,6 +31,7 @@ import {
   queryExpansionMainSchema,
   queryExpansionsSchema,
 } from "./query-expansion";
+import { OSINT_LANGUAGES } from "@/lib/osint";
 
 describe("OSINT structured query expansion", () => {
   beforeEach(() => {
@@ -79,13 +80,16 @@ describe("OSINT structured query expansion", () => {
   });
 
   it("makes one fallback call for all translated languages and preserves az verbatim", async () => {
-    const languages = ["az", "fa", "hy", "en"] as const;
+    const languages = OSINT_LANGUAGES;
+    const fallbackLanguages = languages.filter(
+      (language): language is Exclude<(typeof languages)[number], "az"> => language !== "az",
+    );
     const primary = vi.fn(async () => {
       throw new Error("primary request failed");
     });
     const fallback = vi.fn(async (requested: readonly string[]) => {
-      expect(requested).toEqual(["fa", "hy", "en"]);
-      return { fa: "فارسی", hy: "հայերեն", en: "English query" };
+      expect(requested).toEqual(fallbackLanguages);
+      return Object.fromEntries(requested.map((language) => [language, "query " + language]));
     });
 
     const result = await generateQueryExpansionsWithFallback(
@@ -98,9 +102,9 @@ describe("OSINT structured query expansion", () => {
     expect(primary).toHaveBeenCalledOnce();
     expect(fallback).toHaveBeenCalledOnce();
     expect(result.fallbackFailed).toBe(false);
-    expect(result.fallbackLanguages).toEqual(["fa", "hy", "en"]);
+    expect(result.fallbackLanguages).toEqual(fallbackLanguages);
     expect(result.expansions.az).toEqual({ main: "original query", variants: [] });
-    expect(result.expansions.en).toEqual({ main: "English query", variants: [] });
+    expect(result.expansions.en).toEqual({ main: "query en", variants: [] });
   });
 
   it("uses original queries for all unexpanded languages after one failed fallback", async () => {

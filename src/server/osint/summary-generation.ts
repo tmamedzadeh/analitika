@@ -19,6 +19,7 @@ export type SummaryGenerationResult = {
   failures: Map<number, SummaryFailureReason>;
   attempts: Map<number, number>;
   calls: number;
+  successfulCalls: number;
 };
 
 async function concurrent<T, R>(
@@ -60,6 +61,7 @@ export async function generateSummaryBatches<T extends { number: number }>(
   const failures = new Map<number, SummaryFailureReason>();
   const attempts = new Map<number, number>();
   let calls = 0;
+  let successfulCalls = 0;
   const groups = batches(sources, SUMMARY_BATCH_SIZE);
 
   await concurrent(groups, SUMMARY_BATCH_CONCURRENCY, async (group) => {
@@ -71,7 +73,9 @@ export async function generateSummaryBatches<T extends { number: number }>(
         attempts.set(source.number, (attempts.get(source.number) ?? 0) + 1);
       calls += 1;
       try {
-        return await generateBatch(items, strongerLanguageInstruction);
+        const result = await generateBatch(items, strongerLanguageInstruction);
+        if (result.summaries.length) successfulCalls += 1;
+        return result;
       } catch {
         return {
           summaries: [],
@@ -99,7 +103,7 @@ export async function generateSummaryBatches<T extends { number: number }>(
     }
   });
 
-  return { summaries, failures, attempts, calls };
+  return { summaries, failures, attempts, calls, successfulCalls };
 }
 
 export const MIN_SUMMARY_TEXT_LENGTH = 160;
@@ -117,6 +121,7 @@ export type SummaryOutcome = {
   statuses: Map<number, SummaryStatus>;
   failureReasons: Partial<Record<SummaryOutputFailure, number>>;
   calls: number;
+  successfulCalls: number;
 };
 
 export function summaryEligibility(text: string): "eligible" | SummaryStatus {
@@ -138,6 +143,7 @@ export function skippedSummaryOutcome(sources: readonly SummaryInputSource[]): S
     statuses,
     failureReasons: skipped ? { generation_failed: skipped } : {},
     calls: 0,
+    successfulCalls: 0,
   };
 }
 
@@ -162,13 +168,14 @@ export async function summarizeSources(options: {
     if (eligibility === "eligible") eligible.push(source);
     else statuses.set(source.number, eligibility);
   }
-  if (!eligible.length) return { summaries, statuses, failureReasons, calls: 0 };
+  if (!eligible.length)
+    return { summaries, statuses, failureReasons, calls: 0, successfulCalls: 0 };
 
   const generateObject = options.light.generateObject?.bind(options.light);
   if (!generateObject) {
     for (const source of eligible) statuses.set(source.number, "generation_failed");
     failureReasons.generation_failed = eligible.length;
-    return { summaries, statuses, failureReasons, calls: 0 };
+    return { summaries, statuses, failureReasons, calls: 0, successfulCalls: 0 };
   }
 
   const generated = await generateSummaryBatches(
@@ -214,5 +221,11 @@ export async function summarizeSources(options: {
     statuses.set(number, summaryStatusFor(reason));
     failureReasons[reason] = (failureReasons[reason] ?? 0) + 1;
   }
-  return { summaries, statuses, failureReasons, calls: generated.calls };
+  return {
+    summaries,
+    statuses,
+    failureReasons,
+    calls: generated.calls,
+    successfulCalls: generated.successfulCalls,
+  };
 }

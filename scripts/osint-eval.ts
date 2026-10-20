@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { appendFile, readFile, writeFile } from "node:fs/promises";
 
 import { ExaProvider, SearchRequestBudget } from "../src/server/ai/exa";
 import { HasDataProvider } from "../src/server/ai/hasdata";
@@ -9,15 +9,21 @@ import { readServerEnv } from "../src/server/env";
 import {
   OSINT_LANGUAGES,
   osintLanguageLocale,
-  osintLanguageNames,
   type OsintLanguage,
   type OsintPeriod,
 } from "../src/lib/osint";
 import { fetchPublicPage } from "../src/server/osint/fetch-public-page";
 import { dedupeSearchSources, reciprocalRankFusion } from "../src/server/osint/ranking";
-import { looksAzerbaijani } from "../src/server/osint/language";
-import { sourceSummaryBatchSchema } from "../src/server/osint/reports";
-import { queryExpansionsSchema } from "../src/server/osint/query-expansion";
+import { summarizeSources } from "../src/server/osint/summary-generation";
+import type { SummaryOutputFailure, SummaryStatus } from "../src/server/osint/reports";
+import {
+  generateQueryExpansionsWithFallback,
+  QUERY_EXPANSION_FALLBACK_BUDGET_MS,
+  QUERY_EXPANSION_HTTP_TIMEOUT_MS,
+  QUERY_EXPANSION_PRIMARY_BUDGET_MS,
+  queryExpansionMainSchema,
+  queryExpansionsSchema,
+} from "../src/server/osint/query-expansion";
 import {
   getPeriodStart,
   matchesOsintLanguageScript,
@@ -89,6 +95,13 @@ async function main(): Promise<void> {
   const responseTimes = new Map<SearchProviderId, { totalMs: number; operations: number }>();
   const started = Date.now();
   let expansionCalls = 0;
+  let expansionPrimaryCalls = 0;
+  let expansionFallbackCalls = 0;
+  let expansionFallbackRequested = 0;
+  let expansionFallbackUnavailable = 0;
+  let expansionPrimaryFailures = 0;
+  let expansionFallbackFailures = 0;
+  let expansionSuccesses = 0;
   let expansionFailures = 0;
   let expansionDurationMs = 0;
 
@@ -97,32 +110,67 @@ async function main(): Promise<void> {
     let translations: Record<OsintLanguage, string>;
     const expansionStartedAt = Date.now();
     try {
-      const expansions = await ai.osint.generateObject(
-        {
-          temperature: 0,
-          timeoutMs: 12_000,
-          maxAttempts: 2,
-          maxOutputTokens: 500,
-          thinkingLevel: env.OSINT_THINKING_LEVEL,
-          telemetryStep: "expansion",
-          prompt: [
-            "Expand the research query into one concise main search query and up to two useful variants for every requested language. For az, main must equal the original query exactly; variants are Azerbaijani synonyms or alternative phrasings. Keep people, places and dates. Do not answer the query.",
-            JSON.stringify({
-              query: run.query,
-              languages: OSINT_LANGUAGES.map((language) => ({
-                code: language,
-                name: osintLanguageNames[language],
-              })),
-            }),
-          ].join("\n\n"),
+      const primaryGenerate =
+        ai.osint.generateObjectPrimary?.bind(ai.osint) ?? ai.osint.generateObject?.bind(ai.osint);
+      const fallbackGenerate = ai.light.generateObject?.bind(ai.light);
+      const expansionRun = await generateQueryExpansionsWithFallback(
+        run.query,
+        OSINT_LANGUAGES,
+        async () => {
+          if (!primaryGenerate) throw new Error("Structured expansion output is unavailable.");
+          expansionCalls += 1;
+          expansionPrimaryCalls += 1;
+          return primaryGenerate(
+            {
+              temperature: 0.1,
+              timeoutMs: QUERY_EXPANSION_HTTP_TIMEOUT_MS,
+              signal: AbortSignal.timeout(QUERY_EXPANSION_PRIMARY_BUDGET_MS),
+              maxAttempts: 2,
+              maxOutputTokens: 500,
+              thinkingLevel: env.OSINT_THINKING_LEVEL,
+              telemetryStep: "expansion",
+              system:
+                "Create a main search query and up to two distinct useful variants for every requested language. For az, main must exactly equal the original query without translation; variants should be Azerbaijani synonyms or alternate phrasings. Keep names, dates, and entities unchanged.",
+              prompt: JSON.stringify({ query: run.query, languages: OSINT_LANGUAGES }),
+            },
+            queryExpansionsSchema(OSINT_LANGUAGES),
+          );
         },
-        queryExpansionsSchema(OSINT_LANGUAGES),
+        async (fallbackLanguages) => {
+          expansionFallbackRequested += 1;
+          if (!env.AI_LIGHT_MODEL || env.AI_LIGHT_MODEL === ai.osint.model || !fallbackGenerate) {
+            expansionFallbackUnavailable += 1;
+            throw new Error("A distinct AI_LIGHT_MODEL is unavailable.");
+          }
+          expansionCalls += 1;
+          expansionFallbackCalls += 1;
+          return fallbackGenerate(
+            {
+              temperature: 0,
+              timeoutMs: QUERY_EXPANSION_HTTP_TIMEOUT_MS,
+              signal: AbortSignal.timeout(QUERY_EXPANSION_FALLBACK_BUDGET_MS),
+              maxAttempts: 1,
+              maxOutputTokens: 300,
+              thinkingLevel: "low",
+              telemetryStep: "expansion",
+              system:
+                "Translate the search query once into each requested language. Return only the main query strings. Keep names, dates, and entities unchanged.",
+              prompt: JSON.stringify({ query: run.query, languages: fallbackLanguages }),
+            },
+            queryExpansionMainSchema(fallbackLanguages),
+          );
+        },
       );
+      if (expansionRun.primaryFailed) expansionPrimaryFailures += 1;
+      if (expansionRun.fallbackFailed) {
+        expansionFallbackFailures += 1;
+        expansionFailures += 1;
+      } else {
+        expansionSuccesses += 1;
+      }
       translations = Object.fromEntries(
-        OSINT_LANGUAGES.map((language) => [language, expansions[language].main]),
+        OSINT_LANGUAGES.map((language) => [language, expansionRun.expansions[language].main]),
       ) as Record<OsintLanguage, string>;
-      translations.az = run.query;
-      expansionCalls += 1;
     } catch {
       expansionFailures += 1;
       translations = Object.fromEntries(
@@ -223,87 +271,65 @@ async function main(): Promise<void> {
     }
   });
 
-  const summaryProbeSources: Array<{ number: number; title: string; text: string }> = [];
-  for (const queryIndex of runs.keys()) {
-    if (summaryProbeSources.length >= 3) break;
-    const queryResults = pairList
-      .filter((pair) => pair.queryIndex === queryIndex)
-      .flatMap(({ queryIndex: index, language }) =>
-        reciprocalRankFusion(
-          (data.get(index + ":" + language) ?? []).filter((set) =>
-            ["exa", "tavily", "hasdata"].includes(set.provider),
-          ),
+  const summaryProbeSources: Array<{
+    number: number;
+    title: string;
+    text: string;
+    fetched: boolean;
+  }> = [];
+  const summaryProbeQuery = runs[0]!;
+  const summaryProbeResults = pairList
+    .filter((pair) => pair.queryIndex === 0)
+    .flatMap(({ queryIndex, language }) =>
+      reciprocalRankFusion(
+        (data.get(queryIndex + ":" + language) ?? []).filter((set) =>
+          ["exa", "tavily", "hasdata"].includes(set.provider),
         ),
-      );
-    for (const source of dedupeSearchSources(queryResults)) {
-      const url = normalizeOsintUrl(source.url);
-      const text =
-        (url ? fetchedText.get(url) : undefined) ??
-        source.text ??
-        source.highlights?.join("\n") ??
-        "";
-      if (text.trim().length < 80 || !source.title.trim()) continue;
-      summaryProbeSources.push({
-        number: summaryProbeSources.length + 1,
-        title: source.title.trim().slice(0, 300),
-        text: text.trim().slice(0, 4_000),
-      });
-      break;
-    }
+      ),
+    );
+  for (const source of dedupeSearchSources(summaryProbeResults)) {
+    if (summaryProbeSources.length >= 3) break;
+    const url = normalizeOsintUrl(source.url);
+    const fullText = url ? fetchedText.get(url) : undefined;
+    const text = fullText ?? source.text ?? source.highlights?.join("\n") ?? "";
+    if (text.trim().length < 80 || !source.title.trim()) continue;
+    summaryProbeSources.push({
+      number: summaryProbeSources.length + 1,
+      title: source.title.trim().slice(0, 300),
+      text: text.trim().slice(0, 4_000),
+      fetched: Boolean(fullText || source.text?.trim().length >= 800),
+    });
   }
 
   let summaryProbeAttempts = 0;
-  let summaryProbeValidCalls = 0;
+  let summaryProbeValidRows = 0;
+  let summaryProbeSuccessfulSteps = 0;
   let summaryProbeDurationMs = 0;
   let summaryProbeSucceeded = false;
   let summaryProbeAzRows = 0;
+  let summaryProbeFailureReasons: Partial<Record<SummaryOutputFailure, number>> = {};
+  const summaryProbeStatusCounts: Partial<Record<SummaryStatus, number>> = {};
   if (summaryProbeSources.length) {
-    const accepted = new Set<number>();
-    for (
-      let languageRetry = 0;
-      languageRetry < 2 && accepted.size < summaryProbeSources.length;
-      languageRetry += 1
-    ) {
-      const pending = summaryProbeSources.filter((source) => !accepted.has(source.number));
-      const beforeCall = Date.now();
-      summaryProbeAttempts += 1;
-      try {
-        const result = await ai.light.generateObject(
-          {
-            system:
-              languageRetry === 0
-                ? "output language: Azerbaijani (az-Latn); do not copy source-language sentences; entity names and quote keep original script. Summarize each source independently."
-                : "Return every summary and title only in natural Azerbaijani Latin script. Translate source-language prose; never copy source sentences. Keep entity names and quotes in original script.",
-            prompt: JSON.stringify({ sources: pending }),
-            temperature: 0.1,
-            timeoutMs: 30_000,
-            maxOutputTokens: 1_800,
-            maxAttempts: 1,
-            thinkingLevel: env.OSINT_THINKING_LEVEL,
-            telemetryStep: "source_summary",
-          },
-          sourceSummaryBatchSchema,
-        );
-        for (const row of result.sources) {
-          const source = pending.find((candidate) => candidate.number === row.number);
-          if (
-            source &&
-            looksAzerbaijani(row.title) &&
-            looksAzerbaijani(row.summary) &&
-            row.claims.every(looksAzerbaijani)
-          ) {
-            accepted.add(row.number);
-          }
-        }
-        if (pending.every((source) => accepted.has(source.number))) summaryProbeValidCalls += 1;
-      } catch {
-        // Evaluation output records only aggregate failure counts.
-      } finally {
-        summaryProbeDurationMs += Date.now() - beforeCall;
-      }
+    const beforeCall = Date.now();
+    const summarySignal = AbortSignal.timeout(60_000);
+    const outcome = await summarizeSources({
+      query: summaryProbeQuery.query,
+      sources: summaryProbeSources,
+      light: ai.light,
+      thinkingLevel: env.OSINT_THINKING_LEVEL,
+      signal: summarySignal,
+      canRetry: () => !summarySignal.aborted,
+    });
+    summaryProbeAttempts = outcome.calls;
+    summaryProbeValidRows = outcome.summaries.size;
+    summaryProbeSuccessfulSteps = outcome.successfulCalls;
+    summaryProbeAzRows = outcome.summaries.size;
+    summaryProbeSucceeded = outcome.summaries.size === summaryProbeSources.length;
+    summaryProbeFailureReasons = outcome.failureReasons;
+    for (const status of outcome.statuses.values()) {
+      summaryProbeStatusCounts[status] = (summaryProbeStatusCounts[status] ?? 0) + 1;
     }
-    summaryProbeAzRows = accepted.size;
-    summaryProbeSucceeded = accepted.size === summaryProbeSources.length;
+    summaryProbeDurationMs = Date.now() - beforeCall;
   }
 
   const metrics = modes.map((mode) => {
@@ -383,18 +409,28 @@ async function main(): Promise<void> {
     languages: OSINT_LANGUAGES,
     hasDataLanguageScope: hasDataLanguages,
     expansionCalls,
+    expansionPrimaryCalls,
+    expansionFallbackCalls,
+    expansionFallbackRequested,
+    expansionFallbackUnavailable,
+    expansionPrimaryFailures,
+    expansionFallbackFailures,
+    expansionSuccesses,
     expansionFailures,
     expansionDurationMs,
     summaryProbe: {
       selectedSources: summaryProbeSources.length,
       attempts: summaryProbeAttempts,
-      successfulSteps: summaryProbeValidCalls,
+      successfulSteps: summaryProbeSuccessfulSteps,
+      validSummaries: summaryProbeValidRows,
       succeeded: summaryProbeSources.length ? summaryProbeSucceeded : null,
       AzerbaijaniSummaries: summaryProbeAzRows,
       AzerbaijaniShare: summaryProbeSources.length
         ? Number((summaryProbeAzRows / summaryProbeSources.length).toFixed(3))
         : null,
       durationMs: summaryProbeDurationMs,
+      failureReasons: summaryProbeFailureReasons,
+      summaryStatusCounts: summaryProbeStatusCounts,
     },
     queryLanguagePairs: pairList.length,
     providers: apiUsage,
@@ -407,15 +443,16 @@ async function main(): Promise<void> {
     0,
   );
   const totalSearchErrors = [...providerErrors.values()].reduce((total, count) => total + count, 0);
-  const llmStepAttempts = expansionCalls + expansionFailures + summaryProbeAttempts;
-  const llmStepSuccesses = expansionCalls + summaryProbeValidCalls;
+  const llmStepAttempts = expansionCalls + summaryProbeAttempts;
+  const llmStepSuccesses = expansionSuccesses + summaryProbeSuccessfulSteps;
   const hasSuccessfulSearch = [...successfulLanguages.values()].some(
     (languages) => languages.size > 0,
   );
   const hybrid = metrics.find((metric) => metric.mode === "Exa + Tavily")!;
   console.log(JSON.stringify(output, null, 2));
 
-  const outputPath = readArgument("output") ?? "docs/OSINT_EVAL_AFTER.md";
+  const requestedOutputPath = readArgument("output");
+  const outputPath = requestedOutputPath ?? "docs/OSINT_EVAL_AFTER.md";
   const table = [
     "| Provider mode | Reference matches* | Languages | Unique domains | Full-text rate | Duplicate rate | Results | Avg. provider response |",
     "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |",
@@ -500,11 +537,7 @@ async function main(): Promise<void> {
       " attempted (" +
       totalSearchErrors +
       " errors) |",
-    "| Query expansion success | not recorded | " +
-      expansionCalls +
-      " / " +
-      (expansionCalls + expansionFailures) +
-      " |",
+    "| Query expansion success | not recorded | " + expansionSuccesses + " / " + runs.length + " |",
     "| LLM steps successful | not recorded | " + llmStepSuccesses + " / " + llmStepAttempts + " |",
   ].join("\n");
   const stepTable = [
@@ -525,7 +558,7 @@ async function main(): Promise<void> {
       " |",
   ].join("\n");
   const report = [
-    "# OSINT provider evaluation",
+    "## Eval run " + output.capturedAt,
     "",
     "Captured: " + output.capturedAt,
     "",
@@ -533,7 +566,7 @@ async function main(): Promise<void> {
       runs.length +
       " seed queries were submitted for search across the eight required languages. HasData was limited to " +
       hasDataLanguages.join(", ") +
-      ". Provider combinations below are merged offline with RRF (k=60); no extra API calls are made for combined modes.",
+      " and remains an evaluation-only provider. Provider combinations below are merged offline with RRF (k=60); no extra API calls are made for combined modes.",
     "",
     "*Reference matches count matching domains from the seed fixture. This is a comparison proxy, not blind relevance scoring or a source-quality judgment.",
     "",
@@ -561,22 +594,56 @@ async function main(): Promise<void> {
     "",
     "Full-text checks used the existing SSRF-safe page fetcher, capped at 24 distinct pages. A page counts only at 800 or more extracted characters.",
     "",
+    "Duplicate rate is (fused candidates minus deduped results) / fused candidates. Fused candidates are counted per query-language pair after provider RRF; deduped results then remove normalized URL duplicates and sufficiently similar titles across the full mode. It is a repeat-rate metric, not a relevance or quality score.",
+    "",
+    "The Azerbaijani summary probe uses the production batched summarizer, JSON/schema parsing, source-number matching, and language validation. `successfulSteps` counts logical model calls that produced at least one valid source summary; `validSummaries` counts accepted source rows. `attempts` counts logical structured model calls. Failure and summary-status counts are aggregate only; model responses are not stored.",
+    "",
+    "Summary probe validation counts: " +
+      JSON.stringify({
+        selectedSources: output.summaryProbe.selectedSources,
+        attempts: output.summaryProbe.attempts,
+        successfulSteps: output.summaryProbe.successfulSteps,
+        failureReasons: output.summaryProbe.failureReasons,
+        summaryStatusCounts: output.summaryProbe.summaryStatusCounts,
+      }) +
+      ".",
+    "",
     "## API usage",
     "",
     "Provider usage JSON: " + JSON.stringify(apiUsage),
     "",
-    "Query expansion calls: " +
+    "Query expansion model calls: " +
       expansionCalls +
-      " (failures: " +
+      " (primary: " +
+      expansionPrimaryCalls +
+      ", fallback: " +
+      expansionFallbackCalls +
+      "; fallback requested: " +
+      expansionFallbackRequested +
+      ", unavailable: " +
+      expansionFallbackUnavailable +
+      "). Expansion results: " +
+      expansionSuccesses +
+      " completed, " +
       expansionFailures +
-      "). Total elapsed: " +
+      " failed; primary failures: " +
+      expansionPrimaryFailures +
+      ", fallback failures: " +
+      expansionFallbackFailures +
+      ". Total elapsed: " +
       output.executionSeconds +
       "s. Secure page fetches: " +
       output.pageFetches +
       ".",
     "",
   ].join("\n");
-  await writeFile(outputPath, report, "utf8");
+  if (requestedOutputPath) {
+    await writeFile(outputPath, report, "utf8");
+  } else {
+    const previous = await readFile(outputPath, "utf8").catch(() => "");
+    if (previous.trim()) await appendFile(outputPath, "\n\n---\n\n" + report + "\n", "utf8");
+    else await writeFile(outputPath, "# OSINT provider evaluation\n\n" + report + "\n", "utf8");
+  }
 }
 
 main().catch((error: unknown) => {

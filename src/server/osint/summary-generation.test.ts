@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { SourceSummary } from "./reports";
-import { generateSummaryBatches } from "./summary-generation";
+import { generateSummaryBatches, summarizeSources } from "./summary-generation";
 
 function summary(number: number): SourceSummary {
   return {
@@ -18,6 +18,63 @@ function summary(number: number): SourceSummary {
 }
 
 describe("partial OSINT summary batches", () => {
+  it("counts only rows that pass schema, source-number, and Azerbaijani validation", async () => {
+    const light = {
+      generateObject: async () => ({
+        sources: [
+          { number: 1, title: "Regional update", summary: "Meeting details were published." },
+          {
+            number: 2,
+            title: "Regional talks",
+            summary: "The meeting took place in the capital.",
+            claims: ["Officials announced the event."],
+            entities: [],
+            eventDate: null,
+            publicationDate: null,
+            quote: null,
+            relevance: "direct",
+          },
+          {
+            number: 99,
+            title: "Bakıda görüş barədə",
+            summary: "Mənbə görüşün Bakıda baş tutduğunu bildirir.",
+            claims: ["Və bu məlumat yayımlandı."],
+            entities: ["Bakı"],
+            eventDate: null,
+            publicationDate: null,
+            quote: null,
+            relevance: "direct",
+          },
+        ],
+      }),
+    } as unknown as Parameters<typeof summarizeSources>[0]["light"];
+    const sources = [1, 2, 3].map((number) => ({
+      number,
+      title: "Source title",
+      text: "Source evidence ".repeat(20),
+      fetched: true,
+    }));
+
+    const outcome = await summarizeSources({
+      query: "research query",
+      sources,
+      light,
+      thinkingLevel: "low",
+      signal: new AbortController().signal,
+      canRetry: () => false,
+    });
+
+    expect(outcome.calls).toBe(1);
+    expect(outcome.successfulCalls).toBe(0);
+    expect(outcome.summaries.size).toBe(0);
+    expect(outcome.failureReasons).toEqual({ schema: 1, language: 1, source_number: 1 });
+    expect([...outcome.statuses.values()]).toEqual([
+      "invalid_output",
+      "invalid_output",
+      "invalid_output",
+    ]);
+  });
+
   it("keeps successful rows, retries only missing rows, and never exceeds two attempts per source", async () => {
     const sources = Array.from({ length: 12 }, (_, index) => ({ number: index + 1 }));
     const attempted: number[][] = [];
@@ -51,6 +108,7 @@ describe("partial OSINT summary batches", () => {
     expect(maximumActive).toBeLessThanOrEqual(3);
     expect(retryGroups).toEqual([[4], [8], [12]]);
     expect(result.summaries.size).toBe(11);
+    expect(result.successfulCalls).toBe(5);
     expect(result.summaries.has(1)).toBe(true);
     expect(result.summaries.has(4)).toBe(true);
     expect(result.summaries.has(8)).toBe(false);
@@ -75,6 +133,7 @@ describe("partial OSINT summary batches", () => {
       }),
     );
     expect(result.summaries.has(1)).toBe(true);
+    expect(result.successfulCalls).toBe(2);
     expect(result.attempts.get(1)).toBe(1);
     expect(result.attempts.get(2)).toBe(2);
   });

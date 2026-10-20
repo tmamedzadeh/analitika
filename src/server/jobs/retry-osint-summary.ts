@@ -148,6 +148,7 @@ export async function retryOsintSummaryJob(runId: string): Promise<void> {
           statuses: new Map<number, SummaryStatus>(),
           failureReasons: {},
           calls: 0,
+          successfulCalls: 0,
         }
       : remaining() > 1_000
         ? await summarizeSources({
