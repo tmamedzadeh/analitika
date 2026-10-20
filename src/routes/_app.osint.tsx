@@ -617,7 +617,6 @@ function Osint() {
                   <span className="mt-2 flex flex-wrap gap-x-2 text-xs text-muted-foreground">
                     <span>{displayRunStep(item.step, item.status)}</span>
                     <span>· {new Date(item.createdAt).toLocaleString("az-AZ")}</span>
-                    <span>· {item.author}</span>
                   </span>
                 </button>
               ))}
