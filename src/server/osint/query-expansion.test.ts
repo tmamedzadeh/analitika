@@ -24,7 +24,11 @@ vi.mock("@/server/db", () => ({ getDb: () => mocks.database }));
 
 import {
   cachedQueryExpansions,
+  createQueryExpansionCacheKey,
+  generateQueryExpansionsWithFallback,
   normalizeQueryExpansions,
+  QUERY_EXPANSION_HTTP_TIMEOUT_MS,
+  queryExpansionMainSchema,
   queryExpansionsSchema,
 } from "./query-expansion";
 
@@ -57,6 +61,80 @@ describe("OSINT structured query expansion", () => {
     ).toThrow();
   });
 
+  it("uses a compact main-only schema for a single fallback across translated languages", () => {
+    const schema = queryExpansionMainSchema(["fa", "hy", "en"]);
+    expect(schema.parse({ fa: "فارسی", hy: "հայերեն", en: "English" })).toEqual({
+      fa: "فارسی",
+      hy: "հայերեն",
+      en: "English",
+    });
+    expect(() => schema.parse({ fa: "فارسی", hy: "հայերեն" })).toThrow();
+    expect(() =>
+      schema.parse({ fa: "فارسی", hy: "հայերեն", en: "English", az: "query" }),
+    ).toThrow();
+  });
+
+  it("keeps low-mode HTTP attempts at 30 seconds independently of the step budget", () => {
+    expect(QUERY_EXPANSION_HTTP_TIMEOUT_MS).toBeGreaterThanOrEqual(30_000);
+  });
+
+  it("makes one fallback call for all translated languages and preserves az verbatim", async () => {
+    const languages = ["az", "fa", "hy", "en"] as const;
+    const primary = vi.fn(async () => {
+      throw new Error("primary request failed");
+    });
+    const fallback = vi.fn(async (requested: readonly string[]) => {
+      expect(requested).toEqual(["fa", "hy", "en"]);
+      return { fa: "فارسی", hy: "հայերեն", en: "English query" };
+    });
+
+    const result = await generateQueryExpansionsWithFallback(
+      "original query",
+      languages,
+      primary,
+      fallback,
+    );
+
+    expect(primary).toHaveBeenCalledOnce();
+    expect(fallback).toHaveBeenCalledOnce();
+    expect(result.fallbackFailed).toBe(false);
+    expect(result.fallbackLanguages).toEqual(["fa", "hy", "en"]);
+    expect(result.expansions.az).toEqual({ main: "original query", variants: [] });
+    expect(result.expansions.en).toEqual({ main: "English query", variants: [] });
+  });
+
+  it("uses original queries for all unexpanded languages after one failed fallback", async () => {
+    const languages = ["az", "ru", "fr"] as const;
+    const fallback = vi.fn(async () => {
+      throw new Error("fallback failed");
+    });
+    const result = await generateQueryExpansionsWithFallback(
+      "original query",
+      languages,
+      async () => {
+        throw new Error("primary failed");
+      },
+      fallback,
+    );
+    expect(fallback).toHaveBeenCalledOnce();
+    expect(result.fallbackFailed).toBe(true);
+    expect(result.fallbackLanguages).toEqual(["ru", "fr"]);
+    expect(Object.values(result.expansions).map((expansion) => expansion.main)).toEqual([
+      "original query",
+      "original query",
+      "original query",
+    ]);
+  });
+
+  it("keys cached expansions by normalized query, full language set, model, and prompt version", () => {
+    const key = createQueryExpansionCacheKey("  A   Query ", ["en", "az"], "gemini-main", 2);
+    expect(createQueryExpansionCacheKey("a query", ["az", "en"], "gemini-main", 2)).toBe(key);
+    expect(createQueryExpansionCacheKey("a query", ["az", "en"], "gemini-light", 2)).not.toBe(key);
+    expect(createQueryExpansionCacheKey("a query", ["az"], "gemini-main", 2)).not.toBe(key);
+    expect(createQueryExpansionCacheKey("a query", ["az", "en"], "gemini-main", 3)).not.toBe(key);
+    expect(key).not.toContain("a query");
+  });
+
   it("keeps the original Azerbaijani query and removes duplicate variants", () => {
     const languages = ["az", "en"] as const;
     const normalized = normalizeQueryExpansions(
@@ -77,8 +155,18 @@ describe("OSINT structured query expansion", () => {
       az: { main: "ignored", variants: ["alternativ"] },
       en: { main: "English query", variants: [] },
     });
-    const first = await cachedQueryExpansions("original request", languages, generate);
-    const second = await cachedQueryExpansions("original request", languages, generate);
+    const first = await cachedQueryExpansions(
+      "original request",
+      languages,
+      "gemini-main",
+      generate,
+    );
+    const second = await cachedQueryExpansions(
+      "original request",
+      languages,
+      "gemini-main",
+      generate,
+    );
     expect(first).toEqual(second);
     expect(first.az.main).toBe("original request");
     expect(generate).toHaveBeenCalledTimes(1);

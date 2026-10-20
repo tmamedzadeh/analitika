@@ -16,7 +16,13 @@ export type GeminiLimitKind =
 export type GeminiAttemptLimit = 1 | 2 | 3;
 
 let activeRequests = 0;
-const waitingRequests: Array<() => void> = [];
+type RequestWaiter = {
+  resolve: () => void;
+  reject: (error: unknown) => void;
+  signal?: AbortSignal;
+  onAbort?: () => void;
+};
+const waitingRequests: RequestWaiter[] = [];
 
 export class GeminiQuotaExceededError extends Error {
   constructor(
@@ -32,20 +38,40 @@ export class GeminiQuotaExceededError extends Error {
   }
 }
 
-async function acquireRequestSlot(): Promise<() => void> {
+async function acquireRequestSlot(signal?: AbortSignal): Promise<() => void> {
+  if (signal?.aborted) throw signal.reason ?? new Error("Request was aborted.");
   if (activeRequests < MAX_CONCURRENT_REQUESTS) {
     activeRequests += 1;
   } else {
-    await new Promise<void>((resolve) => waitingRequests.push(resolve));
+    await new Promise<void>((resolve, reject) => {
+      const waiter: RequestWaiter = { resolve, reject, ...(signal ? { signal } : {}) };
+      if (signal) {
+        waiter.onAbort = () => {
+          const index = waitingRequests.indexOf(waiter);
+          if (index >= 0) waitingRequests.splice(index, 1);
+          reject(signal.reason ?? new Error("Request was aborted."));
+        };
+        signal.addEventListener("abort", waiter.onAbort, { once: true });
+      }
+      waitingRequests.push(waiter);
+    });
   }
 
   let released = false;
   return () => {
     if (released) return;
     released = true;
-    const next = waitingRequests.shift();
-    if (next) next();
-    else activeRequests -= 1;
+    let next: RequestWaiter | undefined;
+    while ((next = waitingRequests.shift())) {
+      if (next.signal?.aborted) {
+        next.reject(next.signal.reason ?? new Error("Request was aborted."));
+        continue;
+      }
+      if (next.signal && next.onAbort) next.signal.removeEventListener("abort", next.onAbort);
+      next.resolve();
+      return;
+    }
+    activeRequests -= 1;
   };
 }
 
@@ -215,20 +241,33 @@ function retryDelay(error: unknown, attempt: number): number {
   return Math.max(exponential, getRetryAfterMs(error) ?? 0);
 }
 
-const pause = (milliseconds: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+function pause(milliseconds: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) return Promise.reject(signal.reason ?? new Error("Request was aborted."));
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, milliseconds);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal?.reason ?? new Error("Request was aborted."));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
 
 export async function withGeminiRequest<T>(
   quotaKey: GeminiQuotaKey,
   operation: () => Promise<T>,
   maxAttempts: GeminiAttemptLimit = MAX_ATTEMPTS,
+  signal?: AbortSignal,
 ): Promise<T> {
   let limitKind: GeminiLimitKind = "unknown";
   let statusCode = 429;
   let quotaIds: string[] = [];
   let quotaMetrics: string[] = [];
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const release = await acquireRequestSlot();
+    const release = await acquireRequestSlot(signal);
     let failure: unknown;
     try {
       return await operation();
@@ -261,7 +300,7 @@ export async function withGeminiRequest<T>(
     if (attempt >= maxAttempts || delay > MAX_RETRY_DELAY_MS) {
       throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
     }
-    await pause(delay);
+    await pause(delay, signal);
   }
   throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
 }
@@ -270,13 +309,14 @@ export async function* withGeminiStream<T>(
   quotaKey: GeminiQuotaKey,
   createStream: () => Promise<AsyncIterable<T>>,
   maxAttempts: GeminiAttemptLimit = MAX_ATTEMPTS,
+  signal?: AbortSignal,
 ): AsyncGenerator<T> {
   let limitKind: GeminiLimitKind = "unknown";
   let statusCode = 429;
   let quotaIds: string[] = [];
   let quotaMetrics: string[] = [];
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const release = await acquireRequestSlot();
+    const release = await acquireRequestSlot(signal);
     let emitted = false;
     let failure: unknown;
     try {
@@ -313,7 +353,7 @@ export async function* withGeminiStream<T>(
     if (emitted || attempt >= maxAttempts || delay > MAX_RETRY_DELAY_MS) {
       throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
     }
-    await pause(delay);
+    await pause(delay, signal);
   }
   throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
 }

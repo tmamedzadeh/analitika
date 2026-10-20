@@ -102,6 +102,10 @@ export interface LLMProvider {
     input: TextGenerationInput,
     schema: TSchema,
   ): Promise<z.output<TSchema>>;
+  generateObjectPrimary?<TSchema extends z.ZodType>(
+    input: TextGenerationInput,
+    schema: TSchema,
+  ): Promise<z.output<TSchema>>;
   streamText(input: TextGenerationInput): Promise<AsyncIterable<string>>;
   generateGroundedSearch?(input: GroundedSearchInput): Promise<{
     text: string;

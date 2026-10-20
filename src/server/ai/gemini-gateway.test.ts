@@ -33,16 +33,22 @@ describe("Gemini request gateway", () => {
   it("waits for Retry-After before retrying a 429", async () => {
     vi.useFakeTimers();
     let calls = 0;
-    const request = withGeminiRequest("AI_LIGHT_MODEL", async () => {
-      calls += 1;
-      if (calls === 1) {
-        throw Object.assign(new Error("sensitive provider details"), {
-          statusCode: 429,
-          responseHeaders: { "retry-after": "2" },
-        });
-      }
-      return "ok";
-    });
+    const requestSignals: AbortSignal[] = [];
+    const request = withGeminiRequest(
+      "AI_LIGHT_MODEL",
+      async () => {
+        calls += 1;
+        requestSignals.push(AbortSignal.timeout(30_000));
+        if (calls === 1) {
+          throw Object.assign(new Error("sensitive provider details"), {
+            statusCode: 429,
+            responseHeaders: { "retry-after": "2" },
+          });
+        }
+        return "ok";
+      },
+      2,
+    );
 
     await Promise.resolve();
     await Promise.resolve();
@@ -52,6 +58,30 @@ describe("Gemini request gateway", () => {
     await vi.advanceTimersByTimeAsync(1);
     await expect(request).resolves.toBe("ok");
     expect(calls).toBe(2);
+    expect(requestSignals[1]?.aborted).toBe(false);
+  });
+
+  it("aborts a queued Retry-After wait when the bounded step expires", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    let calls = 0;
+    const request = withGeminiRequest(
+      "AI_LIGHT_MODEL",
+      async () => {
+        calls += 1;
+        throw Object.assign(new Error("provider request failed"), {
+          statusCode: 429,
+          responseHeaders: { "retry-after": "30" },
+        });
+      },
+      2,
+      controller.signal,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    controller.abort(new Error("bounded step ended"));
+    await expect(request).rejects.toThrow("bounded step ended");
+    expect(calls).toBe(1);
   });
 
   it("stops after three quota attempts without exposing provider text", async () => {

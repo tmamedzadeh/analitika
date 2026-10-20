@@ -75,6 +75,7 @@ export class GeminiLLMProvider implements LLMProvider {
   private withRequest<T>(
     input: TextGenerationInput,
     operation: (model: string) => Promise<T>,
+    allowQuotaFallback = true,
   ): Promise<T> {
     const perModel = new Map<
       string,
@@ -114,11 +115,12 @@ export class GeminiLLMProvider implements LLMProvider {
           }
         },
         maxAttempts,
+        input.signal,
       );
     const primary = () => run(this.model, this.quotaKey);
     const fallbackModel = this.quotaKey === "AI_CHAT_MODEL" ? this.fallbackModel : undefined;
     const operationResult = async () => {
-      if (!fallbackModel) return primary();
+      if (!allowQuotaFallback || !fallbackModel) return primary();
       return withGeminiQuotaFallback(this.model, fallbackModel, primary, () =>
         run(fallbackModel, "AI_LIGHT_MODEL", 1),
       );
@@ -258,6 +260,31 @@ export class GeminiLLMProvider implements LLMProvider {
     return result.output;
   }
 
+  async generateObjectPrimary<TSchema extends z.ZodType>(
+    input: TextGenerationInput,
+    schema: TSchema,
+  ): Promise<z.output<TSchema>> {
+    requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
+    const result = await this.withRequest(
+      input,
+      (model) =>
+        generateText({
+          model: google(model),
+          ...(input.system ? { system: input.system } : {}),
+          prompt: input.prompt,
+          output: Output.object({ schema }),
+          ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+          ...(input.maxOutputTokens === undefined
+            ? {}
+            : { maxOutputTokens: input.maxOutputTokens }),
+          ...requestOptionsFor(input, model),
+        }),
+      false,
+    );
+    if (result.output === undefined) throw new Error("Gemini returned no structured output.");
+    return result.output;
+  }
+
   async streamText(input: TextGenerationInput): Promise<AsyncIterable<string>> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
     const createStream = (
@@ -281,6 +308,7 @@ export class GeminiLLMProvider implements LLMProvider {
           }).textStream;
         },
         maxAttempts,
+        input.signal,
       );
     const primary = createStream(this.model, this.quotaKey);
     if (this.quotaKey !== "AI_CHAT_MODEL") return primary;
@@ -382,6 +410,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
         return result;
       },
       request.maxAttempts,
+      request.signal,
     );
     return result.embedding;
   }
@@ -408,6 +437,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
           return response;
         },
         request.maxAttempts,
+        request.signal,
       );
       embeddings.push(...result.embeddings);
     }
@@ -429,6 +459,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
         return result;
       },
       request.maxAttempts,
+      request.signal,
     );
     return result.embedding;
   }
@@ -452,6 +483,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
           return response;
         },
         request.maxAttempts,
+        request.signal,
       );
       embeddings.push(...result.embeddings);
     }
