@@ -17,6 +17,8 @@ import {
   osintSummaryRetryRequested,
 } from "./events";
 
+export const HOUSEKEEPING_CRON = "*/15 * * * *";
+
 const processDocument = inngest.createFunction(
   {
     id: "process-document",
@@ -60,7 +62,7 @@ const indexBrief = inngest.createFunction(
 );
 
 const requeuePendingBriefs = inngest.createFunction(
-  { id: "requeue-pending-briefs", triggers: [{ cron: "*/5 * * * *" }] },
+  { id: "requeue-pending-briefs", triggers: [{ cron: HOUSEKEEPING_CRON }] },
   async () => {
     const queued = await getDb()
       .select({ briefId: dailyBriefs.id })
@@ -85,7 +87,7 @@ const cleanupAnalyticsHistory = inngest.createFunction(
 );
 
 const closeStaleOsintRuns = inngest.createFunction(
-  { id: "close-stale-osint-runs", triggers: [{ cron: "*/5 * * * *" }] },
+  { id: "close-stale-osint-runs", triggers: [{ cron: HOUSEKEEPING_CRON }] },
   async () => ({ closed: await markStaleOsintRuns() }),
 );
 

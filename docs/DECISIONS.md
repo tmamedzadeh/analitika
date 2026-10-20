@@ -7,7 +7,7 @@
 - Briefs are always published when saved. Existing brief rows are migrated to `published`; briefs without a ready index are queued for reindexing.
 - Upload preparation returns identifiers and signed storage URLs without creating database drafts. Save verifies size, MIME type, and file signature before persisting metadata and starting indexing. A daily job removes unreferenced uploads older than 24 hours.
 - Rate limits are stored in Postgres using atomic fixed-window upserts. OSINT runs with the same cache key are deduplicated. Worker concurrency is capped per Inngest function.
-- OSINT heartbeats are written with progress updates. A run stale for more than four minutes is closed by reads and a five-minute cron. Runs with saved sources keep a partial result; runs without sources fail.
+- OSINT heartbeats are written with progress updates. A run stale for more than four minutes is closed by reads and a fifteen-minute cron; starting, running, and reading a run never depend on the cron. Runs with saved sources keep a partial result; runs without sources fail.
 - Full-text search uses up to twelve sanitized Unicode tokens joined with OR, plus prefix matching for tokens longer than five characters. The `chunks.text` trigram branch and GIN index remain until an evaluation can establish that removing them does not reduce recall.
 - The database pool defaults to three connections and allows a validated `DATABASE_POOL_MAX` override. Recent document rows read a stored `chunk_count`; indexing updates it and the migration backfills existing documents.
 - Inngest uses the SDK request-signature verifier for GET, registration, and execution. Unauthenticated sync is disabled for the production serve handler.

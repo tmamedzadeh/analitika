@@ -64,10 +64,12 @@ const REASON_CLASS: Record<SummaryOutputFailure, OsintErrorClass> = {
 
 export function errorClassForFailure(label: string): OsintErrorClass | null {
   if (label === "summarizing:incomplete_sources") return null;
-  const mapped = LABEL_CLASS[label];
+  // Own-property lookups only: stored labels are untrusted JSON, and names such as
+  // "constructor" or "__proto__" must not resolve to inherited Object members.
+  const mapped = Object.hasOwn(LABEL_CLASS, label) ? LABEL_CLASS[label] : undefined;
   if (mapped) return mapped;
   const category = label.split(":").pop() ?? "";
-  return CATEGORY_CLASS[category] ?? "other";
+  return Object.hasOwn(CATEGORY_CLASS, category) ? (CATEGORY_CLASS[category] ?? "other") : "other";
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -160,7 +162,10 @@ export function buildOsintDiagnostics(input: {
     else if (source.summaryStatus)
       missing[source.summaryStatus] = (missing[source.summaryStatus] ?? 0) + 1;
     if (/^[a-z_]{1,40}$/.test(source.fetchStatus)) {
-      fetchStatus[source.fetchStatus] = (fetchStatus[source.fetchStatus] ?? 0) + 1;
+      const previous = Object.hasOwn(fetchStatus, source.fetchStatus)
+        ? (fetchStatus[source.fetchStatus] ?? 0)
+        : 0;
+      fetchStatus[source.fetchStatus] = previous + 1;
     }
   }
   const llm = record(diagnostics["llmAttempts"]);

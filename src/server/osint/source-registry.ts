@@ -9,7 +9,8 @@ export type RegistrySourceType =
   | "official"
   | "think_tank"
   | "agency"
-  | "domestic_media";
+  | "domestic_media"
+  | "academic";
 
 export type RegistrySource = {
   domain: string;
@@ -242,6 +243,24 @@ export const SOURCE_REGISTRY: readonly RegistrySource[] = [
     affiliation: "commercial news agency",
   },
   { domain: "agenda.ge", language: "ka", type: "official", affiliation: "government news service" },
+  // Reachability checked with the same probe as scripts/verify-osint-registry.ts. Ownership and
+  // editorial orientation were not verified, so these carry a neutral descriptive affiliation.
+  { domain: "unikal.az", language: "az", type: "domestic_media", affiliation: "domestic news outlet" },
+  {
+    domain: "yenisabah.az",
+    language: "az",
+    type: "domestic_media",
+    affiliation: "domestic news outlet",
+  },
+  { domain: "konkret.az", language: "az", type: "domestic_media", affiliation: "domestic news outlet" },
+  { domain: "ordu.az", language: "az", type: "domestic_media", affiliation: "domestic news outlet" },
+  { domain: "ednews.net", language: "az", type: "domestic_media", affiliation: "domestic news outlet" },
+  {
+    domain: "armenianarchitecture.org",
+    language: "hy",
+    type: "academic",
+    affiliation: "cultural heritage documentation project",
+  },
 ];
 
 export function registryForLanguage(language: OsintLanguage): RegistrySource[] {

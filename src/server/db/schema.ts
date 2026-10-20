@@ -52,6 +52,9 @@ export const osintSourceType = pgEnum("osint_source_type", [
   "official",
   "think_tank",
   "other",
+  "academic",
+  "archive",
+  "resolver",
 ]);
 export const userRole = pgEnum("user_role", ["admin", "user"]);
 
@@ -507,6 +510,27 @@ export const osintQueryCache = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("osint_query_cache_expires_idx").on(table.expiresAt)],
+);
+
+/**
+ * Descriptive publisher category per domain. Rows with source 'model' are a cache (TTL applied
+ * through classified_at); rows with source 'manual' are administrator overrides and never expire.
+ * Registry domains live in code and are not stored here.
+ */
+export const osintDomainClassifications = pgTable(
+  "osint_domain_classifications",
+  {
+    domain: text("domain").primaryKey(),
+    type: osintSourceType("type").notNull(),
+    source: text("source").notNull(),
+    classifiedAt: timestamp("classified_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      "osint_domain_classifications_source_check",
+      sql.raw("source IN ('registry', 'model', 'manual')"),
+    ),
+  ],
 );
 
 export const queryLogs = pgTable("query_logs", {
