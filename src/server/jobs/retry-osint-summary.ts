@@ -42,6 +42,7 @@ export function buildRetryProgress(
     failureReasons: Partial<Record<SummaryOutputFailure, number>>;
     failures: readonly string[];
     notes: readonly string[];
+    hasReport: boolean;
     elapsedMs: number;
     summaryCalls: number;
     reportAttempts: number;
@@ -60,7 +61,17 @@ export function buildRetryProgress(
   ];
   if (Object.keys(input.statusCounts).length) failedSteps.push("summarizing:incomplete_sources");
   const unique = [...new Set(failedSteps)];
-  const partial = unique.length > 0;
+  // Expansion is a search-quality enhancement. If summary retry has validated every saved
+  // source and generated a fresh report, an earlier expansion failure did not leave the run
+  // incomplete: the original-query search produced the results that were actually used.
+  // Keep the failure in failedSteps for diagnostics, but do not let it keep lifecycle status
+  // partial. Other search, summary, or synthesis failures still make the run partial.
+  const completeCurrentOutput =
+    input.hasReport && Object.keys(input.statusCounts).length === 0 && input.failures.length === 0;
+  const hasUnresolvedFailure = unique.some(
+    (label) => !(completeCurrentOutput && label.startsWith("expansion:")),
+  );
+  const partial = hasUnresolvedFailure;
   const progress: Record<string, unknown> = {
     ...base,
     failedSteps: unique,
@@ -235,6 +246,7 @@ export async function retryOsintSummaryJob(runId: string): Promise<void> {
       failureReasons: outcome.failureReasons,
       failures,
       notes,
+      hasReport: Boolean(report),
       elapsedMs: Date.now() - startedAt,
       summaryCalls: outcome.calls,
       reportAttempts,
