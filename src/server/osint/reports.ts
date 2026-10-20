@@ -2,17 +2,32 @@ import { z } from "zod";
 import { az } from "@/lib/i18n/az";
 import { looksAzerbaijani } from "./language";
 
+export const AZERBAIJANI_OUTPUT_RULE =
+  "output language: Azerbaijani (az-Latn); do not copy source-language sentences; entity names and quote keep original script.";
+
+export const SUMMARY_STATUSES = [
+  "unavailable",
+  "insufficient_text",
+  "generation_failed",
+  "invalid_output",
+] as const;
+export type SummaryStatus = (typeof SUMMARY_STATUSES)[number];
+export const sourceRelevanceSchema = z.enum(["direct", "tangential", "offtopic"]);
+export type SourceRelevance = z.infer<typeof sourceRelevanceSchema>;
+
+const sourceSummaryFields = {
+  number: z.number().int().positive(),
+  title: z.string().trim().min(1).max(300),
+  summary: z.string().trim().min(1).max(1600),
+  claims: z.array(z.string().trim().min(1).max(500)).max(3),
+  entities: z.array(z.string().trim().min(1).max(160)).max(20),
+  eventDate: z.string().trim().min(1).max(60).nullable(),
+  publicationDate: z.string().trim().min(1).max(60).nullable(),
+  quote: z.string().trim().min(1).max(500).nullable(),
+};
+
 export const sourceSummarySchema = z
-  .object({
-    number: z.number().int().positive(),
-    title: z.string().trim().min(1).max(300),
-    summary: z.string().trim().min(1).max(1600),
-    claims: z.array(z.string().trim().min(1).max(500)).max(3),
-    entities: z.array(z.string().trim().min(1).max(160)).max(20),
-    eventDate: z.string().trim().min(1).max(60).nullable(),
-    publicationDate: z.string().trim().min(1).max(60).nullable(),
-    quote: z.string().trim().min(1).max(500).nullable(),
-  })
+  .object({ ...sourceSummaryFields, relevance: sourceRelevanceSchema })
   .strict()
   .describe(
     "output language: Azerbaijani (az-Latn); do not copy source-language sentences; entity names and quote keep original script.",
@@ -20,30 +35,44 @@ export const sourceSummarySchema = z
 
 export type SourceSummary = z.infer<typeof sourceSummarySchema>;
 
+export const sourceSummaryStoredSchema = z
+  .object({ ...sourceSummaryFields, relevance: sourceRelevanceSchema.optional() })
+  .strict();
+
+export type SummaryOutputFailure =
+  "generation_failed" | "invalid_json" | "schema" | "language" | "source_number" | "missing";
+
+export type ParsedSourceSummaries = {
+  summaries: SourceSummary[];
+  failures: Map<number, SummaryOutputFailure>;
+};
+
 export const sourceSummaryBatchSchema = z
   .object({
-    sources: z.array(sourceSummarySchema).min(1).max(5),
+    sources: z.array(z.unknown()).min(1).max(5),
   })
+  .strict()
   .describe(
     "output language: Azerbaijani (az-Latn); do not copy source-language sentences; entity names and quote keep original script.",
   );
 
 export const simplifiedSourceSummaryBatchSchema = z
   .object({
-    sources: z
-      .array(
-        z.object({
-          number: z.number().int().positive(),
-          title: z.string().trim().min(1).max(300),
-          summary: z.string().trim().min(1).max(1600),
-        }),
-      )
-      .min(1)
-      .max(5),
+    sources: z.array(z.unknown()).min(1).max(5),
   })
+  .strict()
   .describe(
     "output language: Azerbaijani (az-Latn); do not copy source-language sentences; entity names and quote keep original script.",
   );
+
+const simplifiedSourceSummarySchema = z
+  .object({
+    number: z.number().int().positive(),
+    title: z.string().trim().min(1).max(300),
+    summary: z.string().trim().min(1).max(1600),
+    relevance: sourceRelevanceSchema,
+  })
+  .strict();
 
 const sourceNumbers = z.array(z.number().int().positive()).min(1).max(40);
 const blufNumbers = z.array(z.number().int().positive()).max(40);
@@ -111,6 +140,15 @@ export const structuredReportSchema = z
 
 export type StructuredReport = z.infer<typeof structuredReportSchema>;
 
+export const storedStructuredReportSchema = structuredReportSchema.extend({
+  weakFindings: z
+    .array(z.object({ text: z.string().trim().min(1).max(1200) }).strict())
+    .max(12)
+    .optional(),
+});
+
+export type StoredStructuredReport = z.infer<typeof storedStructuredReportSchema>;
+
 export const simplifiedStructuredReportSchema = z
   .object({
     bluf: z.string().trim().min(1).max(2400),
@@ -137,9 +175,10 @@ export function completeSimplifiedReport(
   };
 }
 
-export function isStructuredReportAzerbaijani(report: StructuredReport): boolean {
+export function isStructuredReportAzerbaijani(report: StoredStructuredReport): boolean {
   return (
     looksAzerbaijani(report.bluf) &&
+    (report.weakFindings ?? []).every((item) => looksAzerbaijani(item.text)) &&
     report.keyFindings.every((item) => looksAzerbaijani(item.text)) &&
     report.timeline.every((item) => looksAzerbaijani(item.event)) &&
     report.perspectives.every(
@@ -190,7 +229,26 @@ export function parseSourceSummaries(
     text: string;
   }[],
 ): SourceSummary[] {
-  const parsed = extractJson(response);
+  return parseSourceSummariesDetailed(response, sources).summaries;
+}
+
+export function parseSourceSummariesDetailed(
+  response: string,
+  sources: readonly {
+    number: number;
+    title: string;
+    publishedAt?: Date;
+    text: string;
+  }[],
+): ParsedSourceSummaries {
+  const failures = new Map<number, SummaryOutputFailure>();
+  let parsed: unknown;
+  try {
+    parsed = extractJson(response);
+  } catch {
+    for (const source of sources) failures.set(source.number, "invalid_json");
+    return { summaries: [], failures };
+  }
   const rows = Array.isArray(parsed)
     ? parsed
     : parsed &&
@@ -198,32 +256,67 @@ export function parseSourceSummaries(
         Array.isArray((parsed as Record<string, unknown>)["sources"])
       ? (parsed as { sources: unknown[] }).sources
       : [];
+  if (!rows.length) {
+    for (const source of sources) failures.set(source.number, "schema");
+    return { summaries: [], failures };
+  }
   const byNumber = new Map(sources.map((source) => [source.number, source]));
   const output = new Map<number, SourceSummary>();
+  const rowsByNumber = new Map<number, unknown[]>();
   for (const row of rows) {
-    const result = sourceSummarySchema.safeParse(row);
-    if (!result.success) continue;
-    const source = byNumber.get(result.data.number);
-    if (!source) continue;
-    if (
-      !looksAzerbaijani(result.data.title) ||
-      !looksAzerbaijani(result.data.summary) ||
-      result.data.claims.some((claim) => !looksAzerbaijani(claim))
-    ) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+    const number = (row as Record<string, unknown>)["number"];
+    if (typeof number === "number" && Number.isInteger(number)) {
+      rowsByNumber.set(number, [...(rowsByNumber.get(number) ?? []), row]);
+    }
+  }
+  const hasUnexpectedNumber = [...rowsByNumber.keys()].some((number) => !byNumber.has(number));
+  for (const source of sources) {
+    const matches = rowsByNumber.get(source.number) ?? [];
+    if (matches.length !== 1) {
+      failures.set(
+        source.number,
+        matches.length > 1 || hasUnexpectedNumber ? "source_number" : "missing",
+      );
       continue;
     }
-    const eventDate = explicitDateExists(result.data.eventDate, source.text)
-      ? result.data.eventDate
-      : null;
-    const quote = quoteIsExact(result.data.quote, source.text) ? result.data.quote : null;
-    output.set(result.data.number, {
-      ...result.data,
+    const row = matches[0];
+    const fullResult = sourceSummarySchema.safeParse(row);
+    const simplifiedResult = simplifiedSourceSummarySchema.safeParse(row);
+    const result: SourceSummary | null = fullResult.success
+      ? fullResult.data
+      : simplifiedResult.success
+        ? {
+            ...simplifiedResult.data,
+            claims: [],
+            entities: [],
+            eventDate: null,
+            publicationDate: null,
+            quote: null,
+          }
+        : null;
+    if (!result) {
+      failures.set(source.number, "schema");
+      continue;
+    }
+    if (
+      !looksAzerbaijani(result.title) ||
+      !looksAzerbaijani(result.summary) ||
+      result.claims.some((claim) => !looksAzerbaijani(claim))
+    ) {
+      failures.set(source.number, "language");
+      continue;
+    }
+    const eventDate = explicitDateExists(result.eventDate, source.text) ? result.eventDate : null;
+    const quote = quoteIsExact(result.quote, source.text) ? result.quote : null;
+    output.set(result.number, {
+      ...result,
       eventDate,
       publicationDate: source.publishedAt?.toISOString().slice(0, 10) ?? null,
       quote,
     });
   }
-  return [...output.values()];
+  return { summaries: [...output.values()], failures };
 }
 
 function keepValidNumbers(value: unknown, allowed: Set<number>): number[] {
@@ -338,10 +431,10 @@ export function parseStructuredReport(
   return { report: result.data, incomplete: hadBadNumbers };
 }
 
-export function keepExplicitTimelineDates(
-  report: StructuredReport,
+export function keepExplicitTimelineDates<T extends StructuredReport>(
+  report: T,
   sources: readonly { number: number; eventDate: string | null; publicationDate: string | null }[],
-): StructuredReport {
+): T {
   const byNumber = new Map(sources.map((source) => [source.number, source]));
   return {
     ...report,
@@ -353,4 +446,15 @@ export function keepExplicitTimelineDates(
       return hasExplicitDate ? item : { ...item, date: az.osint.eventDateUnknown };
     }),
   };
+}
+
+export function reportSummaryText(report: StructuredReport): string {
+  const citations = (numbers: number[]) => numbers.map((number) => "[" + number + "]").join(" ");
+  return [
+    report.bluf +
+      (report.blufSourceNumbers.length ? " " + citations(report.blufSourceNumbers) : ""),
+    ...report.keyFindings.map(
+      (finding) => "- " + finding.text + " " + citations(finding.sourceNumbers),
+    ),
+  ].join("\n");
 }

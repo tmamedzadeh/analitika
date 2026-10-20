@@ -127,6 +127,7 @@ describe("structured OSINT reports", () => {
           eventDate: "2026-10-18",
           publicationDate: "not sourced",
           quote: "invented phrase",
+          relevance: "direct",
         },
       ],
     });
@@ -148,6 +149,7 @@ describe("structured OSINT reports", () => {
           eventDate: null,
           publicationDate: null,
           quote: null,
+          relevance: "direct",
         },
       ],
     });
@@ -168,6 +170,7 @@ describe("structured OSINT reports", () => {
           eventDate: null,
           publicationDate: null,
           quote: null,
+          relevance: "direct",
         },
         {
           number: 2,
@@ -178,6 +181,7 @@ describe("structured OSINT reports", () => {
           eventDate: null,
           publicationDate: null,
           quote: null,
+          relevance: "direct",
         },
       ],
     });

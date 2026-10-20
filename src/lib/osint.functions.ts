@@ -22,13 +22,15 @@ import { findPinnedOsintRun, shouldServePinnedCache } from "@/server/osint/cache
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 import { markStaleOsintRuns } from "@/server/osint/stale-runs";
 import { canAccessOsintRun, osintRunHistoryFilter } from "@/server/osint/access";
-import type { SourceSummary, StructuredReport } from "@/server/osint/reports";
+import type { StoredStructuredReport } from "@/server/osint/reports";
 import {
   isStructuredReportAzerbaijani,
-  sourceSummarySchema,
-  structuredReportSchema,
+  reportSummaryText,
+  storedStructuredReportSchema,
 } from "@/server/osint/reports";
-import { looksAzerbaijani } from "@/server/osint/language";
+import { osintDiagnosticsFor } from "@/server/osint/diagnostics";
+import { sourceSummaryState, summaryRetryNeeded } from "@/server/osint/source-summary-state";
+import { osintStage, type OsintStage } from "@/lib/osint-stage";
 import { plainTextFragment } from "@/lib/osint-text";
 
 type OsintProgress = {
@@ -41,8 +43,12 @@ type OsintProgress = {
   partial?: boolean;
   notice?: string;
   fallbackProvider?: boolean;
+  stage?: OsintStage;
 };
-function serializeProgress(value: unknown): OsintProgress {
+function serializeProgress(
+  value: unknown,
+  context: { status: string; step: string },
+): OsintProgress {
   const p = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
   const failures = Array.isArray(p["failedSteps"])
     ? p["failedSteps"].filter((item): item is string => typeof item === "string")
@@ -70,11 +76,18 @@ function serializeProgress(value: unknown): OsintProgress {
         : failures.length
           ? "llm"
           : undefined;
+  const sourcesFound = typeof p["sourcesFound"] === "number" ? p["sourcesFound"] : 0;
+  const stage = osintStage({
+    status: context.status,
+    step: context.step,
+    failedSteps: failures,
+    sourcesFound,
+  });
   return {
     percent: typeof p["percent"] === "number" ? p["percent"] : 0,
     completedLanguages: typeof p["completedLanguages"] === "number" ? p["completedLanguages"] : 0,
     totalLanguages: typeof p["totalLanguages"] === "number" ? p["totalLanguages"] : 0,
-    sourcesFound: typeof p["sourcesFound"] === "number" ? p["sourcesFound"] : 0,
+    sourcesFound,
     sourcesProcessed: typeof p["sourcesProcessed"] === "number" ? p["sourcesProcessed"] : 0,
     ...(failureClass ? { failureClass } : {}),
     ...(typeof p["partial"] === "boolean" ? { partial: p["partial"] } : {}),
@@ -82,35 +95,13 @@ function serializeProgress(value: unknown): OsintProgress {
     ...(typeof p["fallbackProvider"] === "boolean"
       ? { fallbackProvider: p["fallbackProvider"] }
       : {}),
+    ...(stage ? { stage } : {}),
   };
 }
 
-function safeSourceSummary(value: unknown): SourceSummary | null {
-  const parsed = sourceSummarySchema.safeParse(value);
-  if (
-    !parsed.success ||
-    !looksAzerbaijani(parsed.data.title) ||
-    !looksAzerbaijani(parsed.data.summary) ||
-    parsed.data.claims.some((claim) => !looksAzerbaijani(claim))
-  ) {
-    return null;
-  }
-  return parsed.data;
-}
-
-function safeStructuredReport(value: unknown): StructuredReport | null {
-  const parsed = structuredReportSchema.safeParse(value);
+function safeStructuredReport(value: unknown): StoredStructuredReport | null {
+  const parsed = storedStructuredReportSchema.safeParse(value);
   return parsed.success && isStructuredReportAzerbaijani(parsed.data) ? parsed.data : null;
-}
-
-function reportSummary(report: StructuredReport | null): string | null {
-  if (!report) return null;
-  const citations = (numbers: number[]) => numbers.map((number) => `[${number}]`).join(" ");
-  return [
-    report.bluf +
-      (report.blufSourceNumbers.length ? ` ${citations(report.blufSourceNumbers)}` : ""),
-    ...report.keyFindings.map((finding) => `${finding.text} ${citations(finding.sourceNumbers)}`),
-  ].join("\n");
 }
 
 export const startOsintRun = createServerFn({ method: "POST" })
@@ -315,7 +306,7 @@ export const listOsintRuns = createServerFn({ method: "GET" }).handler(async () 
     .limit(30);
   return rows.map((row) => ({
     ...row,
-    progress: serializeProgress(row.progress),
+    progress: serializeProgress(row.progress, { status: row.status, step: row.step }),
     createdAt: row.createdAt.toISOString(),
   }));
 });
@@ -334,6 +325,7 @@ export const getOsintRun = createServerFn({ method: "GET" })
       .where(eq(osintSources.runId, data.runId))
       .orderBy(osintSources.n);
     const structuredReport = safeStructuredReport(run.structuredReport);
+    const states = sources.map((source) => ({ source, state: sourceSummaryState(source) }));
     const [author] = await db
       .select({ username: appUsers.username })
       .from(appUsers)
@@ -343,21 +335,35 @@ export const getOsintRun = createServerFn({ method: "GET" })
       ...run,
       author: author?.username ?? "",
       structuredReport,
-      summary: reportSummary(structuredReport),
-      progress: serializeProgress(run.progress),
+      summary: structuredReport ? reportSummaryText(structuredReport) : null,
+      progress: serializeProgress(run.progress, { status: run.status, step: run.step }),
       createdAt: run.createdAt.toISOString(),
       finishedAt: run.finishedAt?.toISOString() ?? null,
-      sources: sources.map((source) => {
-        const structuredSummary = safeSourceSummary(source.structuredSummary);
-        return {
-          ...source,
-          title: structuredSummary?.title ?? source.domain,
-          summary: structuredSummary?.summary ?? null,
-          structuredSummary,
-          snippet: structuredSummary ? "" : plainTextFragment(source.snippet, 300),
-          publishedAt: source.publishedAt?.toISOString() ?? null,
-        };
+      summaryRetryAvailable:
+        (run.status === "partial" || run.status === "done") &&
+        summaryRetryNeeded({ sources, hasReport: Boolean(structuredReport) }),
+      diagnostics: osintDiagnosticsFor(user, {
+        status: run.status,
+        step: run.step,
+        progress: run.progress,
+        createdAt: run.createdAt,
+        finishedAt: run.finishedAt,
+        sources: states.map(({ source, state }) => ({
+          hasSummary: Boolean(state.summary),
+          fetchStatus: source.fetchStatus,
+          summaryStatus: state.status,
+        })),
       }),
+      sources: states.map(({ source, state }) => ({
+        ...source,
+        title: state.summary?.title ?? source.domain,
+        summary: state.summary?.summary ?? null,
+        structuredSummary: state.summary,
+        summaryStatus: state.status,
+        relevance: state.summary?.relevance ?? null,
+        snippet: state.summary ? "" : plainTextFragment(source.snippet, 300),
+        publishedAt: source.publishedAt?.toISOString() ?? null,
+      })),
     };
   });
 
@@ -383,15 +389,26 @@ export const retryOsintSummary = createServerFn({ method: "POST" })
       throw new Error(az.osint.loadFailed);
     }
     if (run.status === "running" && run.step === "summary_retrying") return { accepted: true };
-    if (!(["partial", "done"] as string[]).includes(run.status) || run.structuredReport) {
+    if (!(["partial", "done"] as string[]).includes(run.status)) {
       throw new Error(az.osint.loadFailed);
     }
-    const [source] = await db
-      .select({ id: osintSources.id })
+    const sources = await db
+      .select({
+        n: osintSources.n,
+        structuredSummary: osintSources.structuredSummary,
+        snippet: osintSources.snippet,
+      })
       .from(osintSources)
       .where(eq(osintSources.runId, run.id))
-      .limit(1);
-    if (!source) throw new Error(az.osint.loadFailed);
+      .orderBy(osintSources.n);
+    if (
+      !summaryRetryNeeded({
+        sources,
+        hasReport: Boolean(safeStructuredReport(run.structuredReport)),
+      })
+    ) {
+      throw new Error(az.osint.loadFailed);
+    }
     const progress =
       run.progress && typeof run.progress === "object"
         ? (run.progress as Record<string, unknown>)
