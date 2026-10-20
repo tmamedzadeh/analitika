@@ -6,6 +6,7 @@ export type CopyReport = {
   bluf: string;
   blufSourceNumbers: readonly number[];
   keyFindings: readonly CopyCited[];
+  entities: readonly { name: string; sourceNumbers: readonly number[] }[];
   timeline: readonly { date: string; event: string; sourceNumbers: readonly number[] }[];
   perspectives: readonly { group: string; summary: string; sourceNumbers: readonly number[] }[];
   disagreements: readonly {
@@ -14,6 +15,7 @@ export type CopyReport = {
   }[];
   gaps: readonly CopyCited[];
   watch: readonly CopyCited[];
+  caveats: readonly CopyCited[];
 };
 
 export type CopySource = {
@@ -25,6 +27,7 @@ export type CopySource = {
 };
 
 export type CopyReportInput = {
+  applicationOrigin?: string;
   query: string;
   periodLabel: string;
   languageLabels: readonly string[];
@@ -59,10 +62,12 @@ function oneLine(value: string): string {
     .trim();
 }
 
-function safeUrl(value: string): string | null {
+function safeUrl(value: string, applicationOrigin?: string): string | null {
   try {
     const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (applicationOrigin && url.origin === new URL(applicationOrigin).origin) return null;
+    return url.href;
   } catch {
     return null;
   }
@@ -123,6 +128,15 @@ function buildDocument(input: CopyReportInput): CopyDocument {
   if (report.keyFindings.length) {
     push({ heading: labels.keyFindings, items: cited(report.keyFindings) });
   }
+  if (report.entities.length) {
+    push({
+      heading: labels.entities,
+      items: report.entities.map((entity) => ({
+        text: entity.name,
+        numbers: keep(entity.sourceNumbers),
+      })),
+    });
+  }
   if (report.timeline.length) {
     push({
       heading: labels.timeline,
@@ -134,29 +148,29 @@ function buildDocument(input: CopyReportInput): CopyDocument {
       })),
     });
   }
-  const positions: Item[] = [
-    ...report.perspectives.map((item) => ({
-      lead: item.group,
-      leadStyle: "colon" as const,
-      text: item.summary,
-      numbers: keep(item.sourceNumbers),
-    })),
-    ...report.disagreements.map((item) => ({
-      lead: item.topic,
-      leadStyle: "title" as const,
-      text: "",
-      numbers: [] as number[],
-      children: item.positions.map((position) => ({
-        lead: position.group,
-        leadStyle: "colon" as const,
-        text: position.text,
-        numbers: keep(position.sourceNumbers),
-      })),
-    })),
-  ];
+  const positions: Item[] = report.perspectives.map((item) => ({
+    lead: item.group,
+    leadStyle: "colon" as const,
+    text: item.summary,
+    numbers: keep(item.sourceNumbers),
+  }));
   if (positions.length) push({ heading: labels.perspectives, items: positions });
+  const disagreements: Item[] = report.disagreements.map((item) => ({
+    lead: item.topic,
+    leadStyle: "title" as const,
+    text: "",
+    numbers: [] as number[],
+    children: item.positions.map((position) => ({
+      lead: position.group,
+      leadStyle: "colon" as const,
+      text: position.text,
+      numbers: keep(position.sourceNumbers),
+    })),
+  }));
+  if (disagreements.length) push({ heading: labels.disagreements, items: disagreements });
   if (report.gaps.length) push({ heading: labels.gaps, items: cited(report.gaps) });
   if (report.watch.length) push({ heading: labels.watch, items: cited(report.watch) });
+  if (report.caveats.length) push({ heading: labels.caveats, items: cited(report.caveats) });
 
   const sources = input.sources
     .filter((source) => used.has(source.n))
@@ -166,7 +180,7 @@ function buildDocument(input: CopyReportInput): CopyDocument {
       title: source.title,
       domain: source.domain,
       date: formatDate(source.publishedAt),
-      url: safeUrl(source.url) ?? "",
+      url: safeUrl(source.url, input.applicationOrigin) ?? "",
     }));
 
   return {

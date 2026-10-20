@@ -8,6 +8,7 @@ import {
 } from "./osint-copy";
 
 const input: CopyReportInput = {
+  applicationOrigin: "https://app.example",
   query: "Sorğu <b>test</b>",
   periodLabel: "Son 7 gün",
   languageLabels: ["Azərbaycan", "English"],
@@ -16,11 +17,21 @@ const input: CopyReportInput = {
     bluf: "Əsas nəticə <script>alert(1)</script> budur.",
     blufSourceNumbers: [3, 99],
     keyFindings: [{ text: "Birinci iddia", sourceNumbers: [3] }],
+    entities: [{ name: "Qurum <x>", sourceNumbers: [7] }],
     timeline: [{ date: "2026-05-01", event: "Hadisə", sourceNumbers: [7] }],
     perspectives: [{ group: "Rəsmi", summary: "Mövqe", sourceNumbers: [3] }],
-    disagreements: [],
+    disagreements: [
+      {
+        topic: "Fərqli məlumat",
+        positions: [
+          { group: "A tərəfi", text: "Bir mövqe", sourceNumbers: [3] },
+          { group: "B tərəfi", text: "Digər mövqe", sourceNumbers: [7] },
+        ],
+      },
+    ],
     gaps: [],
     watch: [],
+    caveats: [{ text: "Qeyd <b>burada</b>", sourceNumbers: [3, 11] }],
   },
   sources: [
     {
@@ -44,6 +55,13 @@ const input: CopyReportInput = {
       url: "javascript:alert(1)",
       publishedAt: null,
     },
+    {
+      n: 11,
+      title: "Tətbiq daxili səhifəsi",
+      domain: "app.example",
+      url: "https://app.example/osint/internal?runId=private",
+      publishedAt: null,
+    },
   ],
 };
 
@@ -56,6 +74,8 @@ describe("report copy builders", () => {
     expect(markdown).toContain("[7] Yeddinci — seven.example");
     expect(markdown).not.toContain("unused.example");
     expect(markdown).not.toContain("javascript:");
+    expect(markdown).not.toContain("https://app.example/osint/internal");
+    expect(markdown).not.toContain("runId=private");
   });
 
   it("drops citation numbers that do not match a known source", () => {
@@ -66,9 +86,21 @@ describe("report copy builders", () => {
 
   it("contains the main sections and no diagnostics or internal data", () => {
     const markdown = buildReportMarkdown(input);
-    for (const heading of ["Qısa nəticə", "Əsas nəticələr", "Xronologiya", "Mənbələr"]) {
+    for (const heading of [
+      "Qısa nəticə",
+      "Əsas nəticələr",
+      "Şəxslər və qurumlar",
+      "Xronologiya",
+      "Mövqelər",
+      "Fikir ayrılıqları",
+      "Qeydlər",
+      "Mənbələr",
+    ]) {
       expect(markdown).toContain("## " + heading);
     }
+    expect(markdown).toContain("Qurum \\<x\\>");
+    expect(markdown).toContain("Bir mövqe [3]");
+    expect(markdown).toContain("Digər mövqe [7]");
     expect(markdown).not.toMatch(/Texniki detallar|prompt|token|localhost|supabase/i);
   });
 
@@ -77,9 +109,13 @@ describe("report copy builders", () => {
     expect(html).not.toContain("<script>");
     expect(html).not.toContain("<b>test</b>");
     expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("Qurum &lt;x&gt;");
+    expect(html).toContain("Qeyd &lt;b&gt;burada&lt;/b&gt;");
     expect(html).toContain('href="https://example.org/a?x=1&amp;y=2"');
     expect(html).not.toContain("javascript:");
     expect(html).not.toContain("unused.example");
+    expect(html).not.toContain("https://app.example/osint/internal");
+    expect(html).not.toContain("runId=private");
   });
 });
 

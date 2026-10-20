@@ -547,10 +547,13 @@ export const az = {
       generatedAt: "Tarix",
       bluf: "Q\u0131sa n\u0259tic\u0259",
       keyFindings: "\u018fsas n\u0259tic\u0259l\u0259r",
+      entities: "\u015e\u0259xsl\u0259r v\u0259 qurumlar",
       timeline: "Xronologiya",
       perspectives: "M\u00f6vqel\u0259r",
+      disagreements: "Fikir ayr\u0131l\u0131qlar\u0131",
       gaps: "Bo\u015fluqlar",
       watch: "\u0130zl\u0259nm\u0259li",
+      caveats: "Qeydl\u0259r",
       sources: "M\u0259nb\u0259l\u0259r",
     },
     diag: {

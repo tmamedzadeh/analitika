@@ -281,6 +281,18 @@ export const SOURCE_REGISTRY: readonly RegistrySource[] = [
     type: "academic",
     affiliation: "cultural heritage documentation project",
   },
+  {
+    domain: "arar.sci.am",
+    language: "hy",
+    type: "academic",
+    affiliation: "Pan-Armenian Digital Library",
+  },
+  {
+    domain: "sp.nuaca.am",
+    language: "hy",
+    type: "academic",
+    affiliation: "scientific papers of the National University of Architecture and Construction",
+  },
 ];
 
 export function registryForLanguage(language: OsintLanguage): RegistrySource[] {

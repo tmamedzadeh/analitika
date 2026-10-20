@@ -242,6 +242,7 @@ function Osint() {
   async function copyReport() {
     if (!run || !report) return;
     const input = {
+      applicationOrigin: window.location.origin,
       query: run.query,
       periodLabel: periodLabels[run.period as OsintPeriod] ?? run.period,
       languageLabels: run.languages.map(

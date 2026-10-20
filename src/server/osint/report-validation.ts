@@ -82,6 +82,7 @@ export function stripCitations(text: string): string {
   return text
     .replace(/\[\d+(?:\s*[,;]\s*\d+)*\]/g, " ")
     .replace(/\s+/g, " ")
+    .replace(/\s+([.!?…,;:])/g, "$1")
     .trim();
 }
 
@@ -249,27 +250,55 @@ export function validateFindings(
   return output;
 }
 
-function firstSentence(text: string): string {
-  const sentence = splitSentences(text)[0] ?? "";
-  return /[.!?…]$/.test(sentence) ? sentence : sentence ? `${sentence}.` : "";
-}
-
 export function fallbackBluf(
   findings: readonly CitedFinding[],
   records: readonly ReportRecord[],
 ): { bluf: string; sourceNumbers: number[] } | null {
-  const relevance = new Map(records.map((record) => [record.number, record.relevance]));
+  const eligibleRecords = reportableRecords(records);
+  const recordsByNumber = new Map(eligibleRecords.map((record) => [record.number, record]));
+  const relevance = new Map(eligibleRecords.map((record) => [record.number, record.relevance]));
   const direct = findings.filter((finding) =>
     finding.sourceNumbers.some((number) => relevance.get(number) === "direct"),
   );
-  const chosen = (direct.length ? direct : [...findings]).slice(0, 3);
-  const sentences = chosen.map((finding) => firstSentence(finding.text)).filter(Boolean);
-  if (!sentences.length) return null;
-  const sourceNumbers = [...new Set(chosen.flatMap((finding) => finding.sourceNumbers))].slice(
-    0,
-    40,
-  );
-  return { bluf: sentences.join(" "), sourceNumbers };
+  const orderedFindings = [...direct, ...findings.filter((finding) => !direct.includes(finding))];
+  const candidates: Array<{ text: string; sourceNumbers: number[] }> = [];
+  const seen = new Set<string>();
+  for (const finding of orderedFindings) {
+    for (const rawText of splitSentences(finding.text)) {
+      const text = /[.!?…]$/.test(rawText) ? rawText : `${rawText}.`;
+      const key = lower(text);
+      if (seen.has(key)) continue;
+      const sourceNumbers = supportingSourceNumbers(text, finding.sourceNumbers, recordsByNumber);
+      if (!sourceNumbers.length) continue;
+      seen.add(key);
+      candidates.push({ text, sourceNumbers });
+    }
+  }
+
+  for (const size of [2, 3]) {
+    const chosen: Array<{ text: string; sourceNumbers: number[] }> = [];
+    let result: { bluf: string; sourceNumbers: number[] } | null = null;
+    const visit = (start: number) => {
+      if (result) return;
+      if (chosen.length === size) {
+        const bluf = chosen.map((item) => item.text).join(" ");
+        const numbers = [...new Set(chosen.flatMap((item) => item.sourceNumbers))];
+        const validation = validateBluf(bluf, numbers, eligibleRecords);
+        if (validation.valid) result = { bluf, sourceNumbers: validation.sourceNumbers };
+        return;
+      }
+      const remaining = size - chosen.length;
+      for (let index = start; index <= candidates.length - remaining; index += 1) {
+        chosen.push(candidates[index]!);
+        visit(index + 1);
+        chosen.pop();
+        if (result) return;
+      }
+    };
+    visit(0);
+    if (result) return result;
+  }
+  return null;
 }
 
 export type ValidatedReport = {
