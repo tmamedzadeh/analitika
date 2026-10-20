@@ -7,7 +7,8 @@ import { functions, HOUSEKEEPING_CRON } from "./functions";
 
 function cronOf(id: string): string | undefined {
   const fn = functions.find((item) => item.opts.id === id);
-  const trigger = (fn?.opts.triggers ?? []).find(
+  const triggers: unknown[] = fn?.opts.triggers ?? [];
+  const trigger = triggers.find(
     (item): item is { cron: string } => typeof item === "object" && item !== null && "cron" in item,
   );
   return trigger?.cron;

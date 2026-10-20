@@ -56,9 +56,14 @@ describe("readStoredSummary", () => {
       readStoredSummary(stored({ summary: "The project is implemented in the capital city." }), 1),
     ).toBeNull();
     expect(
-      readStoredSummary(stored({ claims: ["Layihə üç mərhələdə başa çatacaq.", "The plan will be completed."] }), 1),
+      readStoredSummary(
+        stored({ claims: ["Layihə üç mərhələdə başa çatacaq.", "The plan will be completed."] }),
+        1,
+      ),
     ).toBeNull();
-    expect(readStoredSummary(stored({ summary: "Проект реализуется в столице города." }), 1)).toBeNull();
+    expect(
+      readStoredSummary(stored({ summary: "Проект реализуется в столице города." }), 1),
+    ).toBeNull();
   });
 
   it("rejects records of the wrong shape", () => {
@@ -224,9 +229,9 @@ describe("summaryRetryNeeded", () => {
 
   it("is true when valid summaries exist but the report is missing", () => {
     expect(summaryRetryNeeded({ sources: [valid(1), valid(2)], hasReport: false })).toBe(true);
-    expect(
-      summaryRetryNeeded({ sources: [valid(1), unavailable(2)], hasReport: false }),
-    ).toBe(true);
+    expect(summaryRetryNeeded({ sources: [valid(1), unavailable(2)], hasReport: false })).toBe(
+      true,
+    );
   });
 
   it("does not request a retry when nothing can be summarized and nothing is retryable", () => {

@@ -194,7 +194,12 @@ describe("buildOsintDiagnostics whitelist", () => {
       input({ progress: hostileProgress(), sources: hostileSources() }),
     );
     expect(result.providers).toEqual(["exa", "tavily"]);
-    expect(Object.keys(result.stageMs).sort()).toEqual(["searching", "summarizing", "synthesizing", "translating"]);
+    expect(Object.keys(result.stageMs).sort()).toEqual([
+      "searching",
+      "summarizing",
+      "synthesizing",
+      "translating",
+    ]);
     // Hostile stage values collapse to numbers; they never carry through as strings or objects.
     expect(result.stageMs).toEqual({
       translating: 120,
@@ -380,7 +385,9 @@ describe("error classes in diagnostics", () => {
   it("ignores zero or invalid summary failure counts", () => {
     const result = buildOsintDiagnostics(
       input({
-        progress: { summaryFailureReasons: { language: 0, schema: -3, missing: "5", invalid_json: null } },
+        progress: {
+          summaryFailureReasons: { language: 0, schema: -3, missing: "5", invalid_json: null },
+        },
       }),
     );
     expect(result.errorClasses).toEqual({});
@@ -540,7 +547,13 @@ describe("mergeRetryDiagnostics", () => {
       {
         query: SECRET_QUERY,
         diagnostics: {
-          stageMs: { "Bad Key": 5, searching: -10, translating: "x", [API_KEY]: 1, summarizing: 3.4 },
+          stageMs: {
+            "Bad Key": 5,
+            searching: -10,
+            translating: "x",
+            [API_KEY]: 1,
+            summarizing: 3.4,
+          },
           searchQueries: "many",
           providers: ["exa", "Not Allowed", SECRET_URL, API_KEY, 7],
           sourcesSelected: -2,
@@ -562,7 +575,14 @@ describe("mergeRetryDiagnostics", () => {
       cacheErrors: 0,
     });
     const serialized = JSON.stringify(merged);
-    for (const forbidden of [SECRET_QUERY, SECRET_PROMPT, API_KEY, SECRET_URL, "Bad Key", "Not Allowed"]) {
+    for (const forbidden of [
+      SECRET_QUERY,
+      SECRET_PROMPT,
+      API_KEY,
+      SECRET_URL,
+      "Bad Key",
+      "Not Allowed",
+    ]) {
       expect(serialized).not.toContain(forbidden);
     }
   });

@@ -518,7 +518,8 @@ export const az = {
       generation_failed: "X\u00fclas\u0259 yarad\u0131la bilm\u0259di.",
       invalid_output: "Yarad\u0131lan x\u00fclas\u0259 yoxlamadan ke\u00e7m\u0259di.",
     },
-    retryFailed: "X\u00fclas\u0259ni yenid\u0259n yaratmaq m\u00fcmk\u00fcn olmad\u0131. Bir az sonra yenid\u0259n c\u0259hd edin.",
+    retryFailed:
+      "X\u00fclas\u0259ni yenid\u0259n yaratmaq m\u00fcmk\u00fcn olmad\u0131. Bir az sonra yenid\u0259n c\u0259hd edin.",
     retrying: "X\u00fclas\u0259l\u0259r yenid\u0259n yarad\u0131l\u0131r\u2026",
     stage: {
       search: "Axtar\u0131\u015f m\u0259rh\u0259l\u0259si",

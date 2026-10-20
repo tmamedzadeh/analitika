@@ -92,7 +92,8 @@ export function similarOsintTitle(first: string, second: string): boolean {
 export function normalizeOsintTitle(title: string): string {
   return title
     .normalize("NFKC")
-    .toLocaleLowerCase()
+    .toLowerCase()
+    .replace(/\u0307/g, "")
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim()
     .replace(/\s+/g, " ");
