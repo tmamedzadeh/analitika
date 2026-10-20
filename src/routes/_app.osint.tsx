@@ -1,7 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { Copy } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
+import { OsintDiagnosticsPanel } from "@/components/OsintDiagnostics";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
 import { az } from "@/lib/i18n/az";
@@ -11,6 +13,7 @@ import {
   retryOsintSummary,
   startOsintRun,
 } from "@/lib/osint.functions";
+import { buildReportHtml, buildReportMarkdown, writeReportToClipboard } from "@/lib/osint-copy";
 import { plainTextFragment } from "@/lib/osint-text";
 import {
   OSINT_LANGUAGES,
@@ -55,6 +58,79 @@ function displayRunStep(step: string, status: string): string {
   return az.osint.step.queued;
 }
 
+type OsintRunData = NonNullable<Awaited<ReturnType<typeof getOsintRun>>>;
+type RunSource = OsintRunData["sources"][number];
+
+function SourceCard({ source }: { source: RunSource }) {
+  const missingText = source.summary
+    ? null
+    : (az.osint.summaryStatus[source.summaryStatus as keyof typeof az.osint.summaryStatus] ??
+      az.osint.summaryFailed);
+  const relevanceLabel =
+    source.relevance === "tangential" || source.relevance === "offtopic"
+      ? az.osint.relevance[source.relevance]
+      : null;
+  return (
+    <article className="panel min-w-0 p-5" id={"osint-source-" + source.n}>
+      <h2 className="font-semibold leading-snug">
+        <span className="cite ml-0! mr-1">{source.n}</span>
+        {source.structuredSummary?.title || source.domain}
+      </h2>
+      {source.sourceType !== "other" ? (
+        <p className="label-mono mt-2">
+          {az.osint.sourceType[source.sourceType as keyof typeof az.osint.sourceType] ??
+            source.sourceType}
+        </p>
+      ) : null}
+      <p className="label-mono mt-2 break-all">
+        {source.domain} · {osintLanguageNames[source.language as OsintLanguage] ?? source.language}{" "}
+        · {source.fetched ? az.osint.fullText : az.osint.shortFragment}
+      </p>
+      {relevanceLabel ? <p className="mt-2 text-xs text-amber-700">{relevanceLabel}</p> : null}
+      <p className="mt-3 line-clamp-5 text-sm leading-6">
+        {source.summary ? plainTextFragment(source.summary, 1_600) : missingText}
+      </p>
+      {source.publishedAt ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          {az.osint.date}:{" "}
+          {new Intl.DateTimeFormat("az-AZ", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }).format(new Date(source.publishedAt))}
+        </p>
+      ) : null}
+      {source.structuredSummary?.quote ? (
+        <blockquote className="mt-3 border-l-2 border-primary/40 pl-3 text-sm italic">
+          {source.structuredSummary.quote}
+          <span className="mt-1 block text-xs not-italic text-muted-foreground">
+            {az.osint.sourceQuote}
+          </span>
+        </blockquote>
+      ) : null}
+      {source.providers.length ? (
+        <details className="mt-3 text-xs text-muted-foreground">
+          <summary className="cursor-pointer">{az.osint.details}</summary>
+          <p className="mt-1">
+            {source.providers
+              .map((provider) => provider[0]?.toUpperCase() + provider.slice(1))
+              .join(" + ")}
+          </p>
+        </details>
+      ) : null}
+      <a className="pill mt-3 inline-flex" href={source.url} target="_blank" rel="noreferrer">
+        {az.osint.openOriginal}
+      </a>
+      {!source.summary ? (
+        <details className="mt-3 text-xs">
+          <summary className="cursor-pointer">{az.osint.originalFragment}</summary>
+          <p className="mt-2 whitespace-pre-wrap">{plainTextFragment(source.snippet || "")}</p>
+        </details>
+      ) : null}
+    </article>
+  );
+}
+
 function Osint() {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
@@ -64,6 +140,9 @@ function Osint() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [cacheNotice, setCacheNotice] = useState("");
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState("");
+  const [copyState, setCopyState] = useState<"idle" | "done" | "failed">("idle");
 
   const historyQuery = useQuery({
     queryKey: ["osint-runs"],
@@ -123,9 +202,17 @@ function Osint() {
     if (progress?.failureClass === "limit") return az.osint.limitError;
     if (progress?.failureClass === "search") return az.osint.searchSourceError;
     if (progress?.failureClass === "page") return az.osint.pageLoadError;
-    if (progress?.failureClass === "llm" || run?.status === "failed") return az.osint.llmError;
+    if (progress?.failureClass === "llm" || run?.status === "failed") {
+      return progress?.stage ? az.osint.stage[progress.stage] : az.osint.failed;
+    }
     return "";
   })();
+  const availabilityMessage =
+    failureMessage && !isActive && run
+      ? run.sources.length
+        ? az.osint.resultsAvailable
+        : az.osint.resultsUnavailable
+      : "";
   const citationLinks = (numbers: number[]) =>
     numbers.map((number) => (
       <a className="cite ml-1!" key={number} href={"#osint-source-" + number}>
@@ -135,6 +222,52 @@ function Osint() {
   const cacheAgeHours = run?.createdAt
     ? Math.max(0, Math.floor((Date.now() - new Date(run.createdAt).getTime()) / 3_600_000))
     : 0;
+  const mainSources = runSources.filter((source) => source.relevance !== "offtopic");
+  const offTopicSources = runSources.filter((source) => source.relevance === "offtopic");
+
+  async function regenerateSummaries(runId: string) {
+    setRetryError("");
+    setRetrying(true);
+    try {
+      await retryOsintSummary({ data: { runId } });
+      await queryClient.invalidateQueries({ queryKey: ["osint-run", runId] });
+      await queryClient.invalidateQueries({ queryKey: ["osint-runs"] });
+    } catch {
+      setRetryError(az.osint.retryFailed);
+    } finally {
+      setRetrying(false);
+    }
+  }
+
+  async function copyReport() {
+    if (!run || !report) return;
+    const input = {
+      query: run.query,
+      periodLabel: periodLabels[run.period as OsintPeriod] ?? run.period,
+      languageLabels: run.languages.map(
+        (language) => osintLanguageNames[language as OsintLanguage] ?? language,
+      ),
+      generatedAt: new Intl.DateTimeFormat("az-AZ", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(new Date(run.finishedAt ?? run.createdAt)),
+      report,
+      sources: run.sources.map((source) => ({
+        n: source.n,
+        title: source.structuredSummary?.title || source.domain,
+        domain: source.domain,
+        url: source.url,
+        publishedAt: source.publishedAt,
+      })),
+    };
+    const ok = await writeReportToClipboard({
+      markdown: buildReportMarkdown(input),
+      html: buildReportHtml(input),
+    });
+    setCopyState(ok ? "done" : "failed");
+    window.setTimeout(() => setCopyState("idle"), 3000);
+  }
 
   return (
     <Shell crumb={az.osint.title} title={az.osint.title} badges={[az.osint.providerBadge]}>
@@ -295,12 +428,42 @@ function Osint() {
                     {failureMessage}
                   </p>
                 ) : null}
+                {availabilityMessage ? (
+                  <p className="mt-1 text-sm text-muted-foreground">{availabilityMessage}</p>
+                ) : null}
               </>
             )}
           </section>
 
+          {run?.diagnostics ? (
+            <OsintDiagnosticsPanel
+              diagnostics={run.diagnostics}
+              stepLabel={displayRunStep(run.step, run.status)}
+              stageLabel={progress?.stage ? az.osint.stage[progress.stage] : undefined}
+            />
+          ) : null}
+
           <section className="panel p-5 sm:p-6">
-            <p className="label-mono text-primary!">{az.osint.reportBluf}</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="label-mono text-primary!">{az.osint.reportBluf}</p>
+              {report ? (
+                <button
+                  type="button"
+                  className="pill inline-flex items-center gap-2"
+                  aria-label={az.osint.copy.button}
+                  title={az.osint.copy.button}
+                  onClick={() => void copyReport()}
+                >
+                  <Copy aria-hidden="true" className="size-4" />
+                  <span>{az.osint.copy.button}</span>
+                </button>
+              ) : null}
+            </div>
+            {copyState !== "idle" ? (
+              <p role="status" className="mt-2 text-sm text-muted-foreground">
+                {copyState === "done" ? az.osint.copy.done : az.osint.copy.failed}
+              </p>
+            ) : null}
             {report ? (
               <div className="mt-4 space-y-5 text-base leading-7">
                 <p>
@@ -412,6 +575,17 @@ function Osint() {
                     </ul>
                   </div>
                 ) : null}
+                {report.weakFindings?.length ? (
+                  <details className="text-sm">
+                    <summary className="label-mono cursor-pointer">{az.osint.weakFindings}</summary>
+                    <p className="mt-2 text-muted-foreground">{az.osint.weakFindingsNote}</p>
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      {report.weakFindings.map((item, index) => (
+                        <li key={index}>{item.text}</li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
               </div>
             ) : (
               <div className="mt-4 space-y-3 text-muted-foreground">
@@ -422,28 +596,26 @@ function Osint() {
                       ? az.osint.reportFailed
                       : az.osint.noSummary}
                 </p>
-                {run?.sources.length && !isActive ? (
-                  <button
-                    type="button"
-                    className="pill"
-                    disabled={submitting}
-                    onClick={async () => {
-                      setSubmitting(true);
-                      try {
-                        await retryOsintSummary({ data: { runId: run.id } });
-                        await queryClient.invalidateQueries({ queryKey: ["osint-run", run.id] });
-                      } catch {
-                        setFormError(az.osint.failed);
-                      } finally {
-                        setSubmitting(false);
-                      }
-                    }}
-                  >
-                    {az.osint.retrySummary}
-                  </button>
-                ) : null}
               </div>
             )}
+            {run?.summaryRetryAvailable && !isActive ? (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  className="pill"
+                  disabled={retrying || submitting}
+                  onClick={() => void regenerateSummaries(run.id)}
+                >
+                  {retrying && <ZirveLoader variant="inline" label="" />}
+                  {retrying ? az.osint.retrying : az.osint.retrySummary}
+                </button>
+                {retryError ? (
+                  <p role="alert" className="mt-2 text-sm text-destructive">
+                    {retryError}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             {runSources.length ? (
               <p className="label-mono mt-4">{az.osint.sourcesNotVerified}</p>
             ) : null}
@@ -458,81 +630,25 @@ function Osint() {
                 {run && !isActive ? az.osint.noSources : az.osint.sourcesWaiting}
               </div>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {runSources.map((source) => (
-                  <article
-                    className="panel min-w-0 p-5"
-                    key={source.id}
-                    id={"osint-source-" + source.n}
-                  >
-                    <h2 className="font-semibold leading-snug">
-                      <span className="cite ml-0! mr-1">{source.n}</span>
-                      {source.structuredSummary?.title || source.domain}
-                    </h2>
-                    {source.sourceType !== "other" ? (
-                      <p className="label-mono mt-2">
-                        {az.osint.sourceType[
-                          source.sourceType as keyof typeof az.osint.sourceType
-                        ] ?? source.sourceType}
-                      </p>
-                    ) : null}
-                    <p className="label-mono mt-2 break-all">
-                      {source.domain} ·{" "}
-                      {osintLanguageNames[source.language as OsintLanguage] ?? source.language} ·{" "}
-                      {source.fetched ? az.osint.fullText : az.osint.shortFragment}
-                    </p>
-                    <p className="mt-3 line-clamp-5 text-sm leading-6">
-                      {source.summary
-                        ? plainTextFragment(source.summary, 1_600)
-                        : az.osint.summaryFailed}
-                    </p>
-                    {source.publishedAt ? (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {az.osint.date}:{" "}
-                        {new Intl.DateTimeFormat("az-AZ", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        }).format(new Date(source.publishedAt))}
-                      </p>
-                    ) : null}
-                    {source.structuredSummary?.quote ? (
-                      <blockquote className="mt-3 border-l-2 border-primary/40 pl-3 text-sm italic">
-                        {source.structuredSummary.quote}
-                        <span className="mt-1 block text-xs not-italic text-muted-foreground">
-                          {az.osint.sourceQuote}
-                        </span>
-                      </blockquote>
-                    ) : null}
-                    {source.providers.length ? (
-                      <details className="mt-3 text-xs text-muted-foreground">
-                        <summary className="cursor-pointer">{az.osint.details}</summary>
-                        <p className="mt-1">
-                          {source.providers
-                            .map((provider) => provider[0]?.toUpperCase() + provider.slice(1))
-                            .join(" + ")}
-                        </p>
-                      </details>
-                    ) : null}
-                    <a
-                      className="pill mt-3 inline-flex"
-                      href={source.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {az.osint.openOriginal}
-                    </a>
-                    {!source.summary ? (
-                      <details className="mt-3 text-xs">
-                        <summary className="cursor-pointer">{az.osint.originalFragment}</summary>
-                        <p className="mt-2 whitespace-pre-wrap">
-                          {plainTextFragment(source.snippet || "")}
-                        </p>
-                      </details>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {mainSources.map((source) => (
+                    <SourceCard key={source.id} source={source} />
+                  ))}
+                </div>
+                {offTopicSources.length ? (
+                  <details className="mt-4">
+                    <summary className="label-mono cursor-pointer">
+                      {az.osint.otherResults} · {offTopicSources.length}
+                    </summary>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      {offTopicSources.map((source) => (
+                        <SourceCard key={source.id} source={source} />
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
+              </>
             )}
           </section>
         </div>

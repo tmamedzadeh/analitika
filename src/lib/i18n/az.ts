@@ -505,7 +505,9 @@ export const az = {
     details: "T\u0259f\u0259rr\u00fcatlar",
     fullText: "Tam m\u0259tn",
     shortFragment: "Q\u0131sa fraqment",
-    llmError: "LLM x\u0259tas\u0131",
+    resultsAvailable:
+      "Toplanm\u0131\u015f m\u0259nb\u0259l\u0259r a\u015fa\u011f\u0131da \u0259l\u00e7atand\u0131r.",
+    resultsUnavailable: "Bu m\u0259rh\u0259l\u0259d\u0259 n\u0259tic\u0259 haz\u0131r deyil.",
     limitError: "Limit\u0259 \u00e7at\u0131l\u0131b",
     searchSourceError:
       "Axtar\u0131\u015f m\u0259nb\u0259yi m\u00fcv\u0259qq\u0259ti \u0259l\u00e7atan deyil",
@@ -593,6 +595,9 @@ export const az = {
       international_media: "Beyn\u0259lxalq media",
       agency: "X\u0259b\u0259r agentliyi",
       domestic_media: "Yerli media",
+      academic: "Akademik mənbə",
+      archive: "Arxiv",
+      resolver: "Keçid (DOI)",
     },
     step: {
       queued: "N\u00f6vb\u0259d\u0259 g\u00f6zl\u0259yir",
