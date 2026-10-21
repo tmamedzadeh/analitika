@@ -4,10 +4,10 @@
 
 Checkpoint: **21 октября 2026, Asia/Baku (UTC+04)**. По запросу владельца полный hardening остановлен для переноса работы через GitHub main. **Production NO-GO; это checkpoint разработки, не завершённый release candidate.**
 
-- Рабочая ветка: `codex/zirve-v1-prod-hardening`.
+- Исходная рабочая ветка: `codex/zirve-v1-prod-hardening`; после checkpoint локальный `main` обновлён через fast-forward, текущая ветка — `main`.
 - Исходный HEAD: `a2edb75373b69b7f7faf13ae931a9e889d671342`.
 - Свежий `origin/main` совпадал с исходным HEAD: новых удалённых коммитов не было, интеграция не требовалась.
-- Commit: `chore: checkpoint ZIRVE V1 production hardening progress`; SHA и результат доставки фиксируются в «Delivery record» ниже после выполнения.
+- Source checkpoint: `a1c77d40fb9ff473f21a5c60a898ace6ad13c4f0`, `chore: checkpoint ZIRVE V1 production hardening progress`. Успешный push и remote SHA подтверждены в «Delivery record» ниже. Финальный documentation commit — прямой потомок этого checkpoint; его SHA доступен через `git rev-parse HEAD` и в финальном ответе сессии.
 - Начальное состояние: 183 staged файла, 0 unstaged/untracked, без конфликтов. [Исходный inventory](release/INITIAL_GIT_INVENTORY.json).
 - Перед checkpoint многие файлы были partially staged: индекс содержал старые версии. Актуальные версии отбираются по явному [manifest](release/CHECKPOINT_FILE_MANIFEST.json), без слепого `git add -A`.
 - Финальный staged snapshot: **211 изменённых файлов**, unstaged/untracked — 0. Обновлены 40 partially staged файлов; отменены 16 временных additions. Narrow secret scan новых staged строк не обнаружил совпадений; `.env.local` и backups исключены.
@@ -158,7 +158,11 @@ User corpus не удалялся/не переиндексировался. Int
 
 ## Delivery record
 
-Точный checkpoint SHA и результат `git ls-remote origin refs/heads/main` будут внесены после доставки. Этот раздел не утверждает успех до push.
+- **Source checkpoint commit:** `a1c77d40fb9ff473f21a5c60a898ace6ad13c4f0`.
+- **Push выполнен:** `git push origin main`, успешный fast-forward `a2edb75..a1c77d4`, без force и переписывания истории.
+- **Проверено 2026-10-21 19:37:39 +04:00:** `git ls-remote origin refs/heads/main` вернул `a1c77d40fb9ff473f21a5c60a898ace6ad13c4f0`; локальный HEAD совпал, `git status --short` был пуст.
+- **Дополнительный commit:** только эта запись доставки/уточнение текущей ветки, разрешённый разделом 6 safe-stop запроса. Он включается в тот же `main`; окончательный SHA последнего commit и его совпадение с remote проверяются после отправки и сообщаются в финальном ответе. Commit не может содержать собственный SHA; source checkpoint выше остаётся точной ссылкой на сохранённый код.
+- После отправки финального handoff commit дальнейшие изменения/проверки hardening не выполняются. Env и локальные backups остаются ignored. Ручной deployment не выполнялся, production NO-GO сохраняется.
 
 ## H. Готовый resume prompt
 
