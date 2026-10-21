@@ -1,11 +1,7 @@
-import { eq, inArray, or, sql } from "drizzle-orm";
+import { eq, sql, type SQLWrapper } from "drizzle-orm";
 
-import {
-  allowedClassifications,
-  getCurrentUser as getAuthenticatedUser,
-  type SessionUser,
-} from "@/server/auth";
-import { documents } from "./schema";
+import { getCurrentUser as getAuthenticatedUser, type SessionUser } from "@/server/auth";
+import { appUsers, documents } from "./schema";
 
 export type CurrentUser = SessionUser;
 
@@ -15,16 +11,42 @@ export function getCurrentUser(): CurrentUser {
 
 // This predicate is for records that have no classification field (for example briefs).
 // Request authentication is still required by the Start middleware.
-export function accessFilter(_user: CurrentUser = getCurrentUser()) {
-  return sql.raw("true");
+export function accessFilter(user: Pick<CurrentUser, "id"> = getCurrentUser()) {
+  return sql`exists (
+    select 1 from ${appUsers}
+    where ${appUsers.id} = ${user.id} and ${appUsers.active} = true
+  )`;
 }
 
-export function documentAccessFilter(user: CurrentUser = getCurrentUser()) {
-  return or(
-    inArray(documents.classification, allowedClassifications(user)),
-    sql`exists (select 1 from document_acl where document_acl.document_id = ${documents.id} and document_acl.user_id = ${user.id})`,
-    sql`${documents.ownerId} = ${user.id}`,
-  )!;
+export function documentAccessFilter(user: Pick<CurrentUser, "id"> = getCurrentUser()) {
+  return classificationAccessFilter(documents.classification, user);
+}
+
+export function classificationAccessFilter(
+  classification: SQLWrapper,
+  user: Pick<CurrentUser, "id"> = getCurrentUser(),
+) {
+  // Read the live clearance in the same SQL statement that reads document data.
+  // Session claims become stale when an administrator changes a user's clearance.
+  // Unknown values and inactive/missing users fail closed. Ownership and role
+  // do not raise the clearance ceiling.
+  const documentLevel = sql<number>`case ${classification}
+    when 'open' then 0
+    when 'secret' then 1
+    when 'top_secret' then 2
+    when 'special' then 3
+    else -1 end`;
+  const userLevel = sql<number>`(
+    select case ${appUsers.clearance}
+      when 'open' then 0
+      when 'secret' then 1
+      when 'top_secret' then 2
+      when 'special' then 3
+      else -1 end
+    from ${appUsers}
+    where ${appUsers.id} = ${user.id} and ${appUsers.active} = true
+  )`;
+  return sql`${documentLevel} >= 0 and ${documentLevel} <= ${userLevel}`;
 }
 
 export function canManageDocument(user: CurrentUser, ownerId: string) {

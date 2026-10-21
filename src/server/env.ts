@@ -2,8 +2,14 @@ import process from "node:process";
 import { config as loadDotEnv } from "dotenv";
 import { z } from "zod";
 
-loadDotEnv({ path: ".env.local" });
-loadDotEnv({ path: ".env" });
+// Tests must opt into their environment. Bun/Vitest can run beside a developer's
+// .env.local, so importing this module in a test must never load those credentials.
+const isTestRuntime =
+  process.env["NODE_ENV"] === "test" || process.env["VITEST_WORKER_ID"] !== undefined;
+if (!isTestRuntime) {
+  loadDotEnv({ path: ".env.local" });
+  loadDotEnv({ path: ".env" });
+}
 
 const optionalValue = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
@@ -20,16 +26,7 @@ export const serverEnvSchema = z.object({
   AI_LIGHT_MODEL: optionalValue,
   GEMINI_EMBED_MODEL: optionalValue,
   ANALYTICS_THINKING_LEVEL: z.enum(["low", "medium", "high"]).default("medium"),
-  OSINT_THINKING_LEVEL: z.enum(["minimal", "low", "medium", "high"]).default("low"),
   ANALYTICS_HISTORY_DAYS: z.coerce.number().int().min(1).max(3650).default(90),
-  EXA_API_KEY: optionalValue,
-  TAVILY_API_KEY: optionalValue,
-  HASDATA_API_KEY: optionalValue,
-  HASDATA_MODE: z.enum(["light", "full"]).default("light"),
-  OSINT_MAX_SEARCH_REQUESTS: z.coerce.number().int().min(1).max(24).default(24),
-  OSINT_MMR_LAMBDA: z.coerce.number().min(0).max(1).default(0.7),
-  OSINT_RELEVANCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.18),
-  SEARCH_PROVIDER: z.enum(["exa", "gemini_grounding"]).default("exa"),
   S3_ENDPOINT: optionalValue,
   S3_REGION: optionalValue,
   S3_ACCESS_KEY_ID: optionalValue,
@@ -38,6 +35,16 @@ export const serverEnvSchema = z.object({
   INNGEST_EVENT_KEY: optionalValue,
   INNGEST_SIGNING_KEY: optionalValue,
   ENABLE_RERANK: z.enum(["true", "false"]).default("false"),
+  AI_EXTERNAL_ALLOWED_CLASSIFICATIONS: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() ? value : "open"),
+    z
+      .string()
+      .transform((value) => value.split(",").map((level) => level.trim()))
+      .refine((levels) =>
+        levels.every((level) => ["open", "secret", "top_secret", "special"].includes(level)),
+      ),
+  ),
+  AI_EXTERNAL_POLICY_REFERENCE: optionalValue,
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

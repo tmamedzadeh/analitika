@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
@@ -15,11 +15,12 @@ import {
   documentManagementFilter,
   getCurrentUser,
 } from "../server/db/access";
-import { allowedClassifications, canAccessClassification } from "@/server/auth";
-import { appUsers, attachments, chunks, documents, documentAcl } from "../server/db/schema";
+import { allowedClassifications, canAccessClassification, type Clearance } from "@/server/auth";
+import { appUsers, attachments, chunks, documents } from "../server/db/schema";
 import { getStorage } from "../server/storage/s3";
 import { deleteObjectsBestEffort } from "../server/storage/delete-objects";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
+import { mergeIndexProgress } from "@/server/jobs/index-state";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const documentDateSchema = z
@@ -61,10 +62,8 @@ export const createDocumentSchema = z.object({
     .max(500_000)
     .refine((value) => value.trim().length > 0),
   docDate: documentDateSchema.nullable().optional(),
-  tags: z.array(z.string().trim().min(1).max(64)).max(30),
   direction: directionIdSchema,
   classification: z.enum(["open", "secret", "top_secret", "special"]),
-  additionalUserIds: z.array(z.string().min(1).max(100)).max(50).default([]),
   sourceReliability: z.enum(["A", "B", "C", "D", "E", "F"]),
   infoCredibility: z.number().int().min(1).max(6),
   photos: z.array(imageInputSchema).max(10),
@@ -76,27 +75,8 @@ const saveDocumentSchema = createDocumentSchema
   .omit({ photos: true })
   .extend({ documentId: z.string().uuid(), uploads: z.array(documentUploadSchema).max(10) });
 
-async function validateAdditionalUsers(ids: string[], currentUserId: string) {
-  if (new Set(ids).size !== ids.length || ids.includes(currentUserId)) {
-    throw new Error(az.documents.form.aclSaveFailed);
-  }
-  if (!ids.length) return;
-  const activeUsers = await getDb()
-    .select({ id: appUsers.id })
-    .from(appUsers)
-    .where(and(inArray(appUsers.id, ids), eq(appUsers.active, true)));
-  if (activeUsers.length !== ids.length) throw new Error(az.documents.form.aclSaveFailed);
-}
-
 export const getDocumentFormContext = createServerFn({ method: "GET" }).handler(async () => {
-  const user = getCurrentUser();
-  const activeUsers = await getDb()
-    .select({ id: appUsers.id, username: appUsers.username })
-    .from(appUsers)
-    .where(and(eq(appUsers.active, true), ne(appUsers.id, user.id)))
-    .orderBy(appUsers.username)
-    .limit(1000);
-  return { classifications: allowedClassifications(user), activeUsers };
+  return { classifications: allowedClassifications(getCurrentUser()) };
 });
 
 function safeFileName(value: string): string {
@@ -111,25 +91,49 @@ function safeFileName(value: string): string {
   return name || "photo";
 }
 
-async function queueDocumentIndexing(documentId: string): Promise<void> {
+async function queueDocumentIndexing(documentId: string): Promise<boolean> {
   const db = getDb();
+  const [queued] = await db
+    .update(documents)
+    .set({
+      status: "queued",
+      step: "queued",
+      error: null,
+      updatedAt: new Date(),
+      progress: mergeIndexProgress(documents.progress, {
+        percent: 0,
+        leaseId: null,
+        recoveryAttempts: 0,
+        recoveryExhausted: false,
+      }),
+    })
+    .where(
+      and(
+        eq(documents.id, documentId),
+        documentManagementFilter(),
+        inArray(documents.status, ["queued", "failed"]),
+      ),
+    )
+    .returning({ id: documents.id });
+  if (!queued) throw new Error(az.documents.form.retryOnlyFailed);
   try {
-    await db
-      .update(documents)
-      .set({ status: "queued", step: "queued", error: null, updatedAt: new Date() })
-      .where(and(eq(documents.id, documentId), documentAccessFilter()));
     await inngest.send(documentIndexingRequested.create({ documentId }));
+    return false;
   } catch {
     await db
       .update(documents)
       .set({
-        status: "failed",
-        step: "failed",
         error: az.documents.form.queueFailed,
         updatedAt: new Date(),
       })
-      .where(and(eq(documents.id, documentId), documentAccessFilter()));
-    throw new Error(az.documents.form.queueFailed);
+      .where(
+        and(
+          eq(documents.id, documentId),
+          eq(documents.status, "queued"),
+          documentManagementFilter(),
+        ),
+      );
+    return true;
   }
 }
 
@@ -190,7 +194,6 @@ export const prepareDocumentUploads = createServerFn({ method: "POST" })
     if (!canAccessClassification(user, data.classification)) {
       throw new Error("Your clearance does not allow this classification.");
     }
-    await validateAdditionalUsers(data.additionalUserIds, user.id);
     if (!(await consumeIpRateLimit("upload-prepare", getRequest(), 30, 10 * 60_000))) {
       throw new Error(az.analytics.rateLimited);
     }
@@ -228,7 +231,6 @@ export const saveDocument = createServerFn({ method: "POST" })
     if (!canAccessClassification(user, data.classification)) {
       throw new Error("Your clearance does not allow this classification.");
     }
-    await validateAdditionalUsers(data.additionalUserIds, user.id);
     const db = getDb();
     const storage = getStorage();
     try {
@@ -257,12 +259,26 @@ export const saveDocument = createServerFn({ method: "POST" })
     }
 
     await db.transaction(async (transaction) => {
+      const [currentUser] = await transaction
+        .select({ clearance: appUsers.clearance, active: appUsers.active })
+        .from(appUsers)
+        .where(eq(appUsers.id, user.id))
+        .for("share")
+        .limit(1);
+      if (
+        !currentUser?.active ||
+        !canAccessClassification(
+          { clearance: currentUser.clearance as Clearance },
+          data.classification,
+        )
+      ) {
+        throw new Error("Your clearance does not allow this classification.");
+      }
       await transaction.insert(documents).values({
         id: data.documentId,
         title: data.title,
         body: data.body,
         docDate: data.docDate || null,
-        tags: [...new Set(data.tags.map((tag) => tag.trim()).filter(Boolean))],
         direction: data.direction,
         classification: data.classification,
         ownerId: user.id,
@@ -284,17 +300,10 @@ export const saveDocument = createServerFn({ method: "POST" })
           })),
         );
       }
-      if (data.additionalUserIds.length > 0) {
-        await transaction
-          .insert(documentAcl)
-          .values(
-            data.additionalUserIds.map((userId) => ({ documentId: data.documentId, userId })),
-          );
-      }
     });
 
-    await queueDocumentIndexing(data.documentId);
-    return { documentId: data.documentId };
+    const queueFailed = await queueDocumentIndexing(data.documentId);
+    return { documentId: data.documentId, queueFailed };
   });
 
 export const retryDocumentIndexing = createServerFn({ method: "POST" })
@@ -304,12 +313,12 @@ export const retryDocumentIndexing = createServerFn({ method: "POST" })
     const [document] = await db
       .select({ status: documents.status })
       .from(documents)
-      .where(and(eq(documents.id, data.documentId), documentAccessFilter()))
+      .where(and(eq(documents.id, data.documentId), documentManagementFilter()))
       .limit(1);
     if (!document) throw new Error(az.documents.missing);
     if (document.status !== "failed") throw new Error(az.documents.form.retryOnlyFailed);
-    await queueDocumentIndexing(data.documentId);
-    return { documentId: data.documentId };
+    const queueFailed = await queueDocumentIndexing(data.documentId);
+    return { documentId: data.documentId, queueFailed };
   });
 
 export const updateDocumentDirection = createServerFn({ method: "POST" })
@@ -319,7 +328,7 @@ export const updateDocumentDirection = createServerFn({ method: "POST" })
     const [document] = await db
       .update(documents)
       .set({ direction: data.direction, updatedAt: new Date() })
-      .where(and(eq(documents.id, data.documentId), documentAccessFilter()))
+      .where(and(eq(documents.id, data.documentId), documentManagementFilter()))
       .returning({ id: documents.id });
     if (!document) throw new Error(az.documents.missing);
     return { documentId: document.id, direction: data.direction };
@@ -329,16 +338,14 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
   .validator(idSchema)
   .handler(async ({ data }) => {
     const db = getDb();
+    const currentUser = getCurrentUser();
     const [document] = await db
       .select()
       .from(documents)
       .where(and(eq(documents.id, data.documentId), documentAccessFilter()))
       .limit(1);
     if (!document) return null;
-    const currentUser = getCurrentUser();
-    const canManageAcl = canManageDocument(currentUser, document.ownerId);
-
-    const [documentChunks, documentAttachments, aclRows, aclCandidates] = await Promise.all([
+    const [documentChunks, documentAttachments] = await Promise.all([
       db
         .select({
           id: chunks.id,
@@ -350,26 +357,28 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
           isTable: chunks.isTable,
         })
         .from(chunks)
-        .where(eq(chunks.documentId, data.documentId))
+        .innerJoin(documents, eq(chunks.documentId, documents.id))
+        .where(and(eq(chunks.documentId, data.documentId), documentAccessFilter(currentUser)))
         .orderBy(asc(chunks.ord)),
-      db.select().from(attachments).where(eq(attachments.documentId, data.documentId)),
-      canManageAcl
-        ? db
-            .select({ id: appUsers.id, username: appUsers.username })
-            .from(documentAcl)
-            .innerJoin(appUsers, eq(documentAcl.userId, appUsers.id))
-            .where(eq(documentAcl.documentId, data.documentId))
-        : Promise.resolve([]),
-      canManageAcl
-        ? db
-            .select({ id: appUsers.id, username: appUsers.username })
-            .from(appUsers)
-            .where(and(eq(appUsers.active, true), ne(appUsers.id, currentUser.id)))
-            .orderBy(appUsers.username)
-            .limit(1000)
-        : Promise.resolve([]),
+      db
+        .select({
+          id: attachments.id,
+          documentId: attachments.documentId,
+          storageKey: attachments.storageKey,
+          mime: attachments.mime,
+          size: attachments.size,
+          caption: attachments.caption,
+        })
+        .from(attachments)
+        .innerJoin(documents, eq(attachments.documentId, documents.id))
+        .where(and(eq(attachments.documentId, data.documentId), documentAccessFilter(currentUser))),
     ]);
-    const storage = getStorage();
+    const [stillAccessible] = await db
+      .select({ id: documents.id })
+      .from(documents)
+      .where(and(eq(documents.id, data.documentId), documentAccessFilter(currentUser)))
+      .limit(1);
+    if (!stillAccessible) return null;
     const photos = documentAttachments.map((attachment) => ({
       id: attachment.id,
       name: attachment.caption ?? "",
@@ -384,39 +393,8 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
       updatedAt: document.updatedAt.toISOString(),
       chunks: documentChunks,
       photos,
-      canManageAcl,
-      aclUsers: aclRows,
-      aclCandidates,
+      canManage: canManageDocument(currentUser, document.ownerId),
     };
-  });
-
-export const updateDocumentAcl = createServerFn({ method: "POST" })
-  .validator(
-    z.object({
-      documentId: z.string().uuid(),
-      userIds: z.array(z.string().min(1).max(100)).max(50),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const user = getCurrentUser();
-    const db = getDb();
-    const [document] = await db
-      .select({ ownerId: documents.ownerId })
-      .from(documents)
-      .where(and(eq(documents.id, data.documentId), documentAccessFilter(user)))
-      .limit(1);
-    if (!document) throw new Error(az.documents.missing);
-    if (!canManageDocument(user, document.ownerId)) throw new Error(az.documents.missing);
-    await validateAdditionalUsers(data.userIds, user.id);
-    await db.transaction(async (transaction) => {
-      await transaction.delete(documentAcl).where(eq(documentAcl.documentId, data.documentId));
-      if (data.userIds.length) {
-        await transaction
-          .insert(documentAcl)
-          .values(data.userIds.map((userId) => ({ documentId: data.documentId, userId })));
-      }
-    });
-    return { ok: true };
   });
 
 export const deleteDocument = createServerFn({ method: "POST" })
@@ -429,6 +407,7 @@ export const deleteDocument = createServerFn({ method: "POST" })
         .select({ id: documents.id })
         .from(documents)
         .where(and(eq(documents.id, data.documentId), documentManagementFilter(user)))
+        .for("update")
         .limit(1);
       if (!document) throw new Error(az.documents.missing);
       const files = await transaction

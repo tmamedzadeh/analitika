@@ -13,7 +13,6 @@ describe("AI model configuration", () => {
 
     expect(getAppConfig()).toMatchObject({
       analyticsModel: "gemini-main-test",
-      osintModel: "gemini-main-test",
       lightModel: undefined,
     });
   });

@@ -1,6 +1,8 @@
 import { and, eq } from "drizzle-orm";
 
 import { imageMimeFromSignature } from "../src/lib/briefs";
+import { withProjectEvaluationUser } from "../src/server/evaluation-safety";
+import { getCurrentUser } from "../src/server/auth";
 import { closeDb, getDb } from "../src/server/db";
 import { briefAttachments, dailyBriefs } from "../src/server/db/schema";
 import { closeStorage, getStorage } from "../src/server/storage/s3";
@@ -19,6 +21,7 @@ let objectUploaded = false;
 
 try {
   const db = getDb();
+  const authorId = await withProjectEvaluationUser(() => getCurrentUser().id);
   const usedDates = new Set(
     (await db.select({ date: dailyBriefs.briefDate }).from(dailyBriefs)).map((row) => row.date),
   );
@@ -33,8 +36,8 @@ try {
     briefDate: date,
     title: "Synthetic brief CRUD verification",
     body: "Synthetic test content only.",
-    status: "draft",
-    authorId: "verification",
+    status: "published",
+    authorId,
     indexStatus: "none",
   });
   briefCreated = true;
@@ -43,7 +46,7 @@ try {
     .select({ title: dailyBriefs.title, status: dailyBriefs.status })
     .from(dailyBriefs)
     .where(eq(dailyBriefs.id, id));
-  if (created?.title !== "Synthetic brief CRUD verification" || created.status !== "draft") {
+  if (created?.title !== "Synthetic brief CRUD verification" || created.status !== "published") {
     throw new Error("Brief read-back failed.");
   }
 

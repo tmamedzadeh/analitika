@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-10-21T14:39:53.319Z",
+  "target": "http://127.0.0.1:4175",
+  "checks": [
+    {
+      "name": "anonymous routes redirect to login and data APIs reject access",
+      "status": "PASS"
+    },
+    {
+      "name": "real login rejects bad password, establishes HttpOnly SameSite session",
+      "status": "PASS"
+    },
+    {
+      "name": "document create, durable queue, loading state and direct recent-document navigation",
+      "status": "PASS"
+    },
+    {
+      "name": "owner/admin clearance cannot open a restricted document by UUID",
+      "status": "PASS"
+    }
+  ],
+  "status": "FAIL",
+  "failureCase": "brief creation, detail/edit route, lexical AND search and empty search state",
+  "fixtureCleanup": "completed",
+  "cloudWorkerDelivery": "NOT VERIFIED; local worker explicitly exercised"
+}

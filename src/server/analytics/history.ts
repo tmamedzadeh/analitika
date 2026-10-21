@@ -1,11 +1,11 @@
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, desc, eq, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { analyticsFiltersSchema } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
 import { canAccessClassification, getCurrentUser, type Clearance } from "@/server/auth";
 import { getDb } from "@/server/db";
-import { accessFilter, documentAccessFilter } from "@/server/db/access";
+import { accessFilter, classificationAccessFilter, documentAccessFilter } from "@/server/db/access";
 import { analyticsQueries, appUsers, dailyBriefs, documents } from "@/server/db/schema";
 import { readServerEnv } from "@/server/env";
 import type { AnalyticsFilters, AnalyticsSource } from "@/lib/analytics";
@@ -64,16 +64,19 @@ export async function createAnalyticsHistoryRecord(input: {
   query: string;
   filters: AnalyticsFilters;
 }): Promise<void> {
-  await getDb().insert(analyticsQueries).values({
-    id: input.id,
-    createdBy: input.createdBy,
-    query: input.query,
-    filters: input.filters,
-    status: "running",
-    answer: null,
-    sources: [],
-    maxClassification: "open",
-  });
+  await getDb()
+    .insert(analyticsQueries)
+    .values({
+      id: input.id,
+      createdBy: input.createdBy,
+      query: input.query,
+      filters: input.filters,
+      status: "running",
+      answer: null,
+      sources: [],
+      // A query can itself contain classified input before any source is retrieved.
+      maxClassification: sql`(select ${appUsers.clearance} from ${appUsers} where ${appUsers.id} = ${input.createdBy} and ${appUsers.active} = true)`,
+    });
 }
 
 export async function updateAnalyticsHistoryRecord(
@@ -87,13 +90,18 @@ export async function updateAnalyticsHistoryRecord(
     durationMs?: number;
   },
 ): Promise<void> {
-  const condition =
-    input.status === "cancelled"
-      ? eq(analyticsQueries.id, id)
-      : and(eq(analyticsQueries.id, id), eq(analyticsQueries.status, "running"));
+  const condition = and(eq(analyticsQueries.id, id), eq(analyticsQueries.status, "running"));
   await getDb()
     .update(analyticsQueries)
-    .set({ ...input, updatedAt: new Date() })
+    .set({
+      ...input,
+      updatedAt: new Date(),
+      ...(input.maxClassification
+        ? {
+            maxClassification: sql`case when array_position(array['open','secret','top_secret','special'], ${input.maxClassification}) > array_position(array['open','secret','top_secret','special'], ${analyticsQueries.maxClassification}) then ${input.maxClassification} else ${analyticsQueries.maxClassification} end`,
+          }
+        : {}),
+    })
     .where(condition);
 }
 
@@ -119,7 +127,12 @@ export async function listAnalyticsHistory(): Promise<
     })
     .from(analyticsQueries)
     .innerJoin(appUsers, eq(analyticsQueries.createdBy, appUsers.id))
-    .where(user.role === "admin" ? undefined : eq(analyticsQueries.createdBy, user.id))
+    .where(
+      and(
+        user.role === "admin" ? undefined : eq(analyticsQueries.createdBy, user.id),
+        analyticsHistoryVisibilityFilter(user.id),
+      ),
+    )
     .orderBy(desc(analyticsQueries.createdAt))
     .limit(20);
   return rows.map(({ createdAt, author, ...row }) => ({
@@ -152,6 +165,7 @@ export async function getAnalyticsHistoryRecord(id: string) {
       and(
         eq(analyticsQueries.id, id),
         user.role === "admin" ? undefined : eq(analyticsQueries.createdBy, user.id),
+        analyticsHistoryVisibilityFilter(user.id),
       ),
     )
     .limit(1);
@@ -179,18 +193,27 @@ export async function getAnalyticsHistoryRecord(id: string) {
       return {
         ...source,
         available,
-        ...(available ? {} : { title: az.analytics.sourceUnavailable, caption: "" }),
+        ...(available
+          ? {}
+          : {
+              documentId: null,
+              briefId: null,
+              usedInAnswer: false,
+              title: az.analytics.sourceUnavailable,
+              caption: "",
+            }),
       };
     }),
   );
   const filters = analyticsFiltersSchema.safeParse(row.filters);
   if (!filters.success) return null;
+  const unavailableCitation = resolved.some((source) => !source.available);
   return {
     id: row.id,
     query: row.query,
     filters: filters.data,
-    status: row.status,
-    answer: row.answer ?? "",
+    status: unavailableCitation ? "incomplete" : row.status,
+    answer: unavailableCitation ? az.analytics.sourceUnavailable : (row.answer ?? ""),
     sources: resolved,
     model: row.model,
     durationMs: row.durationMs,
@@ -210,6 +233,25 @@ export async function pruneAnalyticsHistory(now = new Date()): Promise<number> {
 
 export function analyticsHistoryOwnerCondition(userId: string, isAdmin: boolean) {
   return isAdmin ? undefined : eq(analyticsQueries.createdBy, userId);
+}
+
+/** History query text and authors are metadata subject to the same live clearance boundary. */
+export function analyticsHistoryVisibilityFilter(userId: string) {
+  return and(
+    classificationAccessFilter(analyticsQueries.maxClassification, { id: userId }),
+    sql`not exists (
+      select 1 from jsonb_array_elements(
+        case when jsonb_typeof(${analyticsQueries.sources}) = 'array'
+          then ${analyticsQueries.sources} else '[]'::jsonb end
+      ) as source
+      where source ->> 'documentId' is not null
+        and not exists (
+          select 1 from ${documents}
+          where ${documents.id}::text = source ->> 'documentId'
+            and ${documentAccessFilter({ id: userId })}
+        )
+    )`,
+  );
 }
 
 export function analyticsHistoryClassificationAllowed(

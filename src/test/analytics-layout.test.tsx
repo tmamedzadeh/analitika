@@ -4,21 +4,19 @@ import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { routeTree } from "@/routeTree.gen";
-import { getAnalyticsOptions, listRecentAnalyticsQueries } from "@/lib/analytics.functions";
+import { listRecentAnalyticsQueries } from "@/lib/analytics.functions";
 import { az } from "@/lib/i18n/az";
 
 vi.mock("@/lib/analytics.functions", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/analytics.functions")>();
   return {
     ...actual,
-    getAnalyticsOptions: vi.fn(),
     listRecentAnalyticsQueries: vi.fn(),
   };
 });
 
 describe("analytics search layout", () => {
   it("places recent queries on the right and sources below the synthesis", async () => {
-    vi.mocked(getAnalyticsOptions).mockResolvedValue({ tags: [] });
     vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0 } },

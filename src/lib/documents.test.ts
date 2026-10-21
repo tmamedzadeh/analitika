@@ -7,7 +7,6 @@ const validDocument = {
   title: "Test document",
   body: "Synthetic document text.",
   docDate: null,
-  tags: [],
   direction: "OSINT",
   classification: "open",
   sourceReliability: "F",

@@ -1,0 +1,2 @@
+DROP INDEX "daily_briefs_search_gin_idx";--> statement-breakpoint
+CREATE INDEX "daily_briefs_search_gin_idx" ON "daily_briefs" USING gin (to_tsvector('simple'::regconfig, lower(translate(normalize("title" || ' || ' || "body", NFC), 'ƏİIŞÇĞÖÜ', 'əiışçğöü'))));

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, ilike, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 
 import {
   briefExcerpt,
@@ -14,6 +14,7 @@ import { getDb } from "@/server/db";
 import { getCurrentUser } from "@/server/auth";
 import { briefAttachments, chunks, dailyBriefs } from "@/server/db/schema";
 import { afterBriefPosition, beforeBriefPosition } from "./pagination";
+import { hasCommittedBriefIndex } from "./index-state";
 
 export type BriefListFilters = {
   query: string;
@@ -36,6 +37,23 @@ function briefWindow(filters: Pick<BriefListFilters, "period" | "month">, now = 
   return null;
 }
 
+export function normalizeBriefSearch(value: string): string {
+  return value
+    .normalize("NFC")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .toLocaleLowerCase("az-Latn-AZ")
+    .normalize("NFC");
+}
+
+export function buildBriefSearchQuery(value: string): string {
+  return normalizeBriefSearch(value)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean)
+    .map((term) => `'${term.replaceAll("'", "''")}'`)
+    .join(" & ");
+}
+
 export function buildBriefListConditions(filters: BriefListFilters) {
   const conditions = [accessFilter()];
   const window = briefWindow(filters);
@@ -44,16 +62,10 @@ export function buildBriefListConditions(filters: BriefListFilters) {
     conditions.push(lte(dailyBriefs.briefDate, window.through));
   }
   if (filters.cursor) conditions.push(afterBriefPosition(filters.cursor));
-  const query = filters.query.trim();
+  const query = buildBriefSearchQuery(filters.query);
   if (query) {
-    const pattern = `%${query}%`;
     conditions.push(
-      or(
-        ilike(dailyBriefs.title, pattern),
-        ilike(dailyBriefs.body, pattern),
-        sql`${dailyBriefs.title} % ${query}`,
-        sql`${dailyBriefs.body} % ${query}`,
-      )!,
+      sql`to_tsvector('simple'::regconfig, lower(translate(normalize(${dailyBriefs.title} || ' || ' || ${dailyBriefs.body}, NFC), 'ƏİIŞÇĞÖÜ', 'əiışçğöü'))) @@ to_tsquery('simple'::regconfig, ${query})`,
     );
   }
   return conditions;
@@ -161,7 +173,14 @@ export async function getBriefDetails(
         .select({ id: chunks.id, start: chunks.charStart, end: chunks.charEnd })
         .from(chunks)
         .innerJoin(dailyBriefs, eq(chunks.briefId, dailyBriefs.id))
-        .where(and(eq(chunks.id, chunkId), eq(chunks.briefId, briefId), accessFilter()))
+        .where(
+          and(
+            eq(chunks.id, chunkId),
+            eq(chunks.briefId, briefId),
+            hasCommittedBriefIndex(),
+            accessFilter(),
+          ),
+        )
         .limit(1)
     : [];
   const position = { date: row.briefDate, id: row.id };

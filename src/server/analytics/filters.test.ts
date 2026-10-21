@@ -5,11 +5,10 @@ import { describe, expect, it } from "vitest";
 import { directions, directionIds } from "@/lib/directions";
 import { analyticsFiltersSchema, type AnalyticsFilters } from "@/lib/analytics";
 import { withCurrentUser, type SessionUser } from "@/server/auth";
-import { documentConditions, minimumDocDate } from "./filters";
+import { documentConditions, hasCommittedDocumentIndex, minimumDocDate } from "./filters";
 
 const baseFilters = {
   period: "all" as const,
-  tag: "",
   directionIds: [...directionIds],
   minSourceReliability: "all" as const,
   minInfoCredibility: "all" as const,
@@ -37,11 +36,14 @@ describe("analytics direction filters", () => {
     const query = new PgDialect().sqlToQuery(where!);
 
     expect(query.sql).toContain('"documents"."direction" in');
-    expect(query.sql).toContain('"documents"."classification" in');
-    expect(query.sql).toContain("exists (select 1 from document_acl");
-    expect(query.sql).toContain('"documents"."owner_id" =');
-    expect(query.params).toContain("open");
-    expect(query.params).toContain("secret");
+    expect(query.sql).toContain('case "documents"."classification"');
+    expect(query.sql).toContain('from "app_users"');
+    expect(query.sql).toContain('"app_users"."active" = true');
+    expect(query.sql).not.toContain('"documents"."owner_id"');
+    expect(query.sql).toContain("when 'open' then 0");
+    expect(query.sql).toContain("when 'secret' then 1");
+    expect(query.sql).toContain("when 'top_secret' then 2");
+    expect(query.sql).toContain("when 'special' then 3");
     expect(query.params).toContain("OSINT");
     expect(query.params).toContain("GEOINT");
   });
@@ -51,7 +53,9 @@ describe("analytics direction filters", () => {
     const query = new PgDialect().sqlToQuery(documentWhere(filters));
 
     expect(query.sql).not.toContain('"documents"."direction" in');
-    expect(query.sql).toContain('"documents"."classification" in');
+    expect(query.sql).toContain('case "documents"."classification"');
+    expect(query.sql).toContain('from "app_users"');
+    expect(query.sql).toContain('"app_users"."active" = true');
     expect(filters.directionIds).toHaveLength(directions.length);
   });
 
@@ -65,7 +69,7 @@ describe("analytics direction filters", () => {
     expect(query.sql).toContain('"documents"."doc_date" is null');
     expect(query.sql).toContain('"documents"."created_at" >=');
     expect(query.params).toContain("2026-09-18");
-    expect(query.params).toContain("2026-09-18T00:00:00.000Z");
+    expect(query.params).toContain("2026-09-17T20:00:00.000Z");
   });
 
   it("calculates week, quarter, and year period boundaries", () => {
@@ -75,5 +79,21 @@ describe("analytics direction filters", () => {
     expect(minimumDocDate("30d", now)).toBe("2026-09-18");
     expect(minimumDocDate("90d", now)).toBe("2026-07-20");
     expect(minimumDocDate("12m", now)).toBe("2025-10-18");
+  });
+
+  it("includes the Baku calendar day during the four-hour UTC date boundary", () => {
+    const now = new Date("2026-10-21T21:00:00.000Z");
+    const query = new PgDialect().sqlToQuery(documentWhere(baseFilters, now));
+    expect(query.params).toContain("2026-10-22");
+    expect(minimumDocDate("7d", now)).toBe("2026-10-15");
+  });
+});
+
+describe("committed document index availability", () => {
+  it("keeps the last committed chunks eligible while a replacement is queued or fails", () => {
+    const query = new PgDialect().sqlToQuery(hasCommittedDocumentIndex());
+
+    expect(query.sql).toContain('"documents"."chunk_count" >');
+    expect(query.params).toEqual([0]);
   });
 });

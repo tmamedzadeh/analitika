@@ -1,79 +1,96 @@
-import { and, asc, count, eq, isNull, ne, or } from "drizzle-orm";
-import { createGeminiProviders } from "../src/server/ai/gemini";
-import { getGeminiQuotaKey, isGeminiQuotaError } from "../src/server/ai/gemini-gateway";
+﻿/** Resumable per-source model reindexing, using the same atomic workers as normal ingestion. */
+import { and, eq, getTableColumns, sql } from "drizzle-orm";
 import { closeDb, getDb } from "../src/server/db";
-import { chunks, documents } from "../src/server/db/schema";
+import { dailyBriefs, documents } from "../src/server/db/schema";
+import { requireServerEnv } from "../src/server/env";
+import { processDocumentJob } from "../src/server/jobs/process-document";
+import { indexBriefJob } from "../src/server/jobs/index-brief";
+import { indexProgress } from "../src/server/jobs/index-state";
+import { briefContentHash } from "../src/server/briefs/index-state";
 
-const BATCH_SIZE = 20;
-const MODEL = process.env.GEMINI_EMBED_MODEL?.trim();
-const providerFlag = process.argv.find((arg) => arg.startsWith("--provider="))?.split("=")[1];
-if (providerFlag && providerFlag !== "gemini")
-  throw new Error("Only --provider=gemini is supported in this build.");
-if (!MODEL) throw new Error("GEMINI_EMBED_MODEL is required.");
-
+const args = process.argv.slice(2);
+if (args.some((arg) => !["--apply", "--dry-run", "--provider=gemini"].includes(arg)))
+  throw new Error("Unsupported reindex argument.");
+const apply = args.includes("--apply");
+const model = requireServerEnv("GEMINI_EMBED_MODEL");
 const db = getDb();
-const provider = createGeminiProviders().embeddings;
-const needsReindex = or(ne(chunks.embeddingModel, MODEL), isNull(chunks.embedding));
 try {
-  const [countRow] = await db.select({ total: count() }).from(chunks).where(needsReindex);
-  const total = Number(countRow?.total ?? 0);
+  const documentRows = await db.select({ id: documents.id }).from(documents).where(sql`exists (
+    select 1 from chunks c where c.document_id = ${documents.id} and (c.embedding_model <> ${model} or c.embedding is null)
+  ) or ${documents.chunkCount} = 0`);
+  const briefRows = await db
+    .select({
+      ...getTableColumns(dailyBriefs),
+      version: sql<string>`${dailyBriefs.updatedAt}::text`,
+    })
+    .from(dailyBriefs).where(sql`exists (
+    select 1 from chunks c where c.brief_id = ${dailyBriefs.id} and (c.embedding_model <> ${model} or c.embedding is null)
+  ) or not exists (select 1 from chunks c where c.brief_id = ${dailyBriefs.id})`);
   let completed = 0;
-  console.log("Embedding reindex started: chunks=" + total + ", batch=" + BATCH_SIZE + ".");
-  while (true) {
-    const rows = await db
-      .select({
-        id: chunks.id,
-        text: chunks.text,
-        sectionTitle: chunks.sectionTitle,
-        title: documents.title,
-        embeddingModel: chunks.embeddingModel,
-      })
-      .from(chunks)
-      .innerJoin(documents, eq(chunks.documentId, documents.id))
-      .where(needsReindex)
-      .orderBy(asc(chunks.id))
-      .limit(BATCH_SIZE);
-    if (!rows.length) break;
-    const input = rows.map((row) =>
-      (row.title + " / " + row.sectionTitle + "\n" + row.text).trim(),
-    );
-    const vectors = await provider.embedDocuments(input);
-    if (
-      vectors.length !== rows.length ||
-      vectors.some(
-        (vector) => vector.length !== 768 || vector.some((value) => !Number.isFinite(value)),
-      )
-    ) {
-      throw new Error("Gemini did not return valid 768-dimensional vectors.");
-    }
-    await db.transaction(async (transaction) => {
-      for (const [index, row] of rows.entries()) {
-        await transaction
-          .update(chunks)
-          .set({ embedding: vectors[index]!, embeddingModel: MODEL })
-          .where(and(eq(chunks.id, row.id), eq(chunks.embeddingModel, row.embeddingModel)));
+  let failed = 0;
+  if (apply) {
+    for (const row of documentRows) {
+      try {
+        await processDocumentJob(row.id);
+        completed++;
+      } catch {
+        failed++;
       }
-    });
-    completed += rows.length;
-    console.log(
-      "Reindex progress: " +
-        Math.min(completed, total) +
-        "/" +
-        total +
-        "; Gemini API calls=" +
-        budget.calls +
-        ".",
-    );
+    }
+    for (const row of briefRows) {
+      try {
+        const [queued] = await db
+          .update(dailyBriefs)
+          .set({
+            indexStatus: "queued",
+            updatedAt: new Date(),
+            indexProgress: {
+              ...indexProgress(row.indexProgress),
+              leaseId: null,
+              recoveryAttempts: 0,
+              ...(row.indexStatus === "ready" ? { contentHash: briefContentHash(row) } : {}),
+            },
+          })
+          .where(
+            and(
+              eq(dailyBriefs.id, row.id),
+              sql`${dailyBriefs.updatedAt}::text = ${row.version}`,
+              sql`${dailyBriefs.indexStatus} <> 'processing'`,
+            ),
+          )
+          .returning({ id: dailyBriefs.id });
+        if (!queued) {
+          failed++;
+          continue;
+        }
+        await indexBriefJob(row.id);
+        completed++;
+      } catch {
+        failed++;
+      }
+    }
   }
   console.log(
-    "Reindex complete: updated=" + completed + "; Gemini API calls=" + budget.calls + ".",
+    JSON.stringify(
+      {
+        mode: apply ? "apply" : "dry-run",
+        model,
+        documents: documentRows.length,
+        briefs: briefRows.length,
+        completed,
+        failed,
+      },
+      null,
+      2,
+    ),
   );
+  if (failed) process.exitCode = 1;
 } catch (error) {
-  const quota = getGeminiQuotaKey(error);
   console.error(
-    quota && isGeminiQuotaError(error)
-      ? "Gemini quota exhausted for " + quota + ". Progress is saved; rerun to resume."
-      : "Reindex stopped. Progress is saved by embedding_model; rerun the same command to resume.",
+    JSON.stringify({
+      status: "failed",
+      errorType: error instanceof Error ? error.name : "unknown",
+    }),
   );
   process.exitCode = 1;
 } finally {

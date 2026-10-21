@@ -1,5 +1,7 @@
 ## ДОПОЛНЕНИЕ К БРИФУ (заменяет противоречащие места)
 
+> Historical planning note. Its information-request section was retired by migration 0018 and is not part of the current product. The current access model has no individual document-sharing controls.
+
 ### A. Шкалы достоверности
 
 Файл src/lib/reliability.ts, единый источник для формы, бейджей и фильтров.

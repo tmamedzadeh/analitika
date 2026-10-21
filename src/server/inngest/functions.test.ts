@@ -1,7 +1,9 @@
+import { PgDialect } from "drizzle-orm/pg-core";
+import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { BRIEF_INDEX_STALE_AFTER_MS, briefIndexClaimCondition } from "../jobs/index-brief";
 
 import { functions, HOUSEKEEPING_CRON } from "./functions";
 
@@ -19,9 +21,9 @@ function source(path: string): string {
 }
 
 describe("housekeeping cron schedules", () => {
-  it("runs stale-run closing and brief requeue every 15 minutes", () => {
+  it("requeues stale document indexes and pending briefs every 15 minutes", () => {
     expect(HOUSEKEEPING_CRON).toBe("*/15 * * * *");
-    expect(cronOf("close-stale-osint-runs")).toBe("*/15 * * * *");
+    expect(cronOf("requeue-stale-document-indexes")).toBe("*/15 * * * *");
     expect(cronOf("requeue-pending-briefs")).toBe("*/15 * * * *");
   });
 
@@ -31,32 +33,47 @@ describe("housekeeping cron schedules", () => {
   });
 
   it("registers event-driven functions without a cron trigger", () => {
-    expect(cronOf("run-osint")).toBeUndefined();
-    expect(cronOf("retry-osint-summary")).toBeUndefined();
+    expect(cronOf("process-document")).toBeUndefined();
     expect(cronOf("index-brief")).toBeUndefined();
   });
 });
 
-describe("independence from the cron backstops", () => {
-  const osint = source("src/lib/osint.functions.ts");
-
-  it("starts an OSINT run by sending the event directly", () => {
-    expect(osint).toMatch(/inngest\.send\(osintRunRequested\.create\(\{ runId \}\)\)/);
-  });
-
-  it("closes stale OSINT runs on list and read, not only from the cron", () => {
-    const list = osint.slice(osint.indexOf("export const listOsintRuns"));
-    const read = osint.slice(osint.indexOf("export const getOsintRun"));
-    expect(list.slice(0, list.indexOf("export const getOsintRun"))).toContain(
-      "await markStaleOsintRuns()",
-    );
-    expect(read.slice(0, read.indexOf("export const retryOsintSummary"))).toContain(
-      "await markStaleOsintRuns()",
-    );
-  });
-
-  it("queues brief indexing directly after saving a brief", () => {
+describe("background indexing events", () => {
+  it("queues brief indexing directly and leaves a durable queued state if send fails", () => {
     const briefs = source("src/server/briefs/mutations.ts");
     expect(briefs).toMatch(/inngest\.send\(briefIndexingRequested\.create\(/);
+    expect(briefs).toMatch(/catch \{[\s\S]*?queueFailed = true;[\s\S]*?indexStatus: "queued"/u);
+  });
+
+  it("recovers stale processing and bounded failed brief indexes", () => {
+    const functionsSource = source("src/server/jobs/recover-indexes.ts");
+    expect(BRIEF_INDEX_STALE_AFTER_MS).toBe(15 * 60_000);
+    expect(functionsSource).toContain("BRIEF_INDEX_STALE_AFTER_MS");
+    expect(functionsSource).toContain("recoveryAttempts");
+    expect(functionsSource).toContain("MAX_RECOVERY_ATTEMPTS = 5");
+    expect(functionsSource).toContain("attempts >= MAX_RECOVERY_ATTEMPTS");
+  });
+
+  it("marks a stale processing brief eligible for atomic reclaim", () => {
+    const query = new PgDialect().sqlToQuery(
+      briefIndexClaimCondition(new Date("2026-10-21T12:00:00.000Z"))!,
+    );
+    expect(query.sql).toContain('"daily_briefs"."index_status" =');
+    expect(query.sql).toContain('"daily_briefs"."updated_at" <');
+    expect(query.params).toContain("2026-10-21T11:45:00.000Z");
+    expect(query.params).toContain("queued");
+  });
+
+  it("prepares embeddings before atomic committed-index replacement", () => {
+    const job = source("src/server/jobs/index-brief.ts");
+    expect(job.indexOf("embeddings.embedDocuments")).toBeLessThan(
+      job.indexOf(
+        "await transaction.delete(chunks)",
+        job.indexOf("db.transaction(async (transaction)", job.indexOf("const prepared")),
+      ),
+    );
+    expect(job).toContain("db.transaction(async (transaction)");
+    expect(job).toContain('indexStatus: "ready"');
+    expect(job).toContain('eq(dailyBriefs.indexStatus, "processing")');
   });
 });

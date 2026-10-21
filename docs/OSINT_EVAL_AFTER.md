@@ -1,4 +1,6 @@
-# OSINT provider evaluation
+# Archived OSINT Web evaluation (retired feature)
+
+> Historical evaluation artifact only. OSINT Web/search was removed and this report is not active-scope guidance, a current provider recommendation, or production evidence.
 
 Captured: 2026-10-20T08:09:50.427Z
 
@@ -10,42 +12,42 @@ Evaluation status: search responses received. Query texts, page text, prompts an
 
 Average provider timings below represent successful search responses.
 
-| Provider mode | Reference matches* | Languages | Unique domains | Full-text rate | Duplicate rate | Results | Avg. provider response |
-| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| Exa | 16 | ru, en, fr, az, zh | 36 | 100% (7 checked) | 85% | 37 | 2543 ms |
-| Tavily | 5 | ru, en, fr, az | 37 | 100% (7 checked) | 55% | 50 | 2594 ms |
-| HasData | 0 | none | 24 | 100% (2 checked) | 7% | 28 | 8184 ms |
-| Exa + Tavily | 16 | ru, en, fr, az, zh | 67 | 100% (9 checked) | 76% | 83 | 2568 ms |
-| Exa + HasData | 16 | ru, en, fr, az, zh | 57 | 100% (7 checked) | 77% | 62 | 5363 ms |
-| Tavily + HasData | 5 | ru, en, fr, az | 49 | 100% (7 checked) | 52% | 68 | 5389 ms |
-| All | 16 | ru, en, fr, az, zh | 77 | 100% (9 checked) | 73% | 99 | 4440 ms |
+| Provider mode    | Reference matches* | Languages          | Unique domains |   Full-text rate | Duplicate rate | Results | Avg. provider response |
+| ---------------- | -----------------: | ------------------ | -------------: | ---------------: | -------------: | ------: | ---------------------: |
+| Exa              |                 16 | ru, en, fr, az, zh |             36 | 100% (7 checked) |            85% |      37 |                2543 ms |
+| Tavily           |                  5 | ru, en, fr, az     |             37 | 100% (7 checked) |            55% |      50 |                2594 ms |
+| HasData          |                  0 | none               |             24 | 100% (2 checked) |             7% |      28 |                8184 ms |
+| Exa + Tavily     |                 16 | ru, en, fr, az, zh |             67 | 100% (9 checked) |            76% |      83 |                2568 ms |
+| Exa + HasData    |                 16 | ru, en, fr, az, zh |             57 | 100% (7 checked) |            77% |      62 |                5363 ms |
+| Tavily + HasData |                  5 | ru, en, fr, az     |             49 | 100% (7 checked) |            52% |      68 |                5389 ms |
+| All              |                 16 | ru, en, fr, az, zh |             77 | 100% (9 checked) |            73% |      99 |                4440 ms |
 
 ## Baseline comparison
 
 The post-change hybrid row is computed from both providers' three-query results merged offline with RRF; it is a comparison ceiling for the conditional production fallback, not an exact replay of that fallback policy. The baseline used six languages and five were observed; the new run uses all eight.
 
-| Metric | Before | After (Exa + Tavily, offline RRF) |
-| --- | ---: | ---: |
-| Seed-domain relevance proxy | 12 | 16 |
-| Languages with sources | 5 / 6 | 5 / 8 |
-| Languages selected | 6 | 8 |
-| Unique domains | 47 | 67 |
-| Full-text rate | 100% (36/36) | 100% (9/9) |
-| Duplicate rate | 39% | 76% |
-| Selected summary sources | not recorded | 3 / 3 |
-| Azerbaijani summaries | not recorded | 0% (0/3) |
-| Runtime | 18.5s | 121.2s |
-| Search requests | 18 | 60 attempted (9 errors) |
-| Query expansion success | not recorded | 0 / 3 |
-| LLM steps successful | not recorded | 0 / 5 |
+| Metric                      |       Before | After (Exa + Tavily, offline RRF) |
+| --------------------------- | -----------: | --------------------------------: |
+| Seed-domain relevance proxy |           12 |                                16 |
+| Languages with sources      |        5 / 6 |                             5 / 8 |
+| Languages selected          |            6 |                                 8 |
+| Unique domains              |           47 |                                67 |
+| Full-text rate              | 100% (36/36) |                        100% (9/9) |
+| Duplicate rate              |          39% |                               76% |
+| Selected summary sources    | not recorded |                             3 / 3 |
+| Azerbaijani summaries       | not recorded |                          0% (0/3) |
+| Runtime                     |        18.5s |                            121.2s |
+| Search requests             |           18 |           60 attempted (9 errors) |
+| Query expansion success     | not recorded |                             0 / 3 |
+| LLM steps successful        | not recorded |                             0 / 5 |
 
 ## Step timings
 
-| Step | Before | After |
-| --- | ---: | ---: |
-| Query expansion | not recorded | 36016 ms total |
-| Search providers | 18 requests; total step timing not recorded | Exa 2543 ms avg, Tavily 2594 ms avg, HasData 8184 ms avg |
-| Azerbaijani summary probe | not recorded | 4698 ms for 3 selected sources |
+| Step                      |                                      Before |                                                    After |
+| ------------------------- | ------------------------------------------: | -------------------------------------------------------: |
+| Query expansion           |                                not recorded |                                           36016 ms total |
+| Search providers          | 18 requests; total step timing not recorded | Exa 2543 ms avg, Tavily 2594 ms avg, HasData 8184 ms avg |
+| Azerbaijani summary probe |                                not recorded |                           4698 ms for 3 selected sources |
 
 Full-text checks used the existing SSRF-safe page fetcher, capped at 24 distinct pages. A page counts only at 800 or more extracted characters.
 
@@ -77,13 +79,13 @@ The figures below describe the 2026-10-20 seed evaluation (the local artifact wa
 
 ### Provider results and coverage
 
-| Mode | Requests | Errors | Candidates | Unique results | Unique domains | Duplicate rate |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Exa | 24 | 0 | 240 | 37 | 36 | 84.6% |
-| Tavily | 24 | 0 | 112 | 50 | 37 | 55.4% |
-| HasData | 12 | 9 | 30 | 28 | 0 reference-domain matches | 6.7%* |
-| Exa + Tavily | offline merge | — | 343 | 83 | 67 | 75.8% |
-| All three | offline merge | — | 370 | 99 | 77 | 73.2% |
+| Mode         |      Requests | Errors | Candidates | Unique results |             Unique domains | Duplicate rate |
+| ------------ | ------------: | -----: | ---------: | -------------: | -------------------------: | -------------: |
+| Exa          |            24 |      0 |        240 |             37 |                         36 |          84.6% |
+| Tavily       |            24 |      0 |        112 |             50 |                         37 |          55.4% |
+| HasData      |            12 |      9 |         30 |             28 | 0 reference-domain matches |          6.7%* |
+| Exa + Tavily | offline merge |      — |        343 |             83 |                         67 |          75.8% |
+| All three    | offline merge |      — |        370 |             99 |                         77 |          73.2% |
 
 Exa and Tavily each returned successful responses for all eight requested languages (`hy`, `fa`, `ru`, `zh`, `en`, `fr`, `ka`, `az`) and averaged about 2,543 ms and 2,594 ms. HasData succeeded only for `fa` and `hy`, averaged about 8,184 ms, and remains evaluation-only. The language list in the table near the top describes languages with source coverage after merging; it differs from languages with successful API responses.
 
@@ -99,12 +101,12 @@ The eval does not save per-source semantic-similarity or overlap distributions, 
 
 This earlier run returned no search responses: Exa had 24 errors, Tavily 24, and HasData 12 (60 errors total). Its provider timings (10 ms, 16 ms, and 7 ms) were failed-request durations. Query expansion took 18,209 ms, reported 0 successful expansions and 3 failures, the summary probe did not run because no sources were selected, and total runtime was 18.4 seconds. These earlier failures remain part of the history; they are superseded for current provider availability by the later 08:09 run above.
 
-| Provider mode | Reference matches | Languages | Unique domains | Full-text rate | Duplicate rate | Results | Avg. failed response |
-| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| Exa | n/a | n/a | n/a | n/a | n/a | n/a | 10 ms |
-| Tavily | n/a | n/a | n/a | n/a | n/a | n/a | 16 ms |
-| HasData | n/a | n/a | n/a | n/a | n/a | n/a | 7 ms |
-| Exa + Tavily | n/a | n/a | n/a | n/a | n/a | n/a | 13 ms |
-| Exa + HasData | n/a | n/a | n/a | n/a | n/a | n/a | 8 ms |
-| Tavily + HasData | n/a | n/a | n/a | n/a | n/a | n/a | 11 ms |
-| All | n/a | n/a | n/a | n/a | n/a | n/a | 11 ms |
+| Provider mode    | Reference matches | Languages | Unique domains | Full-text rate | Duplicate rate | Results | Avg. failed response |
+| ---------------- | ----------------: | --------- | -------------: | -------------: | -------------: | ------: | -------------------: |
+| Exa              |               n/a | n/a       |            n/a |            n/a |            n/a |     n/a |                10 ms |
+| Tavily           |               n/a | n/a       |            n/a |            n/a |            n/a |     n/a |                16 ms |
+| HasData          |               n/a | n/a       |            n/a |            n/a |            n/a |     n/a |                 7 ms |
+| Exa + Tavily     |               n/a | n/a       |            n/a |            n/a |            n/a |     n/a |                13 ms |
+| Exa + HasData    |               n/a | n/a       |            n/a |            n/a |            n/a |     n/a |                 8 ms |
+| Tavily + HasData |               n/a | n/a       |            n/a |            n/a |            n/a |     n/a |                11 ms |
+| All              |               n/a | n/a       |            n/a |            n/a |            n/a |     n/a |                11 ms |

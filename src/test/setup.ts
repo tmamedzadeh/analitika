@@ -1,4 +1,7 @@
 import "@testing-library/jest-dom/vitest";
+import { isolateTestEnvironment } from "./safe-env";
+
+isolateTestEnvironment();
 
 Object.defineProperty(window, "scrollTo", {
   writable: true,

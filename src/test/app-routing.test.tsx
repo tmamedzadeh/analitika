@@ -26,6 +26,13 @@ describe("App routing", () => {
     expect(router.matchRoutes("/axtaris").at(-1)?.routeId).toBe("/_app/axtaris");
   });
 
+  it("does not register the retired information request pages", () => {
+    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+    for (const path of ["/sorgu", "/sorgu/2c227f83-a225-4b68-9492-979cd1d59f13"]) {
+      expect(router.matchRoutes(path).at(-1)?.routeId).toBe(rootRouteId);
+    }
+  });
+
   it("matches document details as a top-level route at the existing URL", () => {
     const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
     const matches = router.matchRoutes("/senedler/2c227f83-a225-4b68-9492-979cd1d59f13");

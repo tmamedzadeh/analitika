@@ -120,6 +120,55 @@
       "when": 1792486441179,
       "tag": "0016_osint_source_language",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792568952104,
+      "tag": "0017_remove_osint_web",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792570266613,
+      "tag": "0018_remove_retired_features_and_tags",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792573118158,
+      "tag": "0019_brief_lexical_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792573321157,
+      "tag": "0020_brief_lexical_search_snapshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792581553781,
+      "tag": "0021_reconcile_brief_search_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792589932073,
+      "tag": "0022_secure_server_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792591989889,
+      "tag": "0023_reconcile_legacy_constraint_names",
+      "breakpoints": true
     }
   ]
 }

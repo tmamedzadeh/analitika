@@ -2,7 +2,7 @@ import postgres from "postgres";
 import { loadEnv } from "vite";
 
 const env = loadEnv("development", process.cwd(), "");
-const databaseUrl = (process.env.DATABASE_URL_MIGRATE ?? env.DATABASE_URL_MIGRATE)?.trim();
+const databaseUrl = (process.env["DATABASE_URL_MIGRATE"] ?? env["DATABASE_URL_MIGRATE"])?.trim();
 
 if (!databaseUrl) throw new Error("DATABASE_URL_MIGRATE is required.");
 
@@ -32,16 +32,16 @@ try {
     ]);
 
   const actual = {
-    extensions: extensions.map((row) => String(row.extname)),
-    tables: tables.map((row) => String(row.table_name)),
+    extensions: extensions.map((row) => String(row["extname"])),
+    tables: tables.map((row) => String(row["table_name"])),
     columns: columns.map((row) => ({
-      table: String(row.table_name),
-      column: String(row.column_name),
-      nullable: row.is_nullable === "YES",
+      table: String(row["table_name"]),
+      column: String(row["column_name"]),
+      nullable: row["is_nullable"] === "YES",
     })),
-    constraints: constraints.map((row) => String(row.conname)),
-    indexes: indexes.map((row) => String(row.indexname)),
-    briefDateUniqueIndexes: briefDateUniqueIndexes.map((row) => String(row.name)),
+    constraints: constraints.map((row) => String(row["conname"])),
+    indexes: indexes.map((row) => String(row["indexname"])),
+    briefDateUniqueIndexes: briefDateUniqueIndexes.map((row) => String(row["name"])),
   };
   const missing = [
     ...["vector", "pg_trgm"].filter((item) => !actual.extensions.includes(item)),

@@ -8,11 +8,7 @@ import { DirectionMultiSelect } from "@/components/DirectionMultiSelect";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
 import type { AnalyticsFilters, AnalyticsSourcePreview } from "@/lib/analytics";
-import {
-  getAnalyticsOptions,
-  getAnalyticsQueryHistory,
-  listRecentAnalyticsQueries,
-} from "@/lib/analytics.functions";
+import { getAnalyticsQueryHistory, listRecentAnalyticsQueries } from "@/lib/analytics.functions";
 import { directionIds, directionLabel } from "@/lib/directions";
 import { briefRouteForSearchSource, briefSearchLabel } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
@@ -20,7 +16,6 @@ import { infoCredibilityValues, sourceReliabilityValues } from "@/lib/reliabilit
 
 const initialFilters: AnalyticsFilters = {
   period: "7d",
-  tag: "",
   directionIds: [...directionIds],
   minSourceReliability: "all",
   minInfoCredibility: "all",
@@ -119,10 +114,6 @@ function Analytics() {
     ? sources
     : sources.filter((source) => usedSourceNumbers.has(source.n));
 
-  const optionsQuery = useQuery({
-    queryKey: ["analytics", "options"],
-    queryFn: () => getAnalyticsOptions(),
-  });
   const historyQuery = useQuery({
     queryKey: ["analytics", "history"],
     queryFn: () => listRecentAnalyticsQueries(),
@@ -315,27 +306,6 @@ function Analytics() {
             <option value="all">{az.analytics.all}</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="flex items-center gap-2">
-            {az.analytics.tagLabel}
-            {optionsQuery.isPending && <ZirveLoader variant="inline" label="" />}
-          </span>
-          <select
-            className="field"
-            value={filters.tag}
-            onChange={(event) => {
-              const value = event.currentTarget.value;
-              setFilters((current) => ({ ...current, tag: value }));
-            }}
-          >
-            <option value="">{az.analytics.all}</option>
-            {(optionsQuery.data?.tags ?? []).map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
-        </label>
         <div className="min-w-0">
           <DirectionMultiSelect
             value={filters.directionIds}
@@ -502,11 +472,6 @@ function Analytics() {
                 </span>
               ) : null}
             </div>
-            {optionsQuery.isError && (
-              <p role="alert" className="mb-3 text-sm text-destructive">
-                {az.analytics.optionsFailed}
-              </p>
-            )}
             <div className="space-y-3">
               {selectedHistory
                 ? selectedHistory.sources.map((source) => (
@@ -579,7 +544,7 @@ function Analytics() {
                   {az.analytics.noSources}
                 </div>
               )}
-              {!hasSearched && !optionsQuery.isLoading && (
+              {!hasSearched && (
                 <div className="panel p-5 text-sm text-muted-foreground">
                   {az.analytics.sourcesHint}
                 </div>

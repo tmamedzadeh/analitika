@@ -12,7 +12,6 @@ import {
 } from "./gemini-gateway";
 import type {
   EmbeddingProvider,
-  GroundedSearchInput,
   LLMProvider,
   ProviderRequestOptions,
   TextGenerationInput,
@@ -44,19 +43,6 @@ function requestOptionsFor(input: TextGenerationInput, model: string) {
   };
 }
 
-function llmErrorClass(
-  error: unknown,
-): "rate_limit" | "timeout" | "invalid_json" | "language" | "other" {
-  if (!error || typeof error !== "object") return "other";
-  const value = error as Record<string, unknown>;
-  if (Number(value["statusCode"] ?? value["status"] ?? 0) === 429) return "rate_limit";
-  const message = `${String(value["name"] ?? "")} ${String(value["message"] ?? "")}`;
-  if (/timeout|abort/i.test(message)) return "timeout";
-  if (/json|structured output/i.test(message)) return "invalid_json";
-  if (/language/i.test(message)) return "language";
-  return "other";
-}
-
 export class GeminiLLMProvider implements LLMProvider {
   readonly usageStats = {
     apiCalls: 0,
@@ -77,42 +63,14 @@ export class GeminiLLMProvider implements LLMProvider {
     operation: (model: string) => Promise<T>,
     allowQuotaFallback = true,
   ): Promise<T> {
-    const perModel = new Map<
-      string,
-      {
-        attempts: number;
-        started: number;
-        inputTokens: number;
-        outputTokens: number;
-        thinkingTokens: number;
-        errorClass?: string;
-      }
-    >();
     const run = (model: string, quotaKey: GeminiQuotaKey, maxAttempts = input.maxAttempts) =>
       withGeminiRequest(
         quotaKey,
         async () => {
-          const observed = perModel.get(model) ?? {
-            attempts: 0,
-            started: Date.now(),
-            inputTokens: 0,
-            outputTokens: 0,
-            thinkingTokens: 0,
-          };
-          observed.attempts += 1;
-          perModel.set(model, observed);
           this.usageStats.apiCalls += 1;
-          try {
-            const result = await operation(model);
-            const usage = this.recordUsage(result);
-            observed.inputTokens += usage.inputTokens;
-            observed.outputTokens += usage.outputTokens;
-            observed.thinkingTokens += usage.thinkingTokens;
-            return result;
-          } catch (error) {
-            observed.errorClass = llmErrorClass(error);
-            throw error;
-          }
+          const result = await operation(model);
+          this.recordUsage(result);
+          return result;
         },
         maxAttempts,
         input.signal,
@@ -125,56 +83,7 @@ export class GeminiLLMProvider implements LLMProvider {
         run(fallbackModel, "AI_LIGHT_MODEL", 1),
       );
     };
-    const started = Date.now();
-    let error: unknown;
-    return operationResult()
-      .catch((caught: unknown) => {
-        error = caught;
-        throw caught;
-      })
-      .finally(() => {
-        if (!input.telemetryStep) return;
-        const models: Array<
-          [
-            string,
-            {
-              attempts: number;
-              started: number;
-              inputTokens: number;
-              outputTokens: number;
-              thinkingTokens: number;
-              errorClass?: string;
-            },
-          ]
-        > = perModel.size
-          ? [...perModel]
-          : [
-              [
-                this.model,
-                { attempts: 0, started, inputTokens: 0, outputTokens: 0, thinkingTokens: 0 },
-              ],
-            ];
-        for (const [model, usage] of models) {
-          console.info(
-            "[OSINT LLM] step=" +
-              input.telemetryStep +
-              " model=" +
-              model +
-              " duration_ms=" +
-              (Date.now() - usage.started) +
-              " input_tokens=" +
-              usage.inputTokens +
-              " output_tokens=" +
-              usage.outputTokens +
-              " thinking_tokens=" +
-              usage.thinkingTokens +
-              " attempts=" +
-              usage.attempts +
-              " error=" +
-              (usage.errorClass ?? (error ? llmErrorClass(error) : "none")),
-          );
-        }
-      });
+    return operationResult();
   }
 
   private recordUsage(value: unknown): {
@@ -320,49 +229,6 @@ export class GeminiLLMProvider implements LLMProvider {
       fallbackModel ? async () => createStream(fallbackModel, "AI_LIGHT_MODEL", 1) : undefined,
     );
   }
-
-  async generateGroundedSearch(input: GroundedSearchInput) {
-    requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
-    const result = await this.withRequest(input, (model) =>
-      generateText({
-        model: google(model),
-        ...(input.system ? { system: input.system } : {}),
-        prompt: input.prompt,
-        tools: {
-          google_search: google.tools.googleSearch({
-            ...(input.startTime && input.endTime
-              ? { timeRangeFilter: { startTime: input.startTime, endTime: input.endTime } }
-              : {}),
-          }) as never,
-        },
-        ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
-        ...requestOptionsFor(input, model),
-      }),
-    );
-    const providerMetadata = result.providerMetadata?.["google"] as
-      | {
-          groundingMetadata?: {
-            groundingChunks?: Array<{
-              web?: { uri?: string; title?: string | null } | null;
-            }> | null;
-          } | null;
-        }
-      | undefined;
-    const metadataSources = (providerMetadata?.groundingMetadata?.groundingChunks ?? []).flatMap(
-      (chunk) =>
-        chunk.web?.uri
-          ? [{ url: chunk.web.uri, title: chunk.web.title?.trim() || chunk.web.uri }]
-          : [],
-    );
-    const sources = metadataSources.length
-      ? metadataSources
-      : result.sources.flatMap((source) =>
-          source.sourceType === "url"
-            ? [{ url: source.url, title: source.title?.trim() || source.url }]
-            : [],
-        );
-    return { text: result.text, sources };
-  }
 }
 
 export class GeminiEmbeddingProvider implements EmbeddingProvider {
@@ -506,7 +372,6 @@ export function createGeminiProviders() {
   }
   return {
     analytics: new GeminiLLMProvider(chatModel, "AI_CHAT_MODEL", lightModel),
-    osint: new GeminiLLMProvider(chatModel, "AI_CHAT_MODEL", lightModel),
     light: lightModel
       ? new GeminiLLMProvider(lightModel, "AI_LIGHT_MODEL")
       : new GeminiLLMProvider(chatModel, "AI_CHAT_MODEL"),

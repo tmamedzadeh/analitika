@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 
 import type { AnalyticsFilters } from "../src/lib/analytics";
-import { departmentIds } from "../src/lib/departments";
+import { directions } from "../src/lib/directions";
 import { isLowReliability } from "../src/lib/reliability";
 import { handleAnalyticsSearchRequest } from "../src/server/analytics/endpoint";
 import { closeDb, getDb } from "../src/server/db";
@@ -13,8 +13,7 @@ type SearchEvent = {
     n: number;
     chunkId: string;
     documentId: string;
-    department: string | null;
-    tags: string[];
+    direction: string | null;
     sourceReliability: "A" | "B" | "C" | "D" | "E" | "F";
     infoCredibility: 1 | 2 | 3 | 4 | 5 | 6;
   }>;
@@ -26,15 +25,13 @@ type SearchEvent = {
 };
 
 const filteredDemoFilters: AnalyticsFilters = {
-  period: "30d",
-  tag: "demo-synthetic",
-  departmentIds: ["d2"],
+  period: "all",
+  directionIds: directions.map(({ id }) => id),
   minSourceReliability: "all",
   minInfoCredibility: "all",
 };
 const answerDemoFilters: AnalyticsFilters = {
   ...filteredDemoFilters,
-  departmentIds: [...departmentIds],
   minSourceReliability: "all",
   minInfoCredibility: "all",
 };
@@ -123,14 +120,10 @@ async function verifyStage2(): Promise<void> {
     if (filteredSources.length === 0) throw new Error("Filtered search returned no demo sources.");
     if (
       filteredSources.some(
-        (source) =>
-          !source.tags.includes("demo-synthetic") ||
-          source.department !== "d2" ||
-          !["A", "B"].includes(source.sourceReliability) ||
-          source.infoCredibility > 4,
+        (source) => !["A", "B"].includes(source.sourceReliability) || source.infoCredibility > 4,
       )
     ) {
-      throw new Error("Reliability or demo tag filters were not applied before result fusion.");
+      throw new Error("Reliability filters were not applied before result fusion.");
     }
     if (!filtered.events.some((event) => event.type === "final")) {
       throw new Error("Fragment-only search did not finish its stream.");

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
 
@@ -12,13 +12,15 @@ import {
 import { az } from "@/lib/i18n/az";
 import { accessFilter } from "@/server/db/access";
 import { getDb } from "@/server/db";
-import { briefAttachments, chunks, dailyBriefs } from "@/server/db/schema";
+import { briefAttachments, dailyBriefs } from "@/server/db/schema";
 import { briefIndexingRequested } from "@/server/inngest/events";
 import { inngest } from "@/server/inngest/client";
 import { getStorage } from "@/server/storage/s3";
 import { deleteObjectsBestEffort } from "@/server/storage/delete-objects";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 import { getCurrentUser, requireAdmin } from "@/server/auth";
+import { briefContentHash } from "./index-state";
+import { indexProgress } from "../jobs/index-state";
 
 const photoListSchema = z.array(briefPhotoMetadataSchema).max(MAX_BRIEF_PHOTOS);
 const idListSchema = z
@@ -82,8 +84,16 @@ function validUploadKey(
 }
 
 async function deleteUploadedKeys(keys: string[]): Promise<void> {
+  if (!keys.length) return;
+  const referenced = await getDb()
+    .select({ key: briefAttachments.storageKey })
+    .from(briefAttachments)
+    .where(inArray(briefAttachments.storageKey, keys));
+  const attachedKeys = new Set(referenced.map((row) => row.key));
   const storage = getStorage();
-  await Promise.allSettled(keys.map((key) => storage.delete(key)));
+  await Promise.allSettled(
+    keys.filter((key) => !attachedKeys.has(key)).map((key) => storage.delete(key)),
+  );
 }
 
 export async function prepareBriefUploadUrls(
@@ -175,11 +185,14 @@ async function verifyUploadedPhotos(
 
 export async function saveBriefRecord(
   input: z.infer<typeof saveBriefSchema>,
+  options: { sendIndexing?: (briefId: string) => Promise<unknown> } = {},
 ): Promise<{ ok: true; briefId: string; queueFailed: boolean; cleanupIncomplete: boolean }> {
   const parsed = saveBriefSchema.parse(input);
   const db = getDb();
   const user = getCurrentUser();
-  const uploadedKeys = parsed.uploads.map((upload) => upload.key);
+  const uploadedKeys = parsed.uploads
+    .filter((upload) => validUploadKey(parsed.briefId, upload.key, upload.mime))
+    .map((upload) => upload.key);
 
   try {
     await verifyUploadedPhotos(parsed.briefId, parsed.uploads);
@@ -190,7 +203,10 @@ export async function saveBriefRecord(
     const [existingBrief] = parsed.isNew
       ? []
       : await db
-          .select()
+          .select({
+            ...getTableColumns(dailyBriefs),
+            version: sql<string>`${dailyBriefs.updatedAt}::text`,
+          })
           .from(dailyBriefs)
           .where(and(eq(dailyBriefs.id, parsed.briefId), accessFilter()))
           .limit(1);
@@ -217,6 +233,24 @@ export async function saveBriefRecord(
       .map((file) => file.storageKey);
     const now = new Date();
     await db.transaction(async (transaction) => {
+      if (!parsed.isNew) {
+        const [locked] = await transaction
+          .select({
+            authorId: dailyBriefs.authorId,
+            version: sql<string>`${dailyBriefs.updatedAt}::text`,
+          })
+          .from(dailyBriefs)
+          .where(and(eq(dailyBriefs.id, parsed.briefId), accessFilter()))
+          .for("update")
+          .limit(1);
+        if (
+          !locked ||
+          !canEditBrief(user, locked.authorId) ||
+          locked.version !== existingBrief!.version
+        ) {
+          throw new Error(az.briefs.saveFailed);
+        }
+      }
       if (parsed.isNew) {
         await transaction.insert(dailyBriefs).values({
           id: parsed.briefId,
@@ -241,14 +275,23 @@ export async function saveBriefRecord(
             updatedBy: user.id,
             status: "published",
             indexStatus: "queued",
-            indexProgress: { percent: 0, totalChunks: 0, completedChunks: 0 },
+            indexProgress: {
+              ...indexProgress(existingBrief!.indexProgress),
+              percent: 0,
+              totalChunks: 0,
+              completedChunks: 0,
+              recoveryAttempts: 0,
+              leaseId: null,
+              ...(existingBrief!.indexStatus === "ready"
+                ? { contentHash: briefContentHash(existingBrief!) }
+                : {}),
+            },
             publishedAt: existingBrief!.publishedAt ?? now,
             updatedAt: now,
           })
           .where(and(eq(dailyBriefs.id, parsed.briefId), accessFilter()));
       }
 
-      await transaction.delete(chunks).where(eq(chunks.briefId, parsed.briefId));
       await transaction
         .delete(briefAttachments)
         .where(eq(briefAttachments.briefId, parsed.briefId));
@@ -283,13 +326,21 @@ export async function saveBriefRecord(
 
     let queueFailed = false;
     try {
-      await inngest.send(briefIndexingRequested.create({ briefId: parsed.briefId }));
+      await (options.sendIndexing
+        ? options.sendIndexing(parsed.briefId)
+        : inngest.send(briefIndexingRequested.create({ briefId: parsed.briefId })));
     } catch {
       queueFailed = true;
       await db
         .update(dailyBriefs)
-        .set({ indexStatus: "failed", updatedAt: new Date() })
-        .where(and(eq(dailyBriefs.id, parsed.briefId), accessFilter()));
+        .set({ indexStatus: "queued", updatedAt: new Date() })
+        .where(
+          and(
+            eq(dailyBriefs.id, parsed.briefId),
+            eq(dailyBriefs.indexStatus, "queued"),
+            accessFilter(),
+          ),
+        );
     }
     return { ok: true, briefId: parsed.briefId, queueFailed, cleanupIncomplete };
   } catch (error) {
@@ -304,6 +355,12 @@ export async function discardBriefUploads(
   const parsed = discardUploadsSchema.parse(input);
   const prefix = `briefs/${parsed.briefId}/`;
   if (parsed.keys.some((key) => !key.startsWith(prefix))) throw new Error(az.briefs.saveFailed);
+  const [brief] = await getDb()
+    .select({ authorId: dailyBriefs.authorId })
+    .from(dailyBriefs)
+    .where(eq(dailyBriefs.id, parsed.briefId))
+    .limit(1);
+  if (brief && !canEditBrief(getCurrentUser(), brief.authorId)) throw new Error(az.briefs.missing);
   await deleteUploadedKeys(parsed.keys);
 }
 

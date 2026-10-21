@@ -11,65 +11,8 @@ export type ProviderUsageStats = {
   inputTokens: number;
   outputTokens: number;
   thinkingTokens?: number;
-  webSearchCalls?: number;
   usageReportedCalls?: number;
 };
-
-export interface RequestCallBudget {
-  readonly calls: number;
-  reserve(): void;
-}
-
-export type SearchInput = {
-  query: string;
-  language: string;
-  limit?: number;
-  numResults?: number;
-  startPublishedDate?: string;
-  endPublishedDate?: string;
-  country?: string;
-  userLocation?: string;
-  includeDomains?: string[];
-  period?: "24h" | "7d" | "30d" | "all";
-  timeoutMs?: number;
-  signal?: AbortSignal;
-  requestBudget?: RequestCallBudget;
-  thinkingLevel?: "minimal" | "low" | "medium" | "high";
-  maxOutputTokens?: number;
-};
-
-export type SearchSource = {
-  url: string;
-  title: string;
-  publishedDate?: string;
-  publishedAt?: string;
-  snippet?: string;
-  text?: string;
-  highlights?: string[];
-  searchSummary?: string;
-  index: number;
-  providerRank?: number;
-  rrfScore?: number;
-  provider?: SearchProviderId;
-  providers?: SearchProviderId[];
-};
-
-export type SearchProviderId = "exa" | "tavily" | "hasdata" | "gemini_grounding";
-
-export type SearchProviderCapabilities = {
-  hasText: boolean;
-  supportsDomains: boolean;
-  supportsCountry: boolean;
-  supportsLanguage: boolean;
-  supportsDateRange: boolean;
-};
-
-export interface SearchProvider {
-  readonly provider: SearchProviderId;
-  readonly capabilities?: SearchProviderCapabilities;
-  readonly usageStats?: Readonly<{ apiCalls: number; credits?: number }>;
-  search(input: SearchInput): Promise<SearchSource[]>;
-}
 
 export type TextGenerationInput = {
   system?: string;
@@ -80,18 +23,6 @@ export type TextGenerationInput = {
   timeoutMs?: number;
   signal?: AbortSignal;
   maxAttempts?: GeminiAttemptLimit;
-  telemetryStep?: "expansion" | "search" | "summary" | "report";
-};
-
-export type GroundedSearchInput = TextGenerationInput & {
-  startTime?: string;
-  endTime?: string;
-};
-
-export type GroundedWebSource = {
-  url: string;
-  title: string;
-  index?: number;
 };
 
 export interface LLMProvider {
@@ -107,14 +38,11 @@ export interface LLMProvider {
     schema: TSchema,
   ): Promise<z.output<TSchema>>;
   streamText(input: TextGenerationInput): Promise<AsyncIterable<string>>;
-  generateGroundedSearch?(input: GroundedSearchInput): Promise<{
-    text: string;
-    sources: GroundedWebSource[];
-  }>;
 }
 
 export interface EmbeddingProvider {
   readonly model: string;
+  readonly processingBoundary?: "local" | "external";
   readonly usageStats?: Readonly<ProviderUsageStats>;
   embedDocument(value: string, options?: ProviderRequestOptions): Promise<number[]>;
   embedDocuments(values: string[], options?: ProviderRequestOptions): Promise<number[][]>;

@@ -70,10 +70,10 @@ function AddDoc() {
   const [docDate, setDocDate] = useState("");
   const [body, setBody] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
-  const [additionalUserIds, setAdditionalUserIds] = useState<string[]>([]);
   const [photoError, setPhotoError] = useState("");
   const [formError, setFormError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [queuePending, setQueuePending] = useState(false);
   const [saving, setSaving] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
 
@@ -120,12 +120,7 @@ function AddDoc() {
       body,
       direction: String(formData.get("direction") ?? ""),
       docDate: String(formData.get("docDate") ?? "") || null,
-      tags: String(formData.get("tags") ?? "")
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
       classification,
-      additionalUserIds,
       sourceReliability,
       infoCredibility,
       photos: photos.map((file) => ({ name: file.name, mime: file.type, size: file.size })),
@@ -155,7 +150,7 @@ function AddDoc() {
         if (!response.ok) throw new Error(az.documents.form.photoUploadFailed);
       }
 
-      await saveDocument({
+      const result = await saveDocument({
         data: {
           ...input.data,
           documentId: prepared.documentId,
@@ -165,12 +160,12 @@ function AddDoc() {
         },
       });
       setSaved(true);
+      setQueuePending(result.queueFailed);
       formRef.current?.reset();
       setDocDate("");
       setBody("");
       setPhotos([]);
       setClassification("open");
-      setAdditionalUserIds([]);
       setSourceReliability("F");
       setInfoCredibility(6);
       if (photoInputRef.current) photoInputRef.current.value = "";
@@ -252,19 +247,10 @@ function AddDoc() {
                 clearLabel={az.actions.clearDate}
               />
             </label>
-            <label className="block">
-              <span className="mb-2 block text-sm font-semibold">{az.documents.form.tags}</span>
-              <input
-                name="tags"
-                className="field"
-                placeholder={az.documents.form.tagsPlaceholder}
-              />
-            </label>
           </div>
           <fieldset className="grid gap-2 border-0 p-0">
             <legend className="mb-2 p-0 text-sm font-semibold">
               {az.documents.form.classification}{" "}
-              <span className="label-mono">· {az.documents.demo}</span>
             </legend>
             <div className="flex flex-wrap gap-2">
               {formContext.classifications.map((value) => (
@@ -280,31 +266,6 @@ function AddDoc() {
                   <span className={classification === value ? "pill pill-active" : "pill"}>
                     {az.documents.classification[value]}
                   </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <fieldset className="grid gap-2 border-0 p-0">
-            <legend className="mb-2 p-0 text-sm font-semibold">{az.documents.acl.title}</legend>
-            <p className="text-sm text-muted-foreground">{az.documents.acl.hint}</p>
-            <div className="grid max-h-48 gap-2 overflow-y-auto rounded-lg border border-border p-3 sm:grid-cols-2">
-              {formContext.activeUsers.map((user) => (
-                <label key={user.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={additionalUserIds.includes(user.id)}
-                    onChange={(event) => {
-                      const checked = event.currentTarget.checked;
-                      setAdditionalUserIds((current) =>
-                        checked
-                          ? current.length < 50 && !current.includes(user.id)
-                            ? [...current, user.id]
-                            : current
-                          : current.filter((id) => id !== user.id),
-                      );
-                    }}
-                  />
-                  {user.username}
                 </label>
               ))}
             </div>
@@ -379,7 +340,7 @@ function AddDoc() {
           )}
           {saved && (
             <p role="status" className="text-sm text-success">
-              {az.documents.form.success}
+              {queuePending ? az.documents.form.savedQueuePending : az.documents.form.success}
             </p>
           )}
           <div className="flex gap-3">

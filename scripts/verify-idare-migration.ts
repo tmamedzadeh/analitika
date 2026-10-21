@@ -9,7 +9,7 @@ const migrationFiles = [
   "0001_stage_1_document_progress.sql",
   "0002_idare_departments.sql",
 ];
-const migrationUrl = process.env.DATABASE_URL_MIGRATE?.trim();
+const migrationUrl = process.env["DATABASE_URL_MIGRATE"]?.trim();
 if (!migrationUrl) throw new Error("DATABASE_URL_MIGRATE is required for migration verification.");
 
 const db = postgres(migrationUrl, {
@@ -58,20 +58,12 @@ try {
         VALUES ('Synthetic migration check', 'Synthetic migration body')
         RETURNING id
       `;
-      const [legacyRequest] = await tx<{ id: string }[]>`
-        INSERT INTO info_requests (department, request_date, urgency, purpose, details)
-        VALUES ('İdarə 3', CURRENT_DATE, 'normal', 'Synthetic migration check', 'Synthetic')
-        RETURNING id
-      `;
-      if (!legacyDocument || !legacyRequest) throw new Error("Could not create fixture rows.");
+      if (!legacyDocument) throw new Error("Could not create fixture row.");
 
       await runMigration(tx, migrationFiles[2]!);
 
       const [document] = await tx<{ department: string | null }[]>`
         SELECT department FROM documents WHERE id = ${legacyDocument.id}
-      `;
-      const [request] = await tx<{ department: string }[]>`
-        SELECT department FROM info_requests WHERE id = ${legacyRequest.id}
       `;
       const [column] = await tx<{ is_nullable: string }[]>`
         SELECT is_nullable
@@ -94,8 +86,6 @@ try {
 
       if (document?.department !== null)
         throw new Error("Existing documents must remain unassigned.");
-      if (request?.department !== "d3")
-        throw new Error("Legacy request department was not mapped.");
       if (column?.is_nullable !== "YES") throw new Error("documents.department must be nullable.");
       if (!departmentIndex) throw new Error("documents.department index is missing.");
       if (extensions?.total !== 2) throw new Error("Required database extensions are missing.");

@@ -14,14 +14,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppAxtarisRouteImport } from './routes/_app.axtaris'
 import { Route as AppAyarlarRouteImport } from './routes/_app.ayarlar'
-import { Route as AppOsintRouteImport } from './routes/_app.osint'
 import { Route as AppSenedlerRouteImport } from './routes/_app.senedler'
-import { Route as AppSorguRouteImport } from './routes/_app.sorgu'
 import { Route as ApiInngestRouteImport } from './routes/api.inngest'
 import { Route as AppBriflerIdRouteImport } from './routes/_app.brifler.$id'
 import { Route as AppBriflerYeniRouteImport } from './routes/_app.brifler.yeni'
 import { Route as AppSenedlerIdRouteImport } from './routes/_app.senedler_.$id'
-import { Route as AppSorguIdRouteImport } from './routes/_app.sorgu.$id'
 import { Route as ApiAnalyticsSearchRouteImport } from './routes/api.analytics.search'
 import { Route as ApiAuthLoginRouteImport } from './routes/api.auth.login'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api.auth.logout'
@@ -52,19 +49,9 @@ const AppAyarlarRoute = AppAyarlarRouteImport.update({
   path: '/ayarlar',
   getParentRoute: () => AppRoute,
 } as any)
-const AppOsintRoute = AppOsintRouteImport.update({
-  id: '/osint',
-  path: '/osint',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppSenedlerRoute = AppSenedlerRouteImport.update({
   id: '/senedler',
   path: '/senedler',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSorguRoute = AppSorguRouteImport.update({
-  id: '/sorgu',
-  path: '/sorgu',
   getParentRoute: () => AppRoute,
 } as any)
 const ApiInngestRoute = ApiInngestRouteImport.update({
@@ -86,11 +73,6 @@ const AppSenedlerIdRoute = AppSenedlerIdRouteImport.update({
   id: '/senedler_/$id',
   path: '/senedler/$id',
   getParentRoute: () => AppRoute,
-} as any)
-const AppSorguIdRoute = AppSorguIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AppSorguRoute,
 } as any)
 const ApiAnalyticsSearchRoute = ApiAnalyticsSearchRouteImport.update({
   id: '/api/analytics/search',
@@ -124,14 +106,11 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/axtaris': typeof AppAxtarisRoute
   '/ayarlar': typeof AppAyarlarRoute
-  '/osint': typeof AppOsintRoute
   '/senedler': typeof AppSenedlerRoute
-  '/sorgu': typeof AppSorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
   '/brifler/$id': typeof AppBriflerIdRoute
   '/brifler/yeni': typeof AppBriflerYeniRoute
   '/senedler/$id': typeof AppSenedlerIdRoute
-  '/sorgu/$id': typeof AppSorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
@@ -142,15 +121,12 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/axtaris': typeof AppAxtarisRoute
   '/ayarlar': typeof AppAyarlarRoute
-  '/osint': typeof AppOsintRoute
   '/senedler': typeof AppSenedlerRoute
-  '/sorgu': typeof AppSorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
   '/': typeof AppIndexRoute
   '/brifler/$id': typeof AppBriflerIdRoute
   '/brifler/yeni': typeof AppBriflerYeniRoute
   '/senedler/$id': typeof AppSenedlerIdRoute
-  '/sorgu/$id': typeof AppSorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
@@ -163,15 +139,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/axtaris': typeof AppAxtarisRoute
   '/_app/ayarlar': typeof AppAyarlarRoute
-  '/_app/osint': typeof AppOsintRoute
   '/_app/senedler': typeof AppSenedlerRoute
-  '/_app/sorgu': typeof AppSorguRouteWithChildren
   '/api/inngest': typeof ApiInngestRoute
   '/_app/': typeof AppIndexRoute
   '/_app/brifler/$id': typeof AppBriflerIdRoute
   '/_app/brifler/yeni': typeof AppBriflerYeniRoute
   '/_app/senedler_/$id': typeof AppSenedlerIdRoute
-  '/_app/sorgu/$id': typeof AppSorguIdRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
@@ -185,14 +158,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/axtaris'
     | '/ayarlar'
-    | '/osint'
     | '/senedler'
-    | '/sorgu'
     | '/api/inngest'
     | '/brifler/$id'
     | '/brifler/yeni'
     | '/senedler/$id'
-    | '/sorgu/$id'
     | '/api/analytics/search'
     | '/api/auth/login'
     | '/api/auth/logout'
@@ -203,15 +173,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/axtaris'
     | '/ayarlar'
-    | '/osint'
     | '/senedler'
-    | '/sorgu'
     | '/api/inngest'
     | '/'
     | '/brifler/$id'
     | '/brifler/yeni'
     | '/senedler/$id'
-    | '/sorgu/$id'
     | '/api/analytics/search'
     | '/api/auth/login'
     | '/api/auth/logout'
@@ -223,15 +190,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/axtaris'
     | '/_app/ayarlar'
-    | '/_app/osint'
     | '/_app/senedler'
-    | '/_app/sorgu'
     | '/api/inngest'
     | '/_app/'
     | '/_app/brifler/$id'
     | '/_app/brifler/yeni'
     | '/_app/senedler_/$id'
-    | '/_app/sorgu/$id'
     | '/api/analytics/search'
     | '/api/auth/login'
     | '/api/auth/logout'
@@ -286,25 +250,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAyarlarRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/osint': {
-      id: '/_app/osint'
-      path: '/osint'
-      fullPath: '/osint'
-      preLoaderRoute: typeof AppOsintRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/senedler': {
       id: '/_app/senedler'
       path: '/senedler'
       fullPath: '/senedler'
       preLoaderRoute: typeof AppSenedlerRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/sorgu': {
-      id: '/_app/sorgu'
-      path: '/sorgu'
-      fullPath: '/sorgu'
-      preLoaderRoute: typeof AppSorguRouteImport
       parentRoute: typeof AppRoute
     }
     '/api/inngest': {
@@ -334,13 +284,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/senedler/$id'
       preLoaderRoute: typeof AppSenedlerIdRouteImport
       parentRoute: typeof AppRoute
-    }
-    '/_app/sorgu/$id': {
-      id: '/_app/sorgu/$id'
-      path: '/$id'
-      fullPath: '/sorgu/$id'
-      preLoaderRoute: typeof AppSorguIdRouteImport
-      parentRoute: typeof AppSorguRoute
     }
     '/api/analytics/search': {
       id: '/api/analytics/search'
@@ -380,24 +323,10 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AppSorguRouteChildren {
-  AppSorguIdRoute: typeof AppSorguIdRoute
-}
-
-const AppSorguRouteChildren: AppSorguRouteChildren = {
-  AppSorguIdRoute: AppSorguIdRoute,
-}
-
-const AppSorguRouteWithChildren = AppSorguRoute._addFileChildren(
-  AppSorguRouteChildren,
-)
-
 interface AppRouteChildren {
   AppAxtarisRoute: typeof AppAxtarisRoute
   AppAyarlarRoute: typeof AppAyarlarRoute
-  AppOsintRoute: typeof AppOsintRoute
   AppSenedlerRoute: typeof AppSenedlerRoute
-  AppSorguRoute: typeof AppSorguRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppBriflerIdRoute: typeof AppBriflerIdRoute
   AppBriflerYeniRoute: typeof AppBriflerYeniRoute
@@ -408,9 +337,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAxtarisRoute: AppAxtarisRoute,
   AppAyarlarRoute: AppAyarlarRoute,
-  AppOsintRoute: AppOsintRoute,
   AppSenedlerRoute: AppSenedlerRoute,
-  AppSorguRoute: AppSorguRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppBriflerIdRoute: AppBriflerIdRoute,
   AppBriflerYeniRoute: AppBriflerYeniRoute,

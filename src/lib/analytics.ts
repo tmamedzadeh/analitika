@@ -5,7 +5,6 @@ import { directionIdSchema, directionIds } from "./directions";
 
 export const analyticsFiltersSchema = z.object({
   period: z.enum(["7d", "30d", "90d", "12m", "all"]),
-  tag: z.string().max(64),
   directionIds: z
     .array(directionIdSchema)
     .min(1)
@@ -41,14 +40,9 @@ export type AnalyticsSource = {
   charEnd: number;
   isTable: boolean;
   attachmentCount: number;
-  tags: string[];
   sourceReliability: SourceReliability | null;
   infoCredibility: InfoCredibility | null;
   classification: string | null;
 };
 
 export type AnalyticsSourcePreview = Omit<AnalyticsSource, "text" | "charStart" | "charEnd">;
-
-export type AnalyticsOptions = {
-  tags: string[];
-};

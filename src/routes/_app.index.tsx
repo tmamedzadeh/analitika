@@ -192,9 +192,9 @@ function DailyBriefs() {
         </p>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {orderedBriefs.map((brief, index) => (
-          <div key={brief.id} className={index === 0 ? "sm:col-span-2 xl:col-span-3" : ""}>
-            <BriefCard brief={brief} featured={index === 0} />
+        {orderedBriefs.map((brief) => (
+          <div key={brief.id}>
+            <BriefCard brief={brief} />
           </div>
         ))}
       </div>

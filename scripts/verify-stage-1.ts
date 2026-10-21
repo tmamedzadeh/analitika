@@ -3,6 +3,8 @@ import { sql } from "drizzle-orm";
 import process from "node:process";
 
 import { createGeminiProviders } from "../src/server/ai/gemini";
+import { withProjectEvaluationUser } from "../src/server/evaluation-safety";
+import { getCurrentUser } from "../src/server/auth";
 import { closeDb, getDb } from "../src/server/db";
 import { attachments, chunks, documents } from "../src/server/db/schema";
 import { processDocumentJob } from "../src/server/jobs/process-document";
@@ -29,6 +31,7 @@ const objectKeys: string[] = [];
 
 async function verifyStage1(): Promise<void> {
   const db = getDb();
+  const ownerId = await withProjectEvaluationUser(() => getCurrentUser().id);
   const storage = getStorage();
   const createdId = crypto.randomUUID();
   const photos = [1, 2].map((index) => ({
@@ -53,6 +56,7 @@ async function verifyStage1(): Promise<void> {
       id: createdId,
       title: "Sintetik sənəd · mərhələ 1 yoxlaması",
       body: testBody,
+      ownerId,
       status: "queued",
       step: "queued",
       progress: { percent: 0, totalChunks: 0, completedChunks: 0 },

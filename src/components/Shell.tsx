@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Search, Globe, FileText, SlidersHorizontal, PanelsTopLeft, LogOut } from "lucide-react";
+import { Search, FileText, SlidersHorizontal, PanelsTopLeft, LogOut } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { ZirveLoader } from "@/components/ZirveLoader";
@@ -9,7 +9,6 @@ import { az } from "@/lib/i18n/az";
 const nav = [
   { to: "/", icon: PanelsTopLeft, label: az.navigation.dailyBriefs },
   { to: "/axtaris", icon: Search, label: az.navigation.analyticsSearch },
-  { to: "/osint", icon: Globe, label: az.navigation.osint },
   { to: "/senedler", icon: FileText, label: az.navigation.documents },
   { to: "/ayarlar", icon: SlidersHorizontal, label: az.navigation.settings },
 ] as const;

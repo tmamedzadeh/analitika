@@ -3,6 +3,8 @@ import process from "node:process";
 import postgres from "postgres";
 
 import { createGeminiProviders } from "../src/server/ai/gemini";
+import { withProjectEvaluationUser } from "../src/server/evaluation-safety";
+import { getCurrentUser } from "../src/server/auth";
 import { closeDb, getDb } from "../src/server/db";
 import { documents } from "../src/server/db/schema";
 import { requireServerEnv } from "../src/server/env";
@@ -11,14 +13,8 @@ import { closeStorage, getStorage } from "../src/server/storage/s3";
 const requiredExtensions = ["vector", "pg_trgm"] as const;
 const requiredTables = [
   "documents",
-  "document_acl",
   "chunks",
   "attachments",
-  "info_requests",
-  "request_attachments",
-  "osint_runs",
-  "osint_sources",
-  "osint_cache",
   "query_logs",
   "eval_sets",
   "eval_questions",
@@ -34,7 +30,7 @@ async function verifyDatabaseObjects(): Promise<void> {
       SELECT extname FROM pg_extension
       WHERE extname IN ('vector', 'pg_trgm')
     `;
-    const installedExtensions = new Set(extensions.map((row) => row.extname));
+    const installedExtensions = new Set(extensions.map((row) => row["extname"]));
     const missingExtensions = requiredExtensions.filter((name) => !installedExtensions.has(name));
     if (missingExtensions.length > 0) {
       throw new Error("Missing database extensions: " + missingExtensions.join(", "));
@@ -44,7 +40,7 @@ async function verifyDatabaseObjects(): Promise<void> {
       SELECT table_name FROM information_schema.tables
       WHERE table_schema = 'public'
     `;
-    const existingTables = new Set(tables.map((row) => row.table_name));
+    const existingTables = new Set(tables.map((row) => row["table_name"]));
     const missingTables = requiredTables.filter((name) => !existingTables.has(name));
     if (missingTables.length > 0) {
       throw new Error("Missing stage 0 tables: " + missingTables.join(", "));
@@ -75,6 +71,7 @@ async function verifyStage0(): Promise<void> {
 
   currentStep = "database insert and read";
   const db = getDb();
+  const ownerId = await withProjectEvaluationUser(() => getCurrentUser().id);
   const storage = getStorage();
   const payload = "Analitika stage 0 service verification";
   const objectKey = "stage-0-check/" + crypto.randomUUID() + ".txt";
@@ -87,7 +84,8 @@ async function verifyStage0(): Promise<void> {
       .values({
         title: "Mərhələ 0 xidmət yoxlaması",
         body: payload,
-        status: "ready",
+        ownerId,
+        status: "queued",
       })
       .returning({ id: documents.id });
 

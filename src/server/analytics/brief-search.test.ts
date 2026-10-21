@@ -8,7 +8,6 @@ import { searchSourceConditions } from "./search";
 
 const defaults: AnalyticsFilters = {
   period: "all",
-  tag: "",
   directionIds: [...directionIds],
   minSourceReliability: "all",
   minInfoCredibility: "all",
@@ -22,9 +21,9 @@ const testUser: SessionUser = {
   sessionId: "test-session",
 };
 
-function compile(filters: AnalyticsFilters) {
+function compile(filters: AnalyticsFilters, now = new Date("2026-10-21T12:00:00.000Z")) {
   return withCurrentUser(testUser, () => {
-    const condition = searchSourceConditions(filters);
+    const condition = searchSourceConditions(filters, now);
     return new PgDialect().sqlToQuery(condition!);
   });
 }
@@ -45,20 +44,28 @@ describe("daily brief retrieval filters", () => {
     expect(query.sql).toContain('"daily_briefs"."brief_date" >=');
   });
 
-  it("keeps briefs alongside documents when document-only filters are active", () => {
-    const byTag = compile(analyticsFiltersSchema.parse({ ...defaults, tag: "demo-synthetic" }));
-    expect(byTag.sql).toContain('"daily_briefs"."status" =');
+  it("excludes briefs when a document-only filter is active", () => {
+    const variants = [
+      { ...defaults, directionIds: ["OSINT"] },
+      { ...defaults, minSourceReliability: "C" },
+      { ...defaults, minInfoCredibility: "4" },
+    ];
+    for (const value of variants) {
+      const query = compile(analyticsFiltersSchema.parse(value));
+      expect(query.sql).toContain('"documents"."chunk_count" >');
+      expect(query.sql).toContain('"daily_briefs"."status" =');
+      expect(query.sql).toContain("false");
+    }
+  });
 
-    const byDirection = compile(
-      analyticsFiltersSchema.parse({ ...defaults, directionIds: ["OSINT"] }),
-    );
-    expect(byDirection.sql).toContain('"daily_briefs"."status"');
-    expect(byDirection.sql).toContain('"documents"."direction" in');
-
-    const byReliability = compile(
-      analyticsFiltersSchema.parse({ ...defaults, minInfoCredibility: "4" }),
-    );
-    expect(byReliability.sql).toContain('"daily_briefs"."status"');
-    expect(byReliability.sql).toContain('"documents"."info_credibility" <=');
+  it("uses inclusive period boundaries and excludes future-dated documents and briefs", () => {
+    const filters = analyticsFiltersSchema.parse({ ...defaults, period: "7d" });
+    const query = compile(filters);
+    expect(query.sql).toContain('"daily_briefs"."brief_date" >=');
+    expect(query.sql).toContain('"daily_briefs"."brief_date" <=');
+    expect(query.sql).toContain('"documents"."doc_date" <=');
+    expect(query.params).toContain("2026-10-14");
+    expect(query.params).toContain("2026-10-21");
+    expect(query.sql).toContain('"documents"."created_at" <=');
   });
 });

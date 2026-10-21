@@ -1,0 +1,1374 @@
+﻿{
+    "capturedAt":  "2026-10-21T15:35:09.6213996Z",
+    "branch":  "codex/zirve-v1-prod-hardening",
+    "baseHead":  "a2edb75373b69b7f7faf13ae931a9e889d671342",
+    "fetchedOriginMain":  "a2edb75373b69b7f7faf13ae931a9e889d671342",
+    "initialStagedFiles":  183,
+    "selection":  "Explicit path list, including cancellation of initially staged temporary additions; no git add -A",
+    "partialStagedBeforeCheckpoint":  40,
+    "temporaryAdditionsCancelled":  16,
+    "paths":  [
+                  {
+                      "path":  ".env.example",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Build/dependency/configuration documentation and checkpoint tooling"
+                  },
+                  {
+                      "path":  ".gate-backup/_gate-benchmark-lib.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  ".gate-backup/_gate-import-probe.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  ".gate-backup/eval-after-evaluser.json",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  ".gate-backup/test-baseline.txt",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  ".prettierignore",
+                      "statusBeforeStaging":  " M",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Build/dependency/configuration documentation and checkpoint tooling"
+                  },
+                  {
+                      "path":  "bun.lock",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Build/dependency/configuration documentation and checkpoint tooling"
+                  },
+                  {
+                      "path":  "docs/AUTHENTICATION.md",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/DECISIONS.md",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/OSINT_EVAL_AFTER.md",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/OSINT_EVAL_BASELINE.md",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/OSINT_EVAL_V1_HARDENING.md",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/BROWSER_E2E.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/CHECKPOINT_CHECKS.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/CHECKPOINT_FILE_MANIFEST.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Explicit reviewed staging manifest; includes itself without a recursive content hash"
+                  },
+                  {
+                      "path":  "docs/release/GENERATION_INTEGRATION.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/INDEXING_INTEGRATION.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/INITIAL_GIT_INVENTORY.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/LIVE_DB_AFTER_MIGRATIONS.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/LIVE_DB_BEFORE.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/LIVE_DB_CHECKPOINT.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/LIVE_SCHEMA_DRIFT.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/PRODUCTION_HARDENING_REQUEST.md",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/RETRIEVAL_BASELINE.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/RUNTIME_PROBES.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/release/SAFE_STOP_REQUEST.md",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/V1_BRIEF.md",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/V1_BRIEF_ADDENDUM.md",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/V1_PROD_HARDENING_AUDIT.md",
+                      "statusBeforeStaging":  "AM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "docs/WORK_SESSION_HANDOFF.md",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Product decisions, archived historical docs, safe evidence and handoff"
+                  },
+                  {
+                      "path":  "drizzle/0017_remove_osint_web.sql",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/0018_remove_retired_features_and_tags.sql",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/0019_brief_lexical_search.sql",
+                      "statusBeforeStaging":  "AM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/0020_brief_lexical_search_snapshot.sql",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/0021_reconcile_brief_search_index.sql",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/0022_database_timezone_baku.sql",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "drizzle/0022_secure_server_tables.sql",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/0023_reconcile_legacy_constraint_names.sql",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/meta/_journal.json",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/meta/0017_snapshot.json",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/meta/0018_snapshot.json",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/meta/0019_snapshot.json",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/meta/0020_snapshot.json",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/meta/0021_snapshot.json",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/meta/0022_snapshot.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "drizzle/meta/0023_snapshot.json",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved"
+                  },
+                  {
+                      "path":  "eslint.config.js",
+                      "statusBeforeStaging":  " M",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Build/dependency/configuration documentation and checkpoint tooling"
+                  },
+                  {
+                      "path":  "package.json",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Build/dependency/configuration documentation and checkpoint tooling"
+                  },
+                  {
+                      "path":  "README.md",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Build/dependency/configuration documentation and checkpoint tooling"
+                  },
+                  {
+                      "path":  "scripts/_gate-access-diag.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "scripts/_gate-db-inspect.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "scripts/_gate-embed-probe.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "scripts/_gate-eval-timing.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "scripts/_gate-inngest-probe.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "scripts/_gate-lexical-probe.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "scripts/_gate-probe-incident.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "scripts/_gate-recover-documents.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "scripts/_gate-search-diag.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "scripts/_gate-set-db-timezone.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "scripts/_gate-verify-recovery.ts",
+                      "statusBeforeStaging":  "AD",
+                      "disposition":  "cancel-temporary-addition",
+                      "purpose":  "Cancel initial temporary addition; original preserved in ignored local backup"
+                  },
+                  {
+                      "path":  "scripts/db-check-drift.ts",
+                      "statusBeforeStaging":  " M",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/eval-rerank.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/eval-retrieval.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/live-schema.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/migrate.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/osint-eval.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/osint-pin.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/osint-probe.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/preview.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/reindex.ts",
+                      "statusBeforeStaging":  " M",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/report-osint-live.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/seed-demo.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/test.ts",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-briefs-live.ts",
+                      "statusBeforeStaging":  " M",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-briefs-migration.ts",
+                      "statusBeforeStaging":  " M",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-browser.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-exa-schema.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-generation.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-idare-migration.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-lexical.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-osint-live.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-osint-registry.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-release-db.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-release-integration.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-runtime.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-stage-0.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-stage-1.ts",
+                      "statusBeforeStaging":  " M",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-stage-2.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-stage-3.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "scripts/verify-storage.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Project DB verification, safe evaluation, indexing tools and test/preview harness"
+                  },
+                  {
+                      "path":  "src/components/BriefMarkdown.tsx",
+                      "statusBeforeStaging":  " M",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/components/OsintDiagnostics.tsx",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/components/OsintSourceCard.test.tsx",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/components/OsintSourceCard.tsx",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/components/Shell.tsx",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/lib/analytics.functions.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/lib/analytics.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/lib/briefs.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/lib/documents.functions.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/lib/documents.test.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/lib/i18n/az.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/lib/osint.functions.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/osint.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/osint-copy.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/osint-copy.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/osint-language.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/osint-language.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/osint-source-display.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/osint-stage.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/osint-text.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/osint-text.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/requests.functions.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/requests.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/lib/requests.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/routes/_app.axtaris.tsx",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/routes/_app.index.tsx",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/routes/_app.osint.tsx",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/routes/_app.senedler.tsx",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/routes/_app.senedler_.$id.tsx",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/routes/_app.sorgu.$id.tsx",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/routes/_app.sorgu.tsx",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/routes/api.attachments.$kind.$parentId.$attachmentId.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/routeTree.gen.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/server/ai/exa.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/exa.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/gemini.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/gemini-gateway.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/gemini-search.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/hasdata.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/hasdata.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/processing-policy.test.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/processing-policy.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/provider-fallback.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/provider-fallback.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/tavily.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/tavily.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/ai/types.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/analytics/brief-search.test.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/citations.test.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/citations.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/endpoint.test.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/endpoint.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/filters.test.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/filters.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/history.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/ranking.test.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/ranking.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/retrieval-eval-questions.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/retrieval-metrics.test.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/retrieval-metrics.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/search.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/analytics/source-access.ts",
+                      "statusBeforeStaging":  "AM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/briefs/index-state.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/briefs/queries.test.ts",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/briefs/queries.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/briefs/mutations.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/briefs/search-normalization.test.ts",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/config.test.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/config.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/db/access.test.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Schema, RLS and clearance predicates"
+                  },
+                  {
+                      "path":  "src/server/db/access.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Schema, RLS and clearance predicates"
+                  },
+                  {
+                      "path":  "src/server/db/schema.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Schema, RLS and clearance predicates"
+                  },
+                  {
+                      "path":  "src/server/env.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/evaluation-safety.test.ts",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/evaluation-safety.ts",
+                      "statusBeforeStaging":  "AM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Provider configuration, external processing policy and safe project evaluation"
+                  },
+                  {
+                      "path":  "src/server/inngest/events.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/inngest/functions.test.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/inngest/functions.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/jobs/cleanup-storage.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/jobs/index-brief.test.ts",
+                      "statusBeforeStaging":  "AM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/jobs/index-brief.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/jobs/index-state.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/jobs/process-document.test.ts",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/jobs/process-document.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/jobs/recover-indexes.ts",
+                      "statusBeforeStaging":  "??",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Durable indexing, atomic replacement, recovery and lexical brief catalog"
+                  },
+                  {
+                      "path":  "src/server/jobs/retry-osint-summary.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/jobs/retry-osint-summary.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/jobs/run-osint.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/jobs/run-osint.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/access.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/access.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/cache.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/cache.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/charset.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/charset.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/diagnostics.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/diagnostics.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/domain-classification.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/domain-classification.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/domain-classification-store.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/fetch-public-page.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/query-expansion.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/query-expansion.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/language.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/page-cache.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/pinned-lookup.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/pinned-lookup.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/ranking.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/ranking.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/reports.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/reports.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/report-synthesis.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/report-synthesis.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/report-validation.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/report-validation.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/search-cache.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/security.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/source-registry.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/source-registry.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/source-summary-state.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/source-summary-state.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/ssrf.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/stale-runs.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/stale-runs.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/summary-generation.test.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/summary-generation.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/osint/urls.ts",
+                      "statusBeforeStaging":  "D ",
+                      "disposition":  "preserve-intentional-deletion",
+                      "purpose":  "Preserve intentional removal of retired web OSINT or requests"
+                  },
+                  {
+                      "path":  "src/server/prompts/analytics.ts",
+                      "statusBeforeStaging":  "MM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Core RAG, live source/history access, citations, deadlines and metrics"
+                  },
+                  {
+                      "path":  "src/server/seed-demo.test.ts",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/test/analytics-layout.test.tsx",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/test/app-routing.test.tsx",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/test/document-detail.test.tsx",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/test/safe-env.test.ts",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/test/safe-env.ts",
+                      "statusBeforeStaging":  "A ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "src/test/setup.ts",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "V1 routes/UI, auth-aware server functions and regression tests"
+                  },
+                  {
+                      "path":  "tsconfig.eval.json",
+                      "statusBeforeStaging":  "AM",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Build/dependency/configuration documentation and checkpoint tooling"
+                  },
+                  {
+                      "path":  "zirve_military_seed_data_2026-10-18.json",
+                      "statusBeforeStaging":  "M ",
+                      "disposition":  "stage-current-version",
+                      "purpose":  "Preserve existing synthetic corpus dataset update"
+                  }
+              ]
+}

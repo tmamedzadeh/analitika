@@ -1,0 +1,77 @@
+{
+  "runId": "05e3b28e-cdff-45e9-b897-678b2430e94b",
+  "capturedAt": "2026-10-21T14:11:55.475Z",
+  "checks": [
+    {
+      "name": "document: initial indexing and duplicate delivery",
+      "status": "PASS"
+    },
+    {
+      "name": "document: provider failure preserves the committed index; retry succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "document: transaction rollback restores chunks after delete/insert failure",
+      "status": "PASS"
+    },
+    {
+      "name": "document: duplicate concurrent events and expired lease fence stale success",
+      "status": "PASS"
+    },
+    {
+      "name": "document: expired predecessor failure cannot corrupt a newer ready index",
+      "status": "PASS"
+    },
+    {
+      "name": "brief: initial indexing and duplicate delivery",
+      "status": "PASS"
+    },
+    {
+      "name": "brief: provider failure preserves the committed index; retry succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "brief: transaction rollback restores chunks after delete/insert failure",
+      "status": "PASS"
+    },
+    {
+      "name": "brief: duplicate concurrent events and expired lease fence stale success",
+      "status": "PASS"
+    },
+    {
+      "name": "brief: expired predecessor failure cannot corrupt a newer ready index",
+      "status": "PASS"
+    },
+    {
+      "name": "brief: actual save and queue failure retain old chunks; edited chunks stay ineligible",
+      "status": "PASS"
+    },
+    {
+      "name": "document: lost event, failed send, persisted attempt count and bounded recovery",
+      "status": "PASS"
+    },
+    {
+      "name": "brief: lost event, failed send, persisted attempt count and bounded recovery",
+      "status": "PASS"
+    },
+    {
+      "name": "brief lexical search: Azerbaijani NFC, AND terms across title/body, distinct i/ı",
+      "status": "PASS"
+    },
+    {
+      "name": "authorization: low-clearance owner and administrator cannot read a secret document",
+      "status": "PASS"
+    },
+    {
+      "name": "citations: current chunk ownership, exact text and live clearance revalidation",
+      "status": "PASS"
+    },
+    {
+      "name": "history: administrator clearance filters list metadata and direct records",
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS",
+  "fixtureLeftovers": 0,
+  "failureCase": null
+}

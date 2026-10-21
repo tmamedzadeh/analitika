@@ -31,7 +31,6 @@ const detail = {
   department: "d3",
   direction: null,
   docDate: "2026-10-18",
-  tags: ["operations"],
   language: "az",
   classification: "open",
   sourceReliability: "B",
@@ -46,9 +45,7 @@ const detail = {
   updatedAt: "2026-10-18T10:00:00.000Z",
   chunks: [],
   photos: [],
-  canManageAcl: false,
-  aclUsers: [],
-  aclCandidates: [],
+  canManage: false,
 };
 
 const recentDocument = {
@@ -82,7 +79,6 @@ describe("document detail route", () => {
     vi.clearAllMocks();
     vi.mocked(getDocumentFormContext).mockResolvedValue({
       classifications: ["open", "secret", "top_secret", "special"],
-      activeUsers: [],
     });
     vi.mocked(listRecentDocuments).mockResolvedValue([recentDocument]);
     vi.mocked(getDocumentDetails).mockResolvedValue(
@@ -165,7 +161,7 @@ describe("document detail route", () => {
   it("shows the delete action only to document managers", async () => {
     vi.mocked(getDocumentDetails).mockResolvedValue({
       ...detail,
-      canManageAcl: true,
+      canManage: true,
     } as Awaited<ReturnType<typeof getDocumentDetails>>);
     const router = await makeRouter(`/senedler/${documentId}`);
     render(<RouterProvider router={router} />);

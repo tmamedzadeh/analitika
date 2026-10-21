@@ -1,15 +1,14 @@
-import { and, eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { accessFilter, documentAccessFilter, getCurrentUser } from "@/server/db/access";
 import { getDb } from "@/server/db";
 import {
   attachments,
+  appUsers,
   briefAttachments,
   dailyBriefs,
   documents,
-  infoRequests,
-  requestAttachments,
 } from "@/server/db/schema";
 import { getStorage } from "@/server/storage/s3";
 
@@ -23,6 +22,7 @@ const allowedMimeTypes = new Set([
 ]);
 
 type Attachment = { key: string; mime: string; name: string };
+type BufferedDocumentAttachment = Attachment & { body: ArrayBuffer; size: number };
 
 function notFound(): Response {
   return new Response(null, {
@@ -55,31 +55,6 @@ async function findAttachment(
     return file ? { ...file, name: file.name ?? "photo" } : null;
   }
 
-  if (kind === "request") {
-    const user = getCurrentUser();
-    const ownerFilter =
-      user.role === "admin"
-        ? or(eq(infoRequests.requesterId, user.id), eq(infoRequests.requesterId, "admin"))
-        : eq(infoRequests.requesterId, user.id);
-    const [file] = await db
-      .select({
-        key: requestAttachments.storageKey,
-        mime: requestAttachments.mime,
-        name: requestAttachments.name,
-      })
-      .from(requestAttachments)
-      .innerJoin(infoRequests, eq(requestAttachments.requestId, infoRequests.id))
-      .where(
-        and(
-          eq(requestAttachments.id, attachmentId),
-          eq(requestAttachments.requestId, parentId),
-          ownerFilter,
-        ),
-      )
-      .limit(1);
-    return file ?? null;
-  }
-
   if (kind === "brief") {
     const [file] = await db
       .select({
@@ -103,15 +78,93 @@ async function findAttachment(
   return null;
 }
 
+async function readDocumentAttachment(
+  parentId: string,
+  attachmentId: string,
+): Promise<BufferedDocumentAttachment | null> {
+  if (!uuidPattern.test(parentId) || !uuidPattern.test(attachmentId)) return null;
+  const user = getCurrentUser();
+  return getDb().transaction(async (transaction) => {
+    const [activeUser] = await transaction
+      .select({ id: appUsers.id })
+      .from(appUsers)
+      .where(and(eq(appUsers.id, user.id), eq(appUsers.active, true)))
+      .for("share")
+      .limit(1);
+    if (!activeUser) return null;
+    const [file] = await transaction
+      .select({
+        key: attachments.storageKey,
+        mime: attachments.mime,
+        name: attachments.caption,
+        size: attachments.size,
+      })
+      .from(attachments)
+      .innerJoin(documents, eq(attachments.documentId, documents.id))
+      .where(
+        and(
+          eq(attachments.id, attachmentId),
+          eq(attachments.documentId, parentId),
+          documentAccessFilter(user),
+        ),
+      )
+      .for("share")
+      .limit(1);
+    if (!file || file.size <= 0 || file.size > 10 * 1024 * 1024) return null;
+    const object = await getStorage().getObjectStream(file.key);
+    const reader = object.body.getReader();
+    const parts: Uint8Array[] = [];
+    let total = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > file.size || total > 10 * 1024 * 1024) {
+          await reader.cancel();
+          return null;
+        }
+        parts.push(value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    const body = new ArrayBuffer(total);
+    const output = new Uint8Array(body);
+    let offset = 0;
+    for (const part of parts) {
+      output.set(part, offset);
+      offset += part.byteLength;
+    }
+    if (body.byteLength !== file.size) return null;
+    return { ...file, name: file.name ?? "photo", body, size: body.byteLength };
+  });
+}
+
 export const Route = createFileRoute("/api/attachments/$kind/$parentId/$attachmentId")({
   server: {
     handlers: {
       GET: async ({ params }) => {
-        const file = await findAttachment(params.kind, params.parentId, params.attachmentId);
+        let documentFile: BufferedDocumentAttachment | null = null;
+        try {
+          documentFile =
+            params.kind === "document"
+              ? await readDocumentAttachment(params.parentId, params.attachmentId)
+              : null;
+        } catch {
+          return new Response(null, {
+            status: 502,
+            headers: { "cache-control": "private, no-store, max-age=0" },
+          });
+        }
+        const file =
+          params.kind === "document"
+            ? documentFile
+            : await findAttachment(params.kind, params.parentId, params.attachmentId);
         if (!file || !allowedMimeTypes.has(file.mime)) return notFound();
 
         try {
-          const object = await getStorage().getObjectStream(file.key);
+          const object = documentFile ? null : await getStorage().getObjectStream(file.key);
           const headers = new Headers({
             "cache-control": "private, no-store, max-age=0",
             "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(file.name)}`,
@@ -119,8 +172,10 @@ export const Route = createFileRoute("/api/attachments/$kind/$parentId/$attachme
             "cross-origin-resource-policy": "same-origin",
             "x-content-type-options": "nosniff",
           });
-          if (object.size !== undefined) headers.set("content-length", String(object.size));
-          return new Response(object.body, { headers });
+          const body = documentFile?.body ?? object!.body;
+          const size = documentFile?.size ?? object!.size;
+          if (size !== undefined) headers.set("content-length", String(size));
+          return new Response(body, { headers });
         } catch {
           return new Response(null, {
             status: 502,

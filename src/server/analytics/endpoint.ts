@@ -11,6 +11,8 @@ import { consumeAnalyticsRateLimit } from "./rate-limit";
 import { searchDocumentChunks } from "./search";
 import { buildAnalyticsPrompt } from "../prompts/analytics";
 import { getAppConfig } from "@/server/config";
+import { sameAnalyticsSourceSet, withAnalyticsSourceAccess } from "./source-access";
+import { assertExternalAiClassification, ExternalAiPolicyError } from "../ai/processing-policy";
 import {
   buildAnalyticsHistorySnapshot,
   createAnalyticsHistoryRecord,
@@ -49,6 +51,7 @@ function errorSummary(error: unknown) {
 }
 
 function answerFailureMessage(error: unknown): string {
+  if (error instanceof ExternalAiPolicyError) return az.documents.form.externalProcessingNotAllowed;
   if (!isGeminiQuotaError(error)) return az.analytics.answerFailed;
   const quota = getGeminiFailureInfo(error).quotaKey ?? "AI_CHAT_MODEL";
   return az.analytics.quotaExceeded.replace("{quota}", quota);
@@ -80,6 +83,15 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
     // History persistence is best-effort and must not block a live response.
   }
   const aborter = new AbortController();
+  // Keep both generation attempts inside the deployed 120-second function limit.
+  const deadline = setTimeout(
+    () => aborter.abort(new DOMException("Analytics deadline exceeded.", "TimeoutError")),
+    105_000,
+  );
+  const abortedHistoryStatus = () =>
+    aborter.signal.reason instanceof Error && aborter.signal.reason.name === "TimeoutError"
+      ? ("failed" as const)
+      : ("cancelled" as const);
   let heartbeat: ReturnType<typeof setInterval> | undefined;
   const saveHistory = async (input: Parameters<typeof updateAnalyticsHistoryRecord>[1]) => {
     try {
@@ -89,6 +101,7 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
     }
   };
   const abortFromRequest = () => {
+    clearTimeout(deadline);
     aborter.abort(request.signal.reason);
     if (heartbeat) clearInterval(heartbeat);
     void saveHistory({ status: "cancelled", durationMs: Date.now() - startedAt });
@@ -103,9 +116,12 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
     sources = await searchDocumentChunks(query, filters, { signal: aborter.signal });
   } catch (error) {
     if (aborter.signal.aborted) {
-      await saveHistory({ status: "cancelled", durationMs: Date.now() - startedAt });
+      await saveHistory({ status: abortedHistoryStatus(), durationMs: Date.now() - startedAt });
+      clearTimeout(deadline);
       request.signal.removeEventListener("abort", abortFromRequest);
-      return new Response(null, { status: 499, headers: { "x-analytics-request-id": requestId } });
+      return abortedHistoryStatus() === "failed"
+        ? jsonError(504, az.analytics.searchFailed, requestId)
+        : new Response(null, { status: 499, headers: { "x-analytics-request-id": requestId } });
     }
     console.error("Analytics search failed before answer generation.", {
       requestId,
@@ -113,12 +129,17 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
       ...errorSummary(error),
     });
     await saveHistory({ status: "failed", durationMs: Date.now() - startedAt });
+    clearTimeout(deadline);
+    request.signal.removeEventListener("abort", abortFromRequest);
     return jsonError(500, az.analytics.searchFailed, requestId);
   }
   if (aborter.signal.aborted) {
-    await saveHistory({ status: "cancelled", durationMs: Date.now() - startedAt });
+    await saveHistory({ status: abortedHistoryStatus(), durationMs: Date.now() - startedAt });
+    clearTimeout(deadline);
     request.signal.removeEventListener("abort", abortFromRequest);
-    return new Response(null, { status: 499, headers: { "x-analytics-request-id": requestId } });
+    return abortedHistoryStatus() === "failed"
+      ? jsonError(504, az.analytics.searchFailed, requestId)
+      : new Response(null, { status: 499, headers: { "x-analytics-request-id": requestId } });
   }
 
   const body = new ReadableStream<Uint8Array>({
@@ -127,6 +148,7 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
       const close = () => {
         if (closed) return;
         closed = true;
+        clearTimeout(deadline);
         if (heartbeat) clearInterval(heartbeat);
         request.signal.removeEventListener("abort", abortFromRequest);
         try {
@@ -158,16 +180,63 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
           aborter.abort();
         }
       }, 15_000);
-      const sourcePreviews: AnalyticsSourcePreview[] = sources.map(
-        ({ text: _text, charStart: _charStart, charEnd: _charEnd, ...source }) => source,
-      );
-      send({ type: "sources", sources: sourcePreviews });
       void (async () => {
         if (aborter.signal.aborted) {
-          await saveHistory({ status: "cancelled", durationMs: Date.now() - startedAt });
+          await saveHistory({ status: abortedHistoryStatus(), durationMs: Date.now() - startedAt });
           close();
           return;
         }
+        const retrievedCount = sources.length;
+        try {
+          await withAnalyticsSourceAccess(sources, user.id, (available) => {
+            sources = available;
+            const sourcePreviews: AnalyticsSourcePreview[] = sources.map(
+              ({ text: _text, charStart: _charStart, charEnd: _charEnd, ...source }) => source,
+            );
+            send({ type: "sources", sources: sourcePreviews });
+          });
+        } catch (error) {
+          console.error("Analytics source access recheck failed.", {
+            requestId,
+            stage: "source_access_before_prompt",
+            sourceCount: retrievedCount,
+            ...errorSummary(error),
+          });
+          await saveHistory({
+            status: "failed",
+            sources: [],
+            answer: "",
+            maxClassification: "open",
+          });
+          send({ type: "error", message: az.analytics.answerFailed, requestId });
+          close();
+          return;
+        }
+        if (sources.length !== retrievedCount) {
+          console.warn("Analytics sources became unavailable before prompt generation.", {
+            requestId,
+            stage: "source_access_before_prompt",
+            retrievedCount,
+            availableCount: sources.length,
+          });
+        }
+        const denyRevokedSources = async () => {
+          console.warn("Analytics answer withheld after source access changed.", {
+            requestId,
+            stage: "source_access_before_publish",
+            sourceCount: sources.length,
+          });
+          await saveHistory({
+            status: "failed",
+            answer: "",
+            sources: [],
+            maxClassification: "open",
+            model,
+            durationMs: Date.now() - startedAt,
+          });
+          send({ type: "error", message: az.analytics.answerFailed, requestId });
+          close();
+        };
         if (sources.length === 0) {
           const answer = az.analytics.noSources;
           send({
@@ -197,13 +266,25 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
         }
 
         if (mode === "sources") {
-          send({
-            type: "final",
-            answer: "",
-            incomplete: false,
-            durationMs: Date.now() - startedAt,
-            model,
-          });
+          const finalPublication = await withAnalyticsSourceAccess(
+            sources,
+            user.id,
+            (available) => {
+              if (!sameAnalyticsSourceSet(sources, available)) return false;
+              sources = available;
+              return send({
+                type: "final",
+                answer: "",
+                incomplete: false,
+                durationMs: Date.now() - startedAt,
+                model,
+              });
+            },
+          );
+          if (!finalPublication.value) {
+            await denyRevokedSources();
+            return;
+          }
           const snapshot = buildAnalyticsHistorySnapshot(
             sources,
             "",
@@ -224,58 +305,78 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
         }
 
         try {
-          const providers = createGeminiProviders();
-          const prompt = buildAnalyticsPrompt(
-            query,
+          const generation = await withAnalyticsSourceAccess(
             sources,
-            getAppConfig().analyticsThinkingLevel,
+            user.id,
+            async (available) => {
+              if (!sameAnalyticsSourceSet(sources, available)) {
+                return { accessChanged: true, validatedAnswer: null };
+              }
+              sources = available;
+              for (const source of sources)
+                assertExternalAiClassification(source.classification ?? "unknown");
+              const providers = createGeminiProviders();
+              const prompt = buildAnalyticsPrompt(
+                query,
+                sources,
+                getAppConfig().analyticsThinkingLevel,
+              );
+              let validatedAnswer: ReturnType<typeof validateCitations> | null = null;
+              for (let attempt = 0; attempt < 2; attempt += 1) {
+                const generationPrompt =
+                  attempt === 0
+                    ? prompt
+                    : {
+                        ...prompt,
+                        maxOutputTokens: 6144,
+                        system:
+                          prompt.system +
+                          "\nƏvvəlki cavabın istinad/evidence yoxlaması uğursuz oldu. Hər faktiki cümlə üçün düzgün mənbə nömrəsi və həmin mənbədən sözbəsöz, fasiləsiz sübut fraqmenti ver; əsas faktiki rəqəmlər sübut fraqmentində olmalıdır. Bütün markerləri tamamla və cavabı yarımçıq saxlama.",
+                        prompt:
+                          prompt.prompt +
+                          "\n\nXüsusi tələb: Cavabın sonunda açıq mötərizə və ya yarımçıq istinad qoyma; bütün istinadları mənbələr siyahısı ilə yoxla.",
+                      };
+                const generated = await providers.analytics.generateTextWithMetadata({
+                  ...generationPrompt,
+                  signal: aborter.signal,
+                  timeoutMs: 60_000,
+                });
+                const validated = validateCitations(
+                  generated.text,
+                  sources,
+                  prompt.lowReliabilityWarning,
+                );
+                const publishable = canPublishAnalyticsAnswer(
+                  generated.text,
+                  generated.finishReason,
+                  validated,
+                );
+                if (publishable) {
+                  validatedAnswer = validated;
+                  break;
+                }
+                console.warn("Analytics answer rejected by completeness validation.", {
+                  requestId,
+                  stage: "answer_validation",
+                  model,
+                  sourceCount: sources.length,
+                  attempt: attempt + 1,
+                  finishReason: generated.finishReason,
+                  outputCharacters: generated.text.length,
+                  citationCount: [...generated.text.matchAll(/\[\d+\]/g)].length,
+                  invalidCitation: validated.incomplete,
+                  evidenceChecks: validated.evidenceChecks,
+                  openCitation: /\[\s*\d*\s*$/.test(generated.text.trim()),
+                });
+              }
+              return { accessChanged: false, validatedAnswer };
+            },
           );
-          let validatedAnswer: ReturnType<typeof validateCitations> | null = null;
-          for (let attempt = 0; attempt < 2; attempt += 1) {
-            const generationPrompt =
-              attempt === 0
-                ? prompt
-                : {
-                    ...prompt,
-                    maxOutputTokens: 6144,
-                    system:
-                      prompt.system +
-                      "\nƏvvəlki cavab tam və düzgün istinadlarla bitmədi. Tam cavab yaz, hər istinadı bağla və fikri yarımçıq saxlamadan yekunlaşdır.",
-                    prompt:
-                      prompt.prompt +
-                      "\n\nXüsusi tələb: Cavabın sonunda açıq mötərizə və ya yarımçıq istinad qoyma; bütün istinadları mənbələr siyahısı ilə yoxla.",
-                  };
-            const generated = await providers.analytics.generateTextWithMetadata({
-              ...generationPrompt,
-              signal: aborter.signal,
-            });
-            const validated = validateCitations(
-              generated.text,
-              sources,
-              prompt.lowReliabilityWarning,
-            );
-            const publishable = canPublishAnalyticsAnswer(
-              generated.text,
-              generated.finishReason,
-              validated,
-            );
-            if (publishable) {
-              validatedAnswer = validated;
-              break;
-            }
-            console.warn("Analytics answer rejected by completeness validation.", {
-              requestId,
-              stage: "answer_validation",
-              model,
-              sourceCount: sources.length,
-              attempt: attempt + 1,
-              finishReason: generated.finishReason,
-              outputCharacters: generated.text.length,
-              citationCount: [...generated.text.matchAll(/\[\d+\]/g)].length,
-              invalidCitation: validated.incomplete,
-              openCitation: /\[\s*\d*\s*$/.test(generated.text.trim()),
-            });
+          if (generation.value.accessChanged) {
+            await denyRevokedSources();
+            return;
           }
+          const validatedAnswer = generation.value.validatedAnswer;
 
           if (!validatedAnswer) {
             send({ type: "error", message: az.analytics.answerFailed, requestId });
@@ -297,13 +398,25 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
             return;
           }
 
-          send({
-            type: "final",
-            answer: validatedAnswer.answer,
-            incomplete: false,
-            durationMs: Date.now() - startedAt,
-            model,
-          });
+          const finalPublication = await withAnalyticsSourceAccess(
+            sources,
+            user.id,
+            (available) => {
+              if (!sameAnalyticsSourceSet(sources, available)) return false;
+              sources = available;
+              return send({
+                type: "final",
+                answer: validatedAnswer.answer,
+                incomplete: false,
+                durationMs: Date.now() - startedAt,
+                model,
+              });
+            },
+          );
+          if (!finalPublication.value) {
+            await denyRevokedSources();
+            return;
+          }
           const snapshot = buildAnalyticsHistorySnapshot(
             sources,
             validatedAnswer.answer,
@@ -321,7 +434,10 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
           });
         } catch (error) {
           if (aborter.signal.aborted) {
-            await saveHistory({ status: "cancelled", durationMs: Date.now() - startedAt });
+            await saveHistory({
+              status: abortedHistoryStatus(),
+              durationMs: Date.now() - startedAt,
+            });
           } else {
             console.error("Analytics answer generation failed.", {
               requestId,
@@ -351,6 +467,7 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
           close();
         }
       })().catch((error) => {
+        clearTimeout(deadline);
         if (!aborter.signal.aborted)
           console.error("Analytics answer stream failed unexpectedly.", {
             requestId,
@@ -362,6 +479,7 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
       });
     },
     cancel() {
+      clearTimeout(deadline);
       if (heartbeat) clearInterval(heartbeat);
       aborter.abort(new Error("client disconnected"));
       void saveHistory({ status: "cancelled", durationMs: Date.now() - startedAt });

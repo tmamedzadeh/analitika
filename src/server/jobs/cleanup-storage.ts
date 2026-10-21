@@ -1,16 +1,16 @@
 import { inArray, lt } from "drizzle-orm";
 
 import { getDb } from "@/server/db";
-import { attachments, briefAttachments, rateLimits, requestAttachments } from "@/server/db/schema";
+import { attachments, briefAttachments, rateLimits } from "@/server/db/schema";
 import { getStorage } from "@/server/storage/s3";
 import { findStaleUnreferencedStorageObjects } from "@/server/storage/orphans";
 
-const STORAGE_PREFIXES = ["documents/", "briefs/", "requests/"] as const;
+const STORAGE_PREFIXES = ["documents/", "briefs/"] as const;
 const SQL_BATCH_SIZE = 500;
 
 async function referencedKeysInBatch(keys: string[]): Promise<Set<string>> {
   const db = getDb();
-  const [documentFiles, briefFiles, requestFiles] = await Promise.all([
+  const [documentFiles, briefFiles] = await Promise.all([
     db
       .select({ key: attachments.storageKey })
       .from(attachments)
@@ -19,12 +19,8 @@ async function referencedKeysInBatch(keys: string[]): Promise<Set<string>> {
       .select({ key: briefAttachments.storageKey })
       .from(briefAttachments)
       .where(inArray(briefAttachments.storageKey, keys)),
-    db
-      .select({ key: requestAttachments.storageKey })
-      .from(requestAttachments)
-      .where(inArray(requestAttachments.storageKey, keys)),
   ]);
-  return new Set([...documentFiles, ...briefFiles, ...requestFiles].map(({ key }) => key));
+  return new Set([...documentFiles, ...briefFiles].map(({ key }) => key));
 }
 
 export async function cleanupOrphanedStorageUploads(now = new Date()): Promise<{

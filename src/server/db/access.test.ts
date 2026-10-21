@@ -2,7 +2,12 @@ import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 
 import { withCurrentUser, type SessionUser } from "@/server/auth";
-import { canManageDocument, documentAccessFilter, documentManagementFilter } from "./access";
+import {
+  accessFilter,
+  canManageDocument,
+  documentAccessFilter,
+  documentManagementFilter,
+} from "./access";
 
 const user: SessionUser = {
   id: "clearance-user",
@@ -13,13 +18,30 @@ const user: SessionUser = {
 };
 
 describe("document visibility predicate", () => {
-  it("combines hierarchy, owner, and indexed ACL EXISTS checks", () => {
+  it("reads active clearance from the database in the content predicate", () => {
     const query = new PgDialect().sqlToQuery(withCurrentUser(user, () => documentAccessFilter()));
-    expect(query.sql).toContain('"documents"."classification" in');
-    expect(query.sql).toContain("exists (select 1 from document_acl");
-    expect(query.sql).toContain('"documents"."owner_id" =');
-    expect(query.sql).toContain('document_acl.document_id = "documents"."id"');
-    expect(query.params).toEqual(expect.arrayContaining(["open", "secret", user.id]));
+    expect(query.sql).toContain('case "documents"."classification"');
+    expect(query.sql).toContain('from "app_users"');
+    expect(query.sql).toContain('"app_users"."active" = true');
+    expect(query.sql).toContain('"app_users"."clearance"');
+    expect(query.sql).not.toContain('"documents"."owner_id"');
+    expect(query.params).toEqual(["clearance-user"]);
+  });
+
+  it("does not let an owner or administrator role replace the live database clearance", () => {
+    for (const candidate of [user, { ...user, role: "admin" as const }]) {
+      const query = new PgDialect().sqlToQuery(
+        withCurrentUser(candidate, () => documentAccessFilter()),
+      );
+      expect(query.sql).toContain('from "app_users"');
+      expect(query.params).toEqual(["clearance-user"]);
+    }
+  });
+
+  it("requires an active database user for records without classification", () => {
+    const query = new PgDialect().sqlToQuery(withCurrentUser(user, () => accessFilter()));
+    expect(query.sql).toContain('"app_users"."active" = true');
+    expect(query.params).toEqual(["clearance-user"]);
   });
 });
 

@@ -5,14 +5,7 @@ const MAX_ATTEMPTS = 3;
 const MAX_RETRY_DELAY_MS = 30_000;
 const BASE_RETRY_DELAY_MS = 500;
 
-export type GeminiLimitKind =
-  | "per-minute"
-  | "per-day"
-  | "tokens"
-  | "search-requests"
-  | "grounding-unavailable"
-  | "free-tier"
-  | "unknown";
+export type GeminiLimitKind = "per-minute" | "per-day" | "tokens" | "free-tier" | "unknown";
 export type GeminiAttemptLimit = 1 | 2 | 3;
 
 let activeRequests = 0;
@@ -151,7 +144,6 @@ function classifyQuotaResponse(error: unknown): GeminiLimitKind {
   if (/credit|prepaid|balance/.test(signal)) return "tokens";
   if (/per[_ ]?day|perday|daily|requests?[_ ]?per[_ ]?day|rpd/.test(signal)) return "per-day";
   if (/per[_ ]?minute|perminute|minute|rpm|rate.?limit/.test(signal)) return "per-minute";
-  if (/grounding|google.?search|search.?requests?/.test(signal)) return "search-requests";
   return "unknown";
 }
 
@@ -179,9 +171,6 @@ export function getGeminiFailureInfo(error: unknown): {
     ...(statusCode === 429 || limitKind === "free-tier" ? { limitKind } : {}),
     ...(ids.length ? { quotaIds: ids } : {}),
     ...(metrics.length ? { quotaMetrics: metrics } : {}),
-    ...(statusCode === 400 && limitKind === "search-requests"
-      ? { limitKind: "grounding-unavailable" as const }
-      : {}),
   };
 }
 

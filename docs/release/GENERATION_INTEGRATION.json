@@ -1,0 +1,51 @@
+{
+  "checkedAt": "2026-10-21T14:34:59.091Z",
+  "sourcesPolicy": "open only; text sent to configured Gemini provider under audit authorization",
+  "results": [
+    {
+      "id": "answerable-numeric",
+      "expectedNoAnswer": false,
+      "actualNoAnswer": false,
+      "sourceCount": 10,
+      "publishable": true,
+      "evidenceChecks": {
+        "exactExcerptCount": 10,
+        "unsupportedNumericFactCount": 0,
+        "unanchoredClaimCount": 0
+      },
+      "attempts": 2,
+      "status": "PASS",
+      "elapsedMs": 74814
+    },
+    {
+      "id": "no-answer-export",
+      "expectedNoAnswer": true,
+      "actualNoAnswer": true,
+      "sourceCount": 10,
+      "publishable": true,
+      "evidenceChecks": {
+        "exactExcerptCount": 0,
+        "unsupportedNumericFactCount": 0,
+        "unanchoredClaimCount": 0
+      },
+      "attempts": 1,
+      "status": "PASS",
+      "elapsedMs": 19317
+    },
+    {
+      "id": "no-answer-health",
+      "expectedNoAnswer": true,
+      "actualNoAnswer": true,
+      "sourceCount": 10,
+      "publishable": true,
+      "evidenceChecks": {
+        "exactExcerptCount": 0,
+        "unsupportedNumericFactCount": 0,
+        "unanchoredClaimCount": 0
+      },
+      "attempts": 1,
+      "status": "PASS",
+      "elapsedMs": 25586
+    }
+  ]
+}

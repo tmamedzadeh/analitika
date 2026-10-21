@@ -1,6 +1,20 @@
-import { and, asc, count, desc, eq, inArray, isNotNull, lt, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  lt,
+  lte,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 
 import type { AnalyticsFilters, AnalyticsSource } from "@/lib/analytics";
+import { directions } from "@/lib/directions";
 import { getAppConfig } from "@/server/config";
 import {
   GeminiRerankProvider,
@@ -10,10 +24,14 @@ import {
 import { GeminiLLMProvider } from "@/server/ai/gemini";
 import { createGeminiProviders } from "@/server/ai/gemini";
 import { getDb } from "@/server/db";
-import { accessFilter, documentAccessFilter } from "@/server/db/access";
+import { accessFilter, documentAccessFilter, getCurrentUser } from "@/server/db/access";
 import { attachments, briefAttachments, chunks, dailyBriefs, documents } from "@/server/db/schema";
-import { documentConditions, minimumDocDate } from "./filters";
-import { reciprocalRankFusion } from "./ranking";
+import { documentConditions, hasCommittedDocumentIndex, minimumDocDate } from "./filters";
+import { reciprocalRankFusion, resolveQueryEmbedding, settleRetrievalBranches } from "./ranking";
+import { withAnalyticsCandidateAccess } from "./source-access";
+import { hasCommittedBriefIndex } from "../briefs/index-state";
+import { getBakuDate } from "@/lib/briefs";
+import { isExternalAiClassificationAllowed } from "../ai/processing-policy";
 
 const CANDIDATE_LIMIT = 50;
 const RESULT_LIMIT = 10;
@@ -80,7 +98,6 @@ function sourceProjection() {
     charStart: chunks.charStart,
     charEnd: chunks.charEnd,
     isTable: chunks.isTable,
-    tags: documents.tags,
     sourceReliability: documents.sourceReliability,
     infoCredibility: documents.infoCredibility,
     classification: documents.classification,
@@ -93,11 +110,25 @@ export function searchSourceConditions(filters: AnalyticsFilters, now = new Date
   const briefConditions = [
     isNotNull(chunks.briefId),
     eq(dailyBriefs.status, "published"),
-    eq(dailyBriefs.indexStatus, "ready"),
+    hasCommittedBriefIndex(),
     accessFilter(),
   ];
+  const selectedDirections = new Set(filters.directionIds);
+  const allDirectionsSelected =
+    selectedDirections.size === directions.length &&
+    directions.every(({ id }) => selectedDirections.has(id));
+  // Briefs have no direction or reliability fields. Exclude them when a
+  // document-only filter is active instead of silently widening the result set.
+  if (
+    !allDirectionsSelected ||
+    filters.minSourceReliability !== "all" ||
+    filters.minInfoCredibility !== "all"
+  ) {
+    briefConditions.push(sql`false`);
+  }
   const fromDate = minimumDocDate(filters.period, now);
   if (fromDate) briefConditions.push(sql`${dailyBriefs.briefDate} >= ${fromDate}`);
+  briefConditions.push(lte(dailyBriefs.briefDate, getBakuDate(now)));
   return or(documentSource, and(...briefConditions));
 }
 
@@ -110,23 +141,29 @@ export async function searchDocumentChunks(
   const providers = createGeminiProviders();
   const config = getAppConfig();
   const embeddingModel = options.embeddingModel ?? providers.embeddings.model;
-  const embedding =
-    options.embedding ??
-    (await providers.embeddings.embedQuery(query, {
-      maxAttempts: options.maxEmbeddingAttempts ?? 1,
-      ...(options.signal ? { signal: options.signal } : {}),
-    }));
-  if (embedding.length !== 768 || embedding.some((value) => !Number.isFinite(value))) {
-    throw new Error("Query embedding must contain 768 finite dimensions.");
-  }
+  const embeddingResolution = await resolveQueryEmbedding({
+    ...(options.embedding ? { provided: options.embedding } : {}),
+    dimensions: config.embeddingDimensions,
+    embed: () =>
+      providers.embeddings.embedQuery(query, {
+        maxAttempts: options.maxEmbeddingAttempts ?? 1,
+        signal: options.signal
+          ? AbortSignal.any([options.signal, AbortSignal.timeout(15_000)])
+          : AbortSignal.timeout(15_000),
+      }),
+  });
+  const embedding = embeddingResolution.embedding;
+  const embeddingFailure = embeddingResolution.failure;
 
-  const vectorLiteral = "[" + embedding.join(",") + "]";
-  const vectorDistance = sql.join([
-    chunks.embedding,
-    sql.raw(" <=> "),
-    sql.param(vectorLiteral),
-    sql.raw("::vector"),
-  ]) as SQL<number>;
+  const vectorLiteral = embedding ? `[${embedding.join(",")}]` : undefined;
+  const vectorDistance = vectorLiteral
+    ? (sql.join([
+        chunks.embedding,
+        sql.raw(" <=> "),
+        sql.param(vectorLiteral),
+        sql.raw("::vector"),
+      ]) as SQL<number>)
+    : undefined;
   const fullTextQuery = buildFullTextQuery(query);
   const tsQuery = sql`to_tsquery('simple'::regconfig, ${fullTextQuery})`;
   const textScore = sql`ts_rank_cd(${chunks.tsv}, ${tsQuery})` as SQL<number>;
@@ -154,7 +191,7 @@ export async function searchDocumentChunks(
     const sourceKindCondition =
       sourceKind === "document" ? isNotNull(chunks.documentId) : isNotNull(chunks.briefId);
     const conditions = [sourceCondition, sourceKindCondition];
-    if (kind === "vector") {
+    if (kind === "vector" && vectorDistance) {
       conditions.push(
         modelCondition,
         isNotNull(chunks.embedding),
@@ -164,49 +201,40 @@ export async function searchDocumentChunks(
     if (kind === "text") conditions.push(textMatch);
     if (kind === "trigram") conditions.push(trigramMatch);
     const selected = builder.where(and(...conditions));
-    if (kind === "vector") return selected.orderBy(asc(vectorDistance)).limit(CANDIDATE_LIMIT);
+    if (kind === "vector") {
+      return vectorDistance ? selected.orderBy(asc(vectorDistance)).limit(CANDIDATE_LIMIT) : null;
+    }
     if (kind === "text") return selected.orderBy(desc(textScore)).limit(CANDIDATE_LIMIT);
     return selected.orderBy(desc(similarity)).limit(CANDIDATE_LIMIT);
   };
 
-  const [
-    documentVectorRows,
-    documentFullTextRows,
-    documentTrigramRows,
-    briefVectorRows,
-    briefFullTextRows,
-    briefTrigramRows,
-  ] = await Promise.all([
-    queryCandidates("vector", "document"),
-    queryCandidates("text", "document"),
-    queryCandidates("trigram", "document"),
-    queryCandidates("vector", "brief"),
-    queryCandidates("text", "brief"),
-    queryCandidates("trigram", "brief"),
-  ]);
+  const branchSpecs = [
+    ["document_vector", "vector", "document"],
+    ["document_full_text", "text", "document"],
+    ["document_trigram", "trigram", "document"],
+    ["brief_vector", "vector", "brief"],
+    ["brief_full_text", "text", "brief"],
+    ["brief_trigram", "trigram", "brief"],
+  ] as const;
+  const activeBranches = branchSpecs.filter(
+    ([, kind]) => kind !== "vector" || Boolean(vectorDistance),
+  );
+  const settled = await settleRetrievalBranches(
+    activeBranches.map(([name, kind, sourceKind]) => ({
+      name,
+      run: async () => queryCandidates(kind, sourceKind),
+    })),
+  );
+  const successfulLists = settled.results.filter(
+    (list): list is Exclude<typeof list, null> => list !== null,
+  );
+  const failedBranches = [...settled.failed];
+  if (embeddingFailure) failedBranches.push(`embedding_${embeddingFailure}`);
+  if (failedBranches.length) {
+    console.warn("[analytics-search] branch failures", JSON.stringify(failedBranches));
+  }
 
-  const seenSources = new Set<string>();
-  const candidates = reciprocalRankFusion(
-    [
-      documentVectorRows,
-      documentFullTextRows,
-      documentTrigramRows,
-      briefVectorRows,
-      briefFullTextRows,
-      briefTrigramRows,
-    ],
-    60,
-  )
-    .filter(({ item }) => {
-      const sourceKey =
-        item.sourceKind === "brief"
-          ? `brief:${item.briefId ?? item.chunkId}`
-          : `document:${item.documentId ?? item.chunkId}`;
-      if (seenSources.has(sourceKey)) return false;
-      seenSources.add(sourceKey);
-      return true;
-    })
-    .slice(0, RERANK_CANDIDATE_LIMIT);
+  const candidates = reciprocalRankFusion(successfulLists, 60).slice(0, RERANK_CANDIDATE_LIMIT);
   if (candidates.length === 0) return [];
 
   const rerankProvider =
@@ -214,16 +242,50 @@ export async function searchDocumentChunks(
     (config.enableRerank && config.lightModel
       ? new GeminiRerankProvider(new GeminiLLMProvider(config.lightModel, "AI_LIGHT_MODEL"))
       : undefined);
-  const rerankedIds = await rerankOrderOrOriginal(
-    query,
-    candidates.map(({ item }) => ({ id: item.chunkId, excerpt: item.text.slice(0, 500) })),
-    rerankProvider,
-    options.enableRerank ?? config.enableRerank,
-    undefined,
-    options.signal,
+  const currentUser = getCurrentUser();
+  const reranked = await withAnalyticsCandidateAccess(
+    [...new Set(candidates.flatMap(({ item }) => (item.documentId ? [item.documentId] : [])))],
+    [...new Set(candidates.flatMap(({ item }) => (item.briefId ? [item.briefId] : [])))],
+    currentUser.id,
+    async ({
+      documentIds: accessibleDocuments,
+      briefIds: accessibleBriefs,
+      chunkIds: accessibleChunks,
+    }) => {
+      const accessibleCandidates = candidates.filter(
+        ({ item }) =>
+          accessibleChunks.has(item.chunkId) &&
+          (item.documentId
+            ? accessibleDocuments.has(item.documentId)
+            : item.briefId
+              ? accessibleBriefs.has(item.briefId)
+              : false),
+      );
+      if (!accessibleCandidates.length) return { candidates: [], ids: [] as string[] };
+      const ids = await rerankOrderOrOriginal(
+        query,
+        accessibleCandidates.map(({ item }) => ({
+          id: item.chunkId,
+          excerpt: item.text.slice(0, 500),
+        })),
+        rerankProvider,
+        (options.enableRerank ?? config.enableRerank) &&
+          accessibleCandidates.every(({ item }) =>
+            isExternalAiClassificationAllowed(
+              item.documentId ? (item.classification ?? "unknown") : "open",
+            ),
+          ),
+        undefined,
+        options.signal,
+      );
+      return { candidates: accessibleCandidates, ids };
+    },
+    candidates.map(({ item }) => item.chunkId),
   );
-  const candidateById = new Map(candidates.map((candidate) => [candidate.item.chunkId, candidate]));
-  const fused = rerankedIds
+  const candidateById = new Map(
+    reranked.candidates.map((candidate) => [candidate.item.chunkId, candidate]),
+  );
+  const fused = reranked.ids
     .map((id) => candidateById.get(id))
     .filter((candidate): candidate is (typeof candidates)[number] => candidate !== undefined)
     .slice(0, RESULT_LIMIT);
@@ -280,25 +342,9 @@ export async function searchDocumentChunks(
           : item.documentId
             ? (countByDocument.get(item.documentId) ?? 0)
             : 0,
-      tags: item.tags ?? [],
       sourceReliability: item.sourceReliability as AnalyticsSource["sourceReliability"],
       infoCredibility: item.infoCredibility as AnalyticsSource["infoCredibility"],
       classification: sourceKind === "document" ? item.classification : "open",
     };
   });
-}
-
-export async function getAnalyticsOptions(): Promise<{ tags: string[] }> {
-  const db = getDb();
-  const rows = await db
-    .select({ tags: documents.tags })
-    .from(documents)
-    .where(and(eq(documents.status, "ready"), documentAccessFilter()))
-    .orderBy(desc(documents.createdAt), asc(documents.title))
-    .limit(500);
-
-  const tags = [...new Set(rows.flatMap((row) => row.tags))]
-    .filter(Boolean)
-    .sort((left, right) => left.localeCompare(right, "az"));
-  return { tags };
 }

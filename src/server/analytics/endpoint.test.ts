@@ -1,14 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AnalyticsSource } from "@/lib/analytics";
 
 const mocks = vi.hoisted(() => ({
   search: vi.fn(),
   generate: vi.fn(),
+  withSourceAccess: vi.fn(
+    async (
+      sources: readonly AnalyticsSource[],
+      _userId: string,
+      publish: (available: AnalyticsSource[]) => unknown,
+    ) => {
+      const available = [...sources];
+      return { sources: available, value: await publish(available) };
+    },
+  ),
   updateHistory: vi.fn(async (_id: string, _value: unknown) => undefined),
   createHistory: vi.fn(async (_value: unknown) => undefined),
 }));
 
 vi.mock("./rate-limit", () => ({ consumeAnalyticsRateLimit: vi.fn(async () => true) }));
 vi.mock("./search", () => ({ searchDocumentChunks: mocks.search }));
+vi.mock("./source-access", () => ({
+  withAnalyticsSourceAccess: mocks.withSourceAccess,
+  sameAnalyticsSourceSet: (
+    expected: readonly AnalyticsSource[],
+    actual: readonly AnalyticsSource[],
+  ) =>
+    expected.length === actual.length &&
+    expected.every((source) => actual.some((candidate) => candidate.chunkId === source.chunkId)),
+}));
 vi.mock("./history", () => ({
   buildAnalyticsHistorySnapshot: vi.fn(() => ({ snapshots: [], maxClassification: "open" })),
   createAnalyticsHistoryRecord: mocks.createHistory,
@@ -45,7 +65,6 @@ const user: SessionUser = {
 };
 const filters = {
   period: "all",
-  tag: "",
   directionIds: [...directionIds],
   minSourceReliability: "all",
   minInfoCredibility: "all",
@@ -68,7 +87,6 @@ const source = {
   charEnd: 13,
   isTable: false,
   attachmentCount: 0,
-  tags: [],
   sourceReliability: "A" as const,
   infoCredibility: 1 as const,
   classification: "open",
@@ -88,6 +106,10 @@ describe("analytics stream cancellation", () => {
     vi.clearAllMocks();
     mocks.search.mockResolvedValue([source]);
     mocks.generate.mockResolvedValue({ text: "answer [1]", finishReason: "stop" });
+    mocks.withSourceAccess.mockImplementation(async (sources, _userId, publish) => {
+      const available = [...sources];
+      return { sources: available, value: await publish(available) };
+    });
   });
 
   it("aborts retrieval providers when the request disconnects", async () => {
@@ -135,5 +157,29 @@ describe("analytics stream cancellation", () => {
       ),
     );
     expect(providerSignal?.aborted).toBe(true);
+  });
+
+  it("withholds the answer and clears history if source access changes during generation", async () => {
+    const availableByCheck = [[source], [source], []] as const;
+    let index = 0;
+    mocks.withSourceAccess.mockImplementation(async (_sources, _userId, publish) => {
+      const available = [...(availableByCheck[index++] ?? [])];
+      return { sources: available, value: await publish(available) };
+    });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const reader = response.body!.getReader();
+    const output: string[] = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      output.push(new TextDecoder().decode(value));
+    }
+    const stream = output.join("");
+    expect(stream).toContain('"type":"error"');
+    expect(stream).not.toContain("answer [1]");
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed", answer: "", sources: [] }),
+    );
   });
 });
