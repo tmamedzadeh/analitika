@@ -1,6 +1,6 @@
 # ZIRVƏ V1 release candidate runbook
 
-Updated 2026-10-22 (Asia/Baku). Owner target: https://analitika-one.vercel.app. The final PRODUCTION_RELEASE_REQUEST authorizes commit/push/PR/merge/deploy after gates. The owner subsequently asked to skip obtaining Vercel access; this does not waive runtime acceptance. Current decision: NO-GO. See ../V1_FINAL_PRODUCTION_REPORT.md. Classified external processing remains unauthorized.
+Updated 2026-10-22 (Asia/Baku). Owner target: https://analitika-one.vercel.app. Latest [FINAL_CODE_MERGE_REQUEST.md](FINAL_CODE_MERGE_REQUEST.md) authorizes commit/push/Ready/merge after code gates; the owner takes over external production verification. This supersedes the old merge boundary. Production remains NO-GO; classified external processing remains unauthorized. Exact owner steps: [PRODUCTION_MANUAL_CHECKLIST.md](../PRODUCTION_MANUAL_CHECKLIST.md).
 
 ## Preserve and inspect
 
@@ -51,4 +51,4 @@ The old 39–47 minute upload delay cannot be explained without retained transit
 
 ## Release boundary
 
-Prepare a reviewed diff and acceptance matrix first. The final owner request already authorizes release actions; no repeated permission question is required. Keep production **NO-GO** while critical FAIL/NOT VERIFIED remains. Preserve the work in the review branch/PR; do not merge or roll out through failed gates. A permitted deployment is followed by revision verification and smoke; permission itself is not evidence. No corpus-wide reset or reindex is a release gate.
+Prepare a reviewed diff, passing code gates, fresh main/CI/protection/conflict checks, secret scan and source completeness first. The latest owner request explicitly authorizes Ready and a normal merge commit for PR #1; external hosting/cloud verification belongs to the owner. Merge may automatically deploy through the existing Vercel Git integration; management access to disable it was not established. Do not bypass protections or merge with an identified real data/security threat. Keep production **NO-GO** while critical runtime/cloud FAIL/NOT VERIFIED remains, including the actual preview Gemini failure. A green GitHub deployment check is not successful generation, cloud execution, revision or rollback proof. No corpus-wide reset/reindex or applied SQL change is a release gate.

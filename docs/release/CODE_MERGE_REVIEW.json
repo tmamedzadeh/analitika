@@ -1,0 +1,141 @@
+{
+  "capturedAt": "2026-10-22T04:46:08.439Z",
+  "reviewedHead": "5ce04f38afc83d9ec6843d6e08b45743ecae6d35",
+  "codeCommit": "dd76d2e624ec43444cda974e5929a6124b4d6696",
+  "releaseBase": "a45706e8c0979df1babd20851639e0c9d6a99982",
+  "codeUnchanged": true,
+  "reasonForReuse": "Only documentation/evidence changed since fully tested code. No application, script, lockfile or configuration changes; source equality checked with git diff against code commit.",
+  "codeReadiness": "PASS scoped",
+  "openMandatoryCodeP0P1": [],
+  "reviewedAreas": [
+    "auth/session and middleware/CSRF/rate limits",
+    "live DB clearance/ownership/admin document mutations; brief transaction actor/version",
+    "owner-bound upload signing, bounded byte validation, committed copies, scoped orphan cleanup",
+    "document/brief claim/lease/atomic replacement, retry and bounded scheduled recovery",
+    "hybrid retrieval/access revalidation and external open-only policy",
+    "citations/excerpts/numbers/no-answer; generation retries and actual completed model",
+    "history visibility and terminal transitions",
+    "Azerbaijani lexical-only brief search and pagination",
+    "Gemini quota/transient errors, shared timeout/abort and endpoint deadline",
+    "server env/config required fields and safe errors",
+    "Vercel Node22 streaming function budgets and signed six-function Inngest handler",
+    "core UI/source links/mobile; previous loaded-content browser coverage"
+  ],
+  "reviewLimits": [
+    "Scoped engineering review, not proof of absence of unknown defects",
+    "Actual preview sources-to-error without final remains FAIL; root cause not established and may require a later code fix",
+    "No automatic semantic entailment; structural and manual samples are distinct",
+    "No new Vercel management/runtime investigation per owner; no production GO",
+    "Existing evidence retains original timestamps; no test or live DB run is fabricated"
+  ],
+  "reusedEvidence": [
+    "FINAL_CHECKS.json",
+    "INDEXING_INTEGRATION.json",
+    "BROWSER_E2E.json",
+    "STORAGE_INTEGRATION.json",
+    "LEXICAL_INTEGRATION.json",
+    "RETRIEVAL_EDGES.json",
+    "INDEX_LIFECYCLE_EDGES.json",
+    "RUNTIME_EDGES.json",
+    "RETRIEVAL_FINAL.json",
+    "RETRIEVAL_FINAL_COMPARISON.json",
+    "GENERATION_INTEGRATION.json",
+    "SEMANTIC_SAMPLE.json",
+    "LIVE_SCHEMA_DRIFT.json",
+    "LIVE_DB_FINAL_AFTER.json",
+    "FINAL_DATA_PRESERVATION.json"
+  ],
+  "counts": {
+    "unitFiles": 45,
+    "unitTests": 197,
+    "integration": 19,
+    "browser": 9,
+    "localHttp": 9,
+    "indexLifecycle": 7,
+    "retrievalEdges": 6,
+    "lintErrors": 0,
+    "existingLintWarnings": 6
+  },
+  "db": {
+    "operationsThisMergeSession": "None",
+    "appliedSqlChanged": false,
+    "sameDb": true,
+    "corpusEvidence": "FINAL_DATA_PRESERVATION.json; 13 documents / 10 briefs / 107 chunks and embeddings, complete-row before/after digests equal"
+  },
+  "githubBeforeDocs": {
+    "capturedAt": "2026-10-22T04:39:28.360Z",
+    "main": {
+      "sha": "a45706e8c0979df1babd20851639e0c9d6a99982",
+      "protected": false
+    },
+    "pr": {
+      "number": 1,
+      "url": "https://github.com/tmamedzadeh/analitika/pull/1",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "nodeId": "PR_kwDOVMyU5c8AAAABJ7_fSA",
+      "base": "main",
+      "baseSha": "a45706e8c0979df1babd20851639e0c9d6a99982",
+      "head": "codex/zirve-v1-rc-resume",
+      "headSha": "5ce04f38afc83d9ec6843d6e08b45743ecae6d35",
+      "mergeable": true,
+      "mergeableState": "clean"
+    },
+    "ci": {
+      "combined": "success",
+      "statuses": [
+        {
+          "context": "Vercel",
+          "state": "success",
+          "description": "Deployment has completed",
+          "url": "https://vercel.com/tm-d91f/analitika/4uKdYS6nVShGdw4kWSKBRRJPhtkH"
+        }
+      ],
+      "checks": [
+        {
+          "name": "Vercel Preview Comments",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "rules": [],
+    "protection": {
+      "httpStatus": 404
+    }
+  },
+  "autoDeployment": {
+    "vercelGitIntegrationObserved": true,
+    "productionAutoDeployment": "Possible/expected on main; exact production branch/settings not read from Vercel management",
+    "canDisableFromCurrentAccess": "NOT VERIFIED",
+    "ownerAcknowledgedInLatestRequest": true,
+    "dataSecurityThreatIdentifiedInReviewedDiff": false,
+    "protectionBypass": false
+  },
+  "externalGates": [
+    {
+      "gate": "actual preview Gemini generation",
+      "status": "FAIL",
+      "evidence": "PREVIEW_SMOKE.json"
+    },
+    {
+      "gate": "production revision/config/READY/smoke",
+      "status": "NOT VERIFIED"
+    },
+    {
+      "gate": "current six-function cloud registration",
+      "status": "FAIL last observed stale eight functions"
+    },
+    {
+      "gate": "actual cloud event/retry/recovery/restart",
+      "status": "NOT VERIFIED"
+    },
+    {
+      "gate": "usable rollback deployment",
+      "status": "NOT VERIFIED"
+    }
+  ],
+  "ownerChecklist": "docs/PRODUCTION_MANUAL_CHECKLIST.md",
+  "productionVerified": false
+}

@@ -1,3 +1,15 @@
+# Актуальная передача — final code merge, 22 октября 2026
+
+**CODE READY: YES; GITHUB MAIN UPDATED: PENDING; PRODUCTION VERIFIED: NO / NO-GO.** Последнее [задание владельца](release/FINAL_CODE_MERGE_REQUEST.md) разрешает Ready/merge PR #1 после passing code gates. Владелец самостоятельно выполняет Vercel/env/logs/runtime, cloud Inngest и rollback проверки; больше не запрашивать management access. Прежние запреты merge в архиве ниже заменены этим заданием. Merge может запустить Vercel auto-deployment; production GO не присваивать.
+
+Final review не изменил source/config/scripts/lock относительно проверенного dd76d2e; 45 files/197 tests, обе tsc, lint/build/audit/frozen, 19 integration, browser9/HTTP9, storage/lexical/retrieval/index lifecycle и DB evidence переиспользованы с исходными timestamps. Подтверждённых незакрытых обязательных code-level P0/P1 не найдено. Actual preview generation FAIL (sources→error без final) остаётся открытым, причина ещё не установлена; он может потребовать code fix после external diagnostics.
+
+Точный operational handoff: [PRODUCTION_MANUAL_CHECKLIST.md](PRODUCTION_MANUAL_CHECKLIST.md). Актуальные acceptance/readiness: [audit](V1_PROD_HARDENING_AUDIT.md), [final report](V1_FINAL_PRODUCTION_REPORT.md). DB/corpus/applied SQL не менялись в final merge session. GitHub outcome следует записать после операции, не предполагать успешный merge заранее.
+
+---
+
+## Архив предыдущей сессии (статусы и разрешения superseded)
+
 # Актуальный итог — 22 октября 2026
 
 **Production NO-GO.** Продолжено по [финальному заданию](release/PRODUCTION_RELEASE_REQUEST.md), разрешающему commit/push/PR/merge/deploy после gates. Позднее владелец ответил «пропусти это» на запрос Vercel доступа: access-dependent work пропущен, gate не объявлен PASS.
@@ -17,7 +29,6 @@ Live DB: 24 migrations через0023, 13 docs/10 briefs/107 chunks+embeddings, 
 Cloud API доступен: Inngest app analitika всё ещё old sync 20Oct, 8 функций вместо6, нет document recovery. Старый OSINT cron систематически FAILED; brief recovery/cleanups recent COMPLETED. Три OSINT jobs получили pause200; readback paused state API не показывает. Не sync старый deployment. Нужно опубликовать проверенный код после gates, sync ровно6jobs, реальные scoped open doc+brief/retry/lost-event/restart runs и production smoke на exact release SHA.
 
 Vercel management access отсутствует и пропущен по указанию. Project из GitHub status: tm-d91f/analitika; owner URL https://analitika-one.vercel.app. Main status blocked. Найден historical success a2af6269d81e57e839ecc226e7e1a8ae0014f10f, deployment target2VnHomtKSpAHZ3BcLR373qUBiDp2; это candidate, не confirmed rollback target. Не объявлять GO/merge/deploy без проверки runtime, workers и rollback. История Lovable сохраняется.
-
 
 ---
 
