@@ -367,10 +367,12 @@ async function handleAnalyticsSearch(
                         maxOutputTokens: 6144,
                         system:
                           prompt.system +
-                          "\nƏvvəlki cavabın istinad/evidence yoxlaması uğursuz oldu. Hər faktiki cümlə üçün düzgün mənbə nömrəsi və həmin mənbədən sözbəsöz, fasiləsiz sübut fraqmenti ver; əsas faktiki rəqəmlər sübut fraqmentində olmalıdır. Bütün markerləri tamamla və cavabı yarımçıq saxlama.",
+                          "\nTam və boş olmayan cavab yaz. Yalnız təqdim edilmiş mənbə nömrələrinə [1], [2] formatında istinad et. Mənbə URL-ləri yazma.",
                         prompt:
                           prompt.prompt +
-                          "\n\nXüsusi tələb: Cavabın sonunda açıq mötərizə və ya yarımçıq istinad qoyma; bütün istinadları mənbələr siyahısı ilə yoxla.",
+                          "\n\nİcazəli istinadlar: " +
+                          sources.map(({ n }) => `[${n}]`).join(", ") +
+                          ". Cavabı və bütün istinadları tamamla.",
                       };
                 const generated = await withAiDiagnostics(
                   { stage: "generation", generationAttempt: activeAttempt },

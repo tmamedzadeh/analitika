@@ -1,6 +1,5 @@
 import { isLowReliability } from "@/lib/reliability";
 import type { InfoCredibility, SourceReliability } from "@/lib/reliability";
-import { az } from "@/lib/i18n/az";
 
 export type CitationSource = {
   n: number;
@@ -11,33 +10,28 @@ export type CitationSource = {
   chunkId?: string;
 };
 
+export type CitationFailureReason = "unknown_citation" | "invalid_citation_range";
+
 export type ValidatedAnswer = {
   answer: string;
   incomplete: boolean;
   usedLowReliability: boolean;
   failureReasons: CitationFailureReason[];
-  evidenceChecks: {
-    exactExcerptCount: number;
-    unsupportedNumericFactCount: number;
-    unanchoredClaimCount: number;
-  };
 };
-
-export type CitationFailureReason =
-  | "malformed_evidence"
-  | "unpaired_evidence"
-  | "invalid_evidence_reference"
-  | "excerpt_not_in_source"
-  | "unsupported_numeric_fact"
-  | "invalid_citation_range"
-  | "unknown_citation"
-  | "no_sources_with_citations"
-  | "missing_citations"
-  | "missing_evidence"
-  | "unanchored_claim";
 
 type PublicationValidation = Pick<ValidatedAnswer, "incomplete"> &
   Partial<Pick<ValidatedAnswer, "failureReasons">>;
+
+function cleanAnswer(answer: string): string {
+  return (
+    answer
+      // Legacy internal annotations are optional and never user-facing.
+      .replace(/[ \t]*⟦\s*E[\s\S]*?(?:⟧|$)/giu, "")
+      // A model URL must not determine the destination of a numbered citation.
+      .replace(/\[(\s*\d+(?:\s*[,;–—-]\s*\d+)*\s*)\]\([^\r\n)]*\)/gu, "[$1]")
+      .trim()
+  );
+}
 
 export function analyticsPublicationFailureReasons(
   answer: string,
@@ -45,41 +39,17 @@ export function analyticsPublicationFailureReasons(
   validation: PublicationValidation,
 ): string[] {
   const reasons: string[] = [];
-  const text = answer.replace(/⟦E\d+:\s*[^⟧]+⟧/gu, "").trim();
-  if (!text) reasons.push("empty_answer");
+  const text = cleanAnswer(answer);
+  if (!/[\p{L}\p{N}]/u.test(text.replace(/\[\s*\d+(?:\s*[,;–—-]\s*\d+)*\s*\]/gu, "")))
+    reasons.push("empty_answer");
   if (finishReason !== "stop") reasons.push("non_stop_finish");
   if (validation.incomplete)
     reasons.push(
       ...(validation.failureReasons?.length ? validation.failureReasons : ["invalid_citations"]),
     );
-  if (text.lastIndexOf("[") > text.lastIndexOf("]")) reasons.push("open_citation");
+  if (text.lastIndexOf("[") > text.lastIndexOf("]") || /\[\s*\d+\s*\]\([^)]*$/u.test(text))
+    reasons.push("open_citation");
   return reasons;
-}
-
-function normalizedEvidence(value: string): string {
-  return value.normalize("NFKC").replace(/\s+/gu, " ").trim().toLocaleLowerCase();
-}
-
-function numericFacts(value: string): string[] {
-  return [
-    ...value.matchAll(
-      /(?:[$€£₼]\s*)?\b\d+(?:[,.]\d+)*(?:\s*(?:trilyon|milyard|milyon|billion|million|trillion|mln|bn|faiz|min|%|m\b|b\b))?/giu,
-    ),
-  ].map(([fact]) => fact.replace(/\s+/gu, "").toLocaleLowerCase());
-}
-
-function claimBeforeCitation(answer: string, citationIndex: number): string {
-  const lineStart = answer.lastIndexOf("\n", citationIndex) + 1;
-  const line = answer
-    .slice(lineStart, citationIndex)
-    .replace(/⟦E\d+:\s*[^⟧]+⟧/gu, "")
-    .replace(/\[\d+\]/gu, "");
-  const lastBoundary = [...line.matchAll(/[.!?;](?!\d)(?:\s+|$)/gu)].at(-1);
-  const sentenceStart = lastBoundary ? lastBoundary.index! + lastBoundary[0].length - 1 : -1;
-  return line
-    .slice(sentenceStart + 1)
-    .replace(/^\s*(?:[-*•]\s*)?/u, "")
-    .trim();
 }
 
 export function canPublishAnalyticsAnswer(
@@ -90,6 +60,7 @@ export function canPublishAnalyticsAnswer(
   return analyticsPublicationFailureReasons(answer, finishReason, validation).length === 0;
 }
 
+/** Sources must come from the server's live authorization/retrieval access checks. */
 export function validateCitations(
   answer: string,
   sources: readonly CitationSource[],
@@ -97,149 +68,62 @@ export function validateCitations(
 ): ValidatedAnswer {
   const available = new Map(sources.map((source) => [source.n, source]));
   const referenced = new Set<number>();
-  const referenceCounts = new Map<number, number>();
-  const evidenceCounts = new Map<number, number>();
-  let exactExcerptCount = 0;
-  let unsupportedNumericFactCount = 0;
-  let incomplete = false;
   const failureReasons = new Set<CitationFailureReason>();
-  const fail = (reason: CitationFailureReason) => {
-    incomplete = true;
-    failureReasons.add(reason);
-  };
-
-  // Evidence markers are internal validation material. They are removed from
-  // the user-facing answer after the referenced text is verified verbatim.
-  const evidenceMarkers = [...answer.matchAll(/⟦E(\d+):\s*([^⟧]+)⟧/gu)];
-  const evidencePairs = [...answer.matchAll(/\[(\d+)\]\s*⟦E(\d+):\s*([^⟧]+)⟧/gu)];
-  const evidenceFreeInput = answer.replace(/⟦E\d+:\s*[^⟧]+⟧/gu, "");
-  if (/[⟦⟧]/u.test(evidenceFreeInput)) fail("malformed_evidence");
-  if (evidenceMarkers.length !== evidencePairs.length) fail("unpaired_evidence");
-  for (const pair of evidencePairs) {
-    const citedNumber = Number(pair[1]);
-    const evidenceNumber = Number(pair[2]);
-    const excerpt = pair[3]!.trim();
-    const source = available.get(citedNumber);
-    evidenceCounts.set(evidenceNumber, (evidenceCounts.get(evidenceNumber) ?? 0) + 1);
-    if (citedNumber !== evidenceNumber || !source?.text || !excerpt) {
-      fail("invalid_evidence_reference");
-      continue;
-    }
-    if (!normalizedEvidence(source.text).includes(normalizedEvidence(excerpt))) {
-      fail("excerpt_not_in_source");
-      continue;
-    }
-    exactExcerptCount += 1;
-    const claim = claimBeforeCitation(answer, pair.index ?? 0);
-    const sourceFacts = new Set(numericFacts(excerpt));
-    const missingFacts = numericFacts(claim).filter((fact) => !sourceFacts.has(fact));
-    if (missingFacts.length) {
-      unsupportedNumericFactCount += missingFacts.length;
-      fail("unsupported_numeric_fact");
-    }
-  }
-
-  const cleaned = evidenceFreeInput.replace(
-    /\[\s*(\d+(?:\s*[,;–—-]\s*\d+)*)\s*\]/g,
+  const cleaned = cleanAnswer(answer).replace(
+    /\[\s*(\d+(?:\s*[,;–—-]\s*\d+)*)\s*\]/gu,
     (_citation, raw: string) => {
       const numbers: number[] = [];
-      for (const part of raw.split(/\s*[,;]\s*/)) {
-        const range = /^(\d+)\s*[–—-]\s*(\d+)$/.exec(part);
+      for (const part of raw.split(/\s*[,;]\s*/u)) {
+        const range = /^(\d+)\s*[–—-]\s*(\d+)$/u.exec(part);
         if (range) {
           const start = Number(range[1]);
           const end = Number(range[2]);
-          if (end < start || end - start > 100) {
-            fail("invalid_citation_range");
+          if (
+            !Number.isSafeInteger(start) ||
+            !Number.isSafeInteger(end) ||
+            end < start ||
+            end - start > 100
+          ) {
+            failureReasons.add("invalid_citation_range");
             continue;
           }
           for (let n = start; n <= end; n += 1) numbers.push(n);
         } else {
-          const n = Number(part.trim());
-          if (Number.isSafeInteger(n)) numbers.push(n);
+          numbers.push(Number(part.trim()));
         }
       }
 
-      const validNumbers: number[] = [];
-      const seen = new Set<number>();
+      const valid = new Set<number>();
       for (const n of numbers) {
-        if (seen.has(n)) continue;
-        seen.add(n);
-        if (!available.has(n)) {
-          fail("unknown_citation");
+        if (!Number.isSafeInteger(n) || !available.has(n)) {
+          failureReasons.add("unknown_citation");
           continue;
         }
         referenced.add(n);
-        referenceCounts.set(n, (referenceCounts.get(n) ?? 0) + 1);
-        validNumbers.push(n);
+        valid.add(n);
       }
-      return validNumbers.map((n) => `[${n}]`).join("");
+      return [...valid].map((n) => `[${n}]`).join("");
     },
   );
 
-  const containsNoSourcesMessage =
-    cleaned.trim().toLocaleLowerCase() === az.analytics.noSources.toLocaleLowerCase();
-  if (containsNoSourcesMessage && (referenced.size > 0 || evidenceMarkers.length > 0))
-    fail("no_sources_with_citations");
-  if (referenced.size === 0 && !containsNoSourcesMessage && answer.trim().length > 0)
-    fail("missing_citations");
-
-  for (const [number, count] of referenceCounts) {
-    if ((evidenceCounts.get(number) ?? 0) < count) fail("missing_evidence");
-  }
-  if (evidenceMarkers.length !== evidencePairs.length) fail("unpaired_evidence");
-
-  const evidenceFreeAnswer = cleaned.replace(/⟦E\d+:\s*[^⟧]+⟧/gu, "");
-  let unanchoredClaimCount = 0;
-  if (!containsNoSourcesMessage) {
-    const claimUnits = evidenceFreeAnswer
-      .split(/\r?\n/u)
-      .flatMap((line) => line.split(/(?<=[.!?])\s+/u));
-    for (const line of claimUnits) {
-      const plain = line
-        .replace(/^\s*(?:#{1,6}\s*|[-*•]\s*)/u, "")
-        .replace(/\[\d+\]/gu, "")
-        .replace(/[*_`>#]/gu, "")
-        .trim();
-      if (
-        !plain ||
-        /^(qısa nəticə|əsas məqamlar|etibarlılıq qeydi|mənbələr arasında fərqlər və boşluqlar)\s*:?$/iu.test(
-          plain,
-        )
-      )
-        continue;
-      if (!/\[\d+\]/u.test(line)) {
-        unanchoredClaimCount += 1;
-        fail("unanchored_claim");
-      }
-    }
-  }
-
   const usedLowReliability = [...referenced].some((n) => {
-    const source = available.get(n);
-    return source && source.sourceReliability && source.infoCredibility
+    const source = available.get(n)!;
+    return source.sourceReliability && source.infoCredibility
       ? isLowReliability(source.sourceReliability, source.infoCredibility)
       : false;
   });
-  const normalizedWarning = lowReliabilityWarning.trim();
+  const warning = lowReliabilityWarning.trim();
   const answerWithWarning =
     usedLowReliability &&
-    normalizedWarning.length > 0 &&
-    !cleaned.toLocaleLowerCase().includes(normalizedWarning.toLocaleLowerCase())
-      ? cleaned.trimEnd() + "\n\n" + normalizedWarning + "."
+    warning &&
+    !cleaned.toLocaleLowerCase().includes(warning.toLocaleLowerCase())
+      ? cleaned.trimEnd() + "\n\n" + warning + "."
       : cleaned;
 
   return {
-    answer: answerWithWarning
-      .replace(/\s*⟦E\d+:\s*[^⟧]+⟧/gu, "")
-      .replace(/ +([.,;!?])/gu, "$1")
-      .trim(),
-    incomplete,
+    answer: answerWithWarning.replace(/ +([.,;!?])/gu, "$1").trim(),
+    incomplete: failureReasons.size > 0,
     usedLowReliability,
     failureReasons: [...failureReasons],
-    evidenceChecks: {
-      exactExcerptCount,
-      unsupportedNumericFactCount,
-      unanchoredClaimCount,
-    },
   };
 }

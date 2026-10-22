@@ -5,8 +5,6 @@ const mocks = vi.hoisted(() => ({
   search: vi.fn(),
   generate: vi.fn(),
   buildPrompt: vi.fn(),
-  canPublish: vi.fn(),
-  validate: vi.fn(),
   withSourceAccess: vi.fn(
     async (
       sources: readonly AnalyticsSource[],
@@ -46,12 +44,6 @@ vi.mock("@/server/config", () => ({ getAppConfig: () => ({ analyticsThinkingLeve
 vi.mock("../prompts/analytics", () => ({
   buildAnalyticsPrompt: mocks.buildPrompt,
 }));
-vi.mock("./citations", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./citations")>()),
-  canPublishAnalyticsAnswer: mocks.canPublish,
-  validateCitations: mocks.validate,
-}));
-
 import { directionIds } from "@/lib/directions";
 import { withCurrentUser, type SessionUser } from "@/server/auth";
 import { handleAnalyticsSearchRequest } from "./endpoint";
@@ -112,15 +104,14 @@ describe("analytics stream access and cancellation", () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
-    mocks.canPublish.mockReset().mockReturnValue(true);
-    mocks.validate.mockReset().mockImplementation((answer: string) => ({
-      answer,
-      incomplete: false,
-      failureReasons: [],
-    }));
     mocks.search.mockResolvedValue([source]);
     mocks.generate.mockResolvedValue({ text: "answer [1]", finishReason: "stop" });
-    mocks.buildPrompt.mockReturnValue({ system: "system", prompt: "prompt", maxOutputTokens: 100 });
+    mocks.buildPrompt.mockReturnValue({
+      system: "system",
+      prompt: "prompt",
+      maxOutputTokens: 100,
+      lowReliabilityWarning: "",
+    });
     mocks.withSourceAccess.mockImplementation(async (sources, _userId, publish) => {
       const available = [...sources];
       return { sources: available, value: await publish(available, "open") };
@@ -255,7 +246,6 @@ describe("analytics stream access and cancellation", () => {
       text: "private truncated output",
       finishReason: "length",
     });
-    mocks.canPublish.mockReturnValueOnce(false);
     const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
     const stream = await response.text();
 
@@ -270,12 +260,7 @@ describe("analytics stream access and cancellation", () => {
   });
 
   it("withholds both invalid completions and logs only validation reason codes", async () => {
-    mocks.canPublish.mockReturnValue(false);
-    mocks.validate.mockReturnValue({
-      answer: "private answer",
-      incomplete: true,
-      failureReasons: ["excerpt_not_in_source"],
-    });
+    mocks.generate.mockResolvedValue({ text: "private answer [99]", finishReason: "stop" });
     const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
     const stream = await response.text();
 
@@ -285,9 +270,26 @@ describe("analytics stream access and cancellation", () => {
     const logs = vi.mocked(console.warn).mock.calls.join(" ");
     expect(logs).toContain('"attempt":2');
     expect(logs).toContain('"errorCategory":"validation"');
-    expect(logs).toContain("excerpt_not_in_source");
+    expect(logs).toContain("unknown_citation");
     for (const secret of ["private answer", source.text, "question"])
       expect(logs).not.toContain(secret);
+  });
+
+  it("publishes a normal RAG summary on the first attempt without internal evidence markers", async () => {
+    const answer =
+      "## Qısa nəticə\n1. Şirkət investisiya elan etdi. Layihənin başlanğıcı 2026-cı ildir [1].\n\nDigər istiqamətlər barədə məlumat kifayət etmir.";
+    mocks.generate.mockResolvedValue({ text: answer, finishReason: "stop" });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const stream = await response.text();
+
+    expect(mocks.generate).toHaveBeenCalledOnce();
+    expect(stream).toContain('"type":"final"');
+    expect(stream).not.toContain('"type":"error"');
+    expect(stream).toContain(JSON.stringify(answer));
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "done", answer }),
+    );
   });
 
   it.each(["open", "secret", "top_secret", "special"] as const)(

@@ -70,7 +70,7 @@ try {
               ? {
                   system:
                     prompt.system +
-                    "\nHər faktiki cümləni dəqiq istinad və fasiləsiz, sözbəsöz sübutla əsaslandır. Sübut yoxdursa, yalnız təyin olunmuş məlumatsızlıq cümləsini yaz.",
+                    "\nTam cavab yaz və yalnız təqdim edilmiş mənbə nömrələrinə istinad et. Məlumat kifayət etmirsə, bunu açıq bildir.",
                 }
               : {}),
           });
@@ -101,7 +101,7 @@ try {
           actualNoAnswer: noAnswer,
           sourceCount: available.length,
           publishable,
-          evidenceChecks: validation?.evidenceChecks,
+          validationFailureReasons: validation?.failureReasons,
           attempts,
           status: publishable && noAnswer === item.noAnswer ? "PASS" : "FAIL",
           elapsedMs: Date.now() - started,

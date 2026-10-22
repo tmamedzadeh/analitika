@@ -44,7 +44,7 @@ describe("analytics search layout", () => {
       id: "history",
       query: "Saved question",
       status: "done",
-      answer: "",
+      answer: "Saved summary [1][2][3].",
       model: "test",
       durationMs: 12,
       createdAt: new Date().toISOString(),
@@ -86,6 +86,13 @@ describe("analytics search layout", () => {
       "href",
       `/brifler/${briefId}`,
     );
+    expect(
+      screen.getByRole("link", { name: az.analytics.openSource.replace("{n}", "1") }),
+    ).toHaveAttribute("href", "#source-1");
+    expect(document.getElementById("source-1")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: az.analytics.openSource.replace("{n}", "3") }),
+    ).toBeNull();
     expect(screen.getByText(az.analytics.sourcesCount.replace("{count}", "2"))).toBeInTheDocument();
     expect(screen.queryByText(az.analytics.noSources)).not.toBeInTheDocument();
     expect(

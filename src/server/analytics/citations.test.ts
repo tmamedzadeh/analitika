@@ -1,214 +1,126 @@
 import { describe, expect, it } from "vitest";
-
-import { canPublishAnalyticsAnswer, validateCitations } from "./citations";
+import {
+  analyticsPublicationFailureReasons,
+  canPublishAnalyticsAnswer,
+  validateCitations,
+} from "./citations";
 
 const sources = [
   {
     n: 1,
     sourceReliability: "A",
     infoCredibility: 1,
-    documentId: "doc-1",
-    chunkId: "chunk-1",
-    text: "Şirkət 100 milyon ABŞ dolları investisiya elan etdi. Layihə 2025-ci ildə başlayacaq.",
+    text: "Şirkət 100 milyon investisiya elan etdi.",
   },
-  {
-    n: 2,
-    sourceReliability: "D",
-    infoCredibility: 5,
-    documentId: "doc-2",
-    chunkId: "chunk-2",
-    text: "Mənbədə 50 milyon ABŞ dolları məbləği göstərilib.",
-  },
+  { n: 2, sourceReliability: "D", infoCredibility: 5, text: "Layihə 2026-cı ildə başlayacaq." },
+  { n: 3, sourceReliability: null, infoCredibility: null, text: "Gündəlik xülasə." },
 ] as const;
 
-const investmentEvidence = "100 milyon ABŞ dolları investisiya elan etdi";
+describe("standard RAG citation validation", () => {
+  it("accepts an analytical answer with headings, lists, dates and paragraph-level citations", () => {
+    const answer =
+      "## İnvestisiya\n1. Şirkət 100 milyon investisiya elan etdi. Layihənin təsiri mərhələli olacaq [1].\n2. Başlanğıc 2026-cı ildir [2].\n\nƏlavə məlumat kifayət etmir.";
+    const result = validateCitations(answer, sources, "");
+    expect(result.incomplete).toBe(false);
+    expect(result.answer).toBe(answer);
+    expect(canPublishAnalyticsAnswer(answer, "stop", result)).toBe(true);
+  });
 
-describe("validateCitations", () => {
-  it.each([
-    ["100", "2100"],
-    ["99.5", "1.5"],
-    ["100 milyard", "100 milyon"],
-  ])(
-    "rejects numeric mismatch %s versus %s without substring or decimal bypass",
-    (claim, evidence) => {
-      const result = validateCitations(
-        `Məbləğ ${claim} təşkil edir [1]⟦E1: ${evidence}⟧.`,
-        [{ ...sources[0], text: evidence }],
-        "",
-      );
-      expect(result.incomplete).toBe(true);
-      expect(result.evidenceChecks.unsupportedNumericFactCount).toBeGreaterThan(0);
+  it.each(["Məlumat cavab üçün kifayət etmir.", "Mənbələrdə məlumat tapılmadı."])(
+    "allows a completed insufficient-information response without mandatory citations: %s",
+    (answer) => {
+      const result = validateCitations(answer, sources, "");
+      expect(canPublishAnalyticsAnswer(answer, "stop", result)).toBe(true);
     },
   );
 
-  it("rejects an unfinished evidence marker after an otherwise valid claim", () => {
-    expect(
-      validateCitations(`İnvestisiya elan edildi [1]⟦E1: ${investmentEvidence}⟧. ⟦E`, sources, "")
-        .incomplete,
-    ).toBe(true);
+  it("checks citation membership without judging numbers or requiring exact excerpts", () => {
+    const answer = "Göstərici 12,5% təşkil edir [1].";
+    const result = validateCitations(answer, sources, "");
+    expect(result.failureReasons).toEqual([]);
+    expect(result.answer).toBe(answer);
   });
 
-  it("does not interpret brackets inside a verified excerpt as answer citations", () => {
+  it("normalizes citation groups, ranges and whitespace while checking every number", () => {
+    const result = validateCitations("Nəticə [1, 2; 3]. Digər nəticə [1–3], [ 1 ].", sources, "");
+    expect(result.incomplete).toBe(false);
+    expect(result.answer).toBe("Nəticə [1][2][3]. Digər nəticə [1][2][3], [1].");
+  });
+
+  it.each(["Nəticə [7].", "Nəticə [1,7].", "Nəticə [0].", "Nəticə [9007199254740993]."])(
+    "rejects citations outside the authorized retrieved set: %s",
+    (answer) => {
+      const result = validateCitations(answer, sources, "");
+      expect(result.failureReasons).toContain("unknown_citation");
+      expect(canPublishAnalyticsAnswer(answer, "stop", result)).toBe(false);
+    },
+  );
+
+  it("cannot cite an existing document omitted from the authorized source set", () => {
+    const result = validateCitations("Nəticə [2].", [sources[0]], "");
+    expect(result.failureReasons).toContain("unknown_citation");
+  });
+
+  it.each(["Nəticə [3-1].", "Nəticə [1-999999]."])("bounds citation ranges: %s", (answer) => {
+    expect(validateCitations(answer, sources, "").failureReasons).toContain(
+      "invalid_citation_range",
+    );
+  });
+
+  it("discards optional legacy evidence annotations without validating their contents", () => {
     const result = validateCitations(
-      "Mənbə qeydi [1]⟦E1: qeyd [7] verilib⟧.",
-      [{ ...sources[0], text: "qeyd [7] verilib" }],
+      "Nəticə [1]⟦E7: format [99], rəqəm 999 və Unicode — «mətn»⟧. Digər nəticə [1]. ⟦E",
+      sources,
       "",
     );
     expect(result.incomplete).toBe(false);
-    expect(result.answer).toBe("Mənbə qeydi [1].");
-  });
-  it("removes unknown citations and marks the answer incomplete", () => {
-    const result = validateCitations(
-      `Fakt [1]⟦E1: ${investmentEvidence}⟧, naməlum istinad [7]⟦E7: olmayan⟧.`,
-      sources,
-      "aşağı etibar",
-    );
-
-    expect(result.answer).toBe("Fakt [1], naməlum istinad.");
-    expect(result.incomplete).toBe(true);
-    expect(result.usedLowReliability).toBe(false);
+    expect(result.answer).toBe("Nəticə [1]. Digər nəticə [1].");
   });
 
-  it("adds the Azerbaijani caveat when a low-reliability source is cited", () => {
-    const result = validateCitations(
-      "Mənbədə 50 milyon ABŞ dolları göstərilib [2]⟦E2: 50 milyon ABŞ dolları məbləği göstərilib⟧.",
-      sources,
-      "bu məlumat aşağı etibarlıdır",
+  it("ignores a model URL while still validating the citation number", () => {
+    expect(
+      validateCitations("Nəticə [1](https://untrusted.test/senedler/secret).", sources, "").answer,
+    ).toBe("Nəticə [1].");
+    expect(validateCitations("Nəticə [99](https://untrusted.test).", sources, "").incomplete).toBe(
+      true,
     );
+  });
 
-    expect(result.answer).toBe(
-      "Mənbədə 50 milyon ABŞ dolları göstərilib [2].\n\nbu məlumat aşağı etibarlıdır.",
+  it("preserves low-reliability warnings only for cited sources", () => {
+    expect(validateCitations("Nəticə [1].", sources, "aşağı etibar").usedLowReliability).toBe(
+      false,
     );
+    const result = validateCitations("Nəticə [2].", sources, "aşağı etibar");
     expect(result.usedLowReliability).toBe(true);
-    expect(result.incomplete).toBe(false);
-  });
-
-  it("does not add the caveat for an uncited low-reliability result", () => {
-    const result = validateCitations(
-      `Şirkət investisiya elan etdi [1]⟦E1: ${investmentEvidence}⟧.`,
-      sources,
-      "aşağı etibar",
-    );
-
-    expect(result.answer).toBe("Şirkət investisiya elan etdi [1].");
-    expect(result.usedLowReliability).toBe(false);
-  });
-
-  it("rejects a real citation when its excerpt contradicts the claimed amount", () => {
-    const result = validateCitations(
-      "Şirkət 100 milyon ABŞ dolları investisiya elan etdi [2]⟦E2: 50 milyon ABŞ dolları məbləği göstərilib⟧.",
-      sources,
-      "",
-    );
-    expect(result.incomplete).toBe(true);
-    expect(result.evidenceChecks.unsupportedNumericFactCount).toBeGreaterThan(0);
-  });
-
-  it("rejects a fabricated excerpt and a citation with no evidence", () => {
-    expect(
-      validateCitations("Şirkət investisiya elan etdi [1]⟦E1: uydurma fraqment⟧.", sources, "")
-        .incomplete,
-    ).toBe(true);
-    expect(validateCitations("Şirkət investisiya elan etdi [1].", sources, "").incomplete).toBe(
-      true,
-    );
-  });
-
-  it("requires every factual line to carry its own source and exact excerpt", () => {
-    expect(
-      validateCitations(
-        `Şirkət investisiya elan etdi [1]⟦E1: ${investmentEvidence}⟧.\nLayihə 2025-ci ildə başlayacaq.`,
-        sources,
-        "",
-      ).incomplete,
-    ).toBe(true);
-  });
-
-  it("accepts multiple claims when each has its own excerpt from the cited chunk", () => {
-    const result = validateCitations(
-      `Şirkət investisiya elan etdi [1]⟦E1: ${investmentEvidence}⟧.\nLayihə 2025-ci ildə başlayacaq [1]⟦E1: Layihə 2025-ci ildə başlayacaq⟧.`,
-      sources,
-      "",
-    );
-    expect(result.incomplete).toBe(false);
-    expect(result.evidenceChecks.exactExcerptCount).toBe(2);
-  });
-
-  it("fails closed for unsupported factual claims but documents the absence of semantic entailment", () => {
-    const result = validateCitations(
-      `Şirkət bazarın lideridir [1]⟦E1: ${investmentEvidence}⟧.`,
-      sources,
-      "",
-    );
-    // Literal excerpt provenance is not proof that a semantic claim follows from the evidence.
-    expect(result.evidenceChecks.exactExcerptCount).toBe(1);
-    expect(result.incomplete).toBe(false);
-    expect(canPublishAnalyticsAnswer("Şirkət bazarın lideridir [1].", "stop", result)).toBe(true);
-  });
-
-  it("rejects contradictory evidence and incorrect numeric claims", () => {
-    const result = validateCitations(
-      "Şirkət 100 milyon ABŞ dolları investisiya elan etdi [2]⟦E2: 50 milyon ABŞ dolları məbləği göstərilib⟧.",
-      sources,
-      "",
-    );
-    expect(result.incomplete).toBe(true);
-    expect(result.evidenceChecks.unsupportedNumericFactCount).toBeGreaterThan(0);
-  });
-
-  it("rejects invalid citations, missing evidence markers, and unsupported plain claims", () => {
-    expect(
-      validateCitations("Şirkət investisiya elan etdi [9]⟦E9: naməlum⟧.", sources, "").incomplete,
-    ).toBe(true);
-    expect(validateCitations("Şirkət investisiya elan etdi [1].", sources, "").incomplete).toBe(
-      true,
-    );
-    expect(validateCitations("Şirkət investisiya elan etdi.", sources, "").incomplete).toBe(true);
-  });
-
-  it("marks a no-answer response incomplete when it asserts facts instead of the exact no-sources message", () => {
-    expect(validateCitations("Cavab var.", sources, "").incomplete).toBe(true);
-    expect(validateCitations("Mənbələrdə məlumat tapılmadı.", [], "").incomplete).toBe(false);
-    expect(
-      validateCitations("Mənbələrdə məlumat tapılmadı. Şirkət 100 milyon qazandı.", [], "")
-        .incomplete,
-    ).toBe(true);
+    expect(result.answer).toBe("Nəticə [2].\n\naşağı etibar.");
   });
 });
 
-describe("canPublishAnalyticsAnswer", () => {
-  it("checks answer brackets separately from a verified excerpt containing an open bracket", () => {
-    const excerpt = "Mənbədə [qeyd verilib";
-    const answer = `Mənbədə qeyd var [1]⟦E1: ${excerpt}⟧.`;
-    const validation = validateCitations(answer, [{ ...sources[0], text: excerpt }], "");
-
-    expect(validation.incomplete).toBe(false);
-    expect(canPublishAnalyticsAnswer(answer, "stop", validation)).toBe(true);
-    expect(canPublishAnalyticsAnswer(answer + " [", "stop", validation)).toBe(false);
-  });
-
-  it("accepts a completed answer with validated citations", () => {
-    expect(
-      canPublishAnalyticsAnswer(
-        `Şirkət investisiya elan etdi [1]⟦E1: ${investmentEvidence}⟧.`,
-        "stop",
-        { incomplete: false },
-      ),
-    ).toBe(true);
-  });
-
-  it("rejects truncated output and incomplete citations", () => {
-    expect(canPublishAnalyticsAnswer("Nəticə [", "stop", { incomplete: false })).toBe(false);
-    expect(canPublishAnalyticsAnswer("Nəticə [1].", "length", { incomplete: false })).toBe(false);
-    expect(canPublishAnalyticsAnswer("Nəticə [7].", "stop", { incomplete: true })).toBe(false);
-  });
+describe("answer completeness", () => {
+  it.each(["", "  ", "## ", "[1]", "[1, 2]", "⟦E1: daxili mətn⟧"])(
+    "rejects an empty answer: %s",
+    (answer) => {
+      const validation = validateCitations(answer, sources, "");
+      expect(analyticsPublicationFailureReasons(answer, "stop", validation)).toContain(
+        "empty_answer",
+      );
+    },
+  );
 
   it.each(["length", "content-filter", "tool-calls", "error", "other", "unknown"])(
-    "does not publish a %s completion even when citations are valid",
+    "does not publish a technically unfinished %s completion",
     (finishReason) => {
       expect(canPublishAnalyticsAnswer("Nəticə [1].", finishReason, { incomplete: false })).toBe(
         false,
       );
     },
   );
+
+  it("rejects an unfinished citation and accepts a completed answer", () => {
+    expect(canPublishAnalyticsAnswer("Nəticə [1", "stop", { incomplete: false })).toBe(false);
+    expect(
+      canPublishAnalyticsAnswer("Nəticə [1](https://unfinished", "stop", { incomplete: false }),
+    ).toBe(false);
+    expect(canPublishAnalyticsAnswer("Nəticə [1].", "stop", { incomplete: false })).toBe(true);
+  });
 });

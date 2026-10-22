@@ -94,5 +94,13 @@ describe("brief indexing and search mapping", () => {
         chunkId: "chunk id",
       }),
     ).toBe("/brifler/brief%2Fid?chunk=chunk%20id");
+    expect(
+      briefRouteForSearchSource({
+        sourceKind: "document",
+        documentId: "doc/id",
+        briefId: null,
+        chunkId: "chunk id",
+      }),
+    ).toBe("/senedler/doc%2Fid?chunk=chunk%20id");
   });
 });

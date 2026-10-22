@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
-import { BriefMarkdown } from "@/components/BriefMarkdown";
+import { AnalyticsAnswer } from "@/components/AnalyticsAnswer";
 import { DirectionMultiSelect } from "@/components/DirectionMultiSelect";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
@@ -45,10 +45,6 @@ function historyStatusLabel(status: string): string {
 
 function sourceUrl(source: AnalyticsSourcePreview): string {
   return briefRouteForSearchSource(source) ?? "#";
-}
-
-function citationMarkdown(answer: string) {
-  return answer.replace(/\[(\d+)\](?!\()/g, "[$1](#citation-$1)");
 }
 
 function citedSourceNumbers(answer: string): Set<number> {
@@ -110,9 +106,10 @@ function Analytics() {
     useState<Awaited<ReturnType<typeof getAnalyticsQueryHistory>>>(null);
   const noDirections = filters.directionIds.length === 0;
   const usedSourceNumbers = citedSourceNumbers(answer);
-  const visibleSources = sourceOnly
-    ? sources
-    : sources.filter((source) => usedSourceNumbers.has(source.n));
+  const visibleSources =
+    sourceOnly || usedSourceNumbers.size === 0
+      ? sources
+      : sources.filter((source) => usedSourceNumbers.has(source.n));
   const visibleSourceCount = selectedHistory
     ? selectedHistory.sources.filter((source) => source.available).length
     : visibleSources.length;
@@ -402,25 +399,7 @@ function Analytics() {
             )}
             <div aria-live="polite" className="mt-4">
               {answer ? (
-                <BriefMarkdown
-                  markdown={citationMarkdown(answer)}
-                  linkRenderer={(href, children) => {
-                    const match = /^#citation-(\d+)$/.exec(href ?? "");
-                    if (!match) return undefined;
-                    const source = sources.find((candidate) => candidate.n === Number(match[1]));
-                    return source ? (
-                      <a
-                        className="cite"
-                        href={`#source-${source.n}`}
-                        aria-label={az.analytics.openSource.replace("{n}", String(source.n))}
-                      >
-                        [{children}]
-                      </a>
-                    ) : (
-                      <span className="cite">[{children}]</span>
-                    );
-                  }}
-                />
+                <AnalyticsAnswer answer={answer} sources={selectedHistory?.sources ?? sources} />
               ) : busy ? (
                 <p className="text-muted-foreground">{az.analytics.generating}</p>
               ) : (sourceOnly || selectedHistory) && visibleSourceCount > 0 ? (
@@ -478,7 +457,12 @@ function Analytics() {
             <div className="space-y-3">
               {selectedHistory
                 ? selectedHistory.sources.map((source) => (
-                    <article key={`${source.n}-${source.title}`} className="panel p-5">
+                    <article
+                      key={`${source.n}-${source.title}`}
+                      id={`source-${source.n}`}
+                      className="panel scroll-mt-6 p-5"
+                      tabIndex={-1}
+                    >
                       <h3 className="break-words font-semibold [overflow-wrap:anywhere]">
                         <span className="cite ml-0! mr-1">{source.n}</span>
                         {source.title}

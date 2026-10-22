@@ -45,7 +45,8 @@ try {
       ...(attempt
         ? {
             system:
-              prompt.system + "\nYalnız əsas mətndən dəqiq sübut istifadə et; hər iddianı yoxla.",
+              prompt.system +
+              "\nTam cavab yaz və yalnız təqdim edilmiş mənbə nömrələrinə istinad et.",
           }
         : {}),
       maxAttempts: 2,
@@ -53,7 +54,11 @@ try {
     });
     validation = validateCitations(result.text, [source], prompt.lowReliabilityWarning);
     const publishable = canPublishAnalyticsAnswer(result.text, result.finishReason, validation);
-    attempts.push({ attempt: attempt + 1, publishable, evidenceChecks: validation.evidenceChecks });
+    attempts.push({
+      attempt: attempt + 1,
+      publishable,
+      validationFailureReasons: validation.failureReasons,
+    });
     if (publishable) break;
   }
   const publishable = canPublishAnalyticsAnswer(result.text, result.finishReason, validation);
@@ -81,7 +86,7 @@ try {
     status: publishable ? "PASS" : "FAIL",
     publishable,
     attempts,
-    evidenceChecks: validation.evidenceChecks,
+    validationFailureReasons: validation.failureReasons,
     semanticReview:
       "NOT VERIFIED until human-style inspection; structural checks are not entailment",
   };
