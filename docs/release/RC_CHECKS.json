@@ -1,0 +1,66 @@
+{
+  "checkedAt": "2026-10-21T18:15:44.756Z",
+  "baseHead": "a45706e8c0979df1babd20851639e0c9d6a99982",
+  "branch": "codex/zirve-v1-rc-resume",
+  "unitTests": {
+    "status": "PASS",
+    "files": 45,
+    "tests": 195
+  },
+  "productionTypecheck": "PASS",
+  "allScriptsTypecheck": "PASS",
+  "lint": {
+    "status": "PASS",
+    "errors": 0,
+    "existingWarnings": 6
+  },
+  "build": "PASS",
+  "browserE2E": "PASS",
+  "browserFixtureLeftovers": 0,
+  "browserStorageCleanup": {
+    "keys": 4,
+    "absenceVerified": true
+  },
+  "liveIndexingIntegration": {
+    "status": "PASS",
+    "cases": 18,
+    "fixtureLeftovers": 0
+  },
+  "localHttpEdges": {
+    "status": "PASS",
+    "cases": 8,
+    "transport": "synthetic provider; real HTTP/DB; actual 105s deadline"
+  },
+  "indexEdges": {
+    "status": "PASS",
+    "cases": 7,
+    "coldRestart": "DB pool reconnect only"
+  },
+  "retrievalEdges": {
+    "status": "PASS",
+    "cases": 6
+  },
+  "storage": "PASS including live signed size/MIME denial and immutable copies",
+  "lexical": "PASS including normal/forced GIN",
+  "dependencies": "Checkpoint audit/frozen-lock PASS inherited; new PC frozen install restored locked versions without changing dependency files",
+  "schema": "Unchanged applied SQL; latest native drift PASS retained; fresh read-only DB RC capture",
+  "artifact": {
+    "runtime": "nodejs22.x",
+    "streaming": true,
+    "analyticsMaxDuration": 120,
+    "inngestMaxDuration": 300,
+    "entrySha256": "d9b68d4aff35d51fbbf77666297507b80417d5c938578f95d92bc6ea04a23523"
+  },
+  "currentGeneration": "FAIL: 503 UNAVAILABLE on bounded inline open sample",
+  "semanticEntailment": "NOT IMPLEMENTED; manual new sample NOT VERIFIED",
+  "productionRevision": "NOT VERIFIED",
+  "cloudDeliveryAndScheduledRecovery": "NOT VERIFIED",
+  "pushMergeDeployment": false,
+  "productionDecision": "NO-GO",
+  "gitWhitespace": "Current resume diff PASS; historical applied 0020 EOF retained",
+  "frozenLockfileDryRun": "PASS current session",
+  "dependencyAudit": "Checkpoint PASS retained: package.json/bun.lock unchanged",
+  "finalCorpus": "PASS: metadata/count/catalog comparisons; current digests captured; no earlier full-content digest claim",
+  "previewServers": "Stopped; no listeners on 4175/4176 after checks",
+  "finalRemoteMain": "a45706e8c0979df1babd20851639e0c9d6a99982 (fresh final git ls-remote matches HEAD)"
+}

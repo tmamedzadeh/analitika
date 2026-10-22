@@ -1,0 +1,79 @@
+{
+  "recordedAt": "2026-10-22T03:55:38.241Z",
+  "repository": "tmamedzadeh/analitika",
+  "branch": "codex/zirve-v1-rc-resume",
+  "codeCommit": "dd76d2e624ec43444cda974e5929a6124b4d6696",
+  "codeDigest": "2e6a0fbeff0f76749adbdd02cffac0ef0ad2014902985e2d19337218fd263cf9",
+  "pushVerified": true,
+  "pr": {
+    "number": 1,
+    "url": "https://github.com/tmamedzadeh/analitika/pull/1",
+    "state": "open",
+    "draft": true,
+    "base": "main",
+    "headSha": "dd76d2e624ec43444cda974e5929a6124b4d6696",
+    "mergeable": true,
+    "mergeableState": "clean"
+  },
+  "mainMerged": false,
+  "productionDeploymentPerformed": false,
+  "decision": "NO-GO",
+  "reason": "Actual preview generation FAIL; production revision/config/cloud registration/delivery/restart/smoke/rollback gates remain unverified. Vercel management access skipped by owner.",
+  "reviewedAt": "2026-10-22T03:56:49.811Z",
+  "observedPrHead": "dd76d2e624ec43444cda974e5929a6124b4d6696",
+  "mainHead": "a45706e8c0979df1babd20851639e0c9d6a99982",
+  "mainProtected": false,
+  "checks": {
+    "combined": "success",
+    "statuses": [
+      {
+        "context": "Vercel",
+        "state": "success",
+        "description": "Deployment has completed",
+        "targetUrl": "https://vercel.com/tm-d91f/analitika/833Fp43aHCXLFuj4ciH7VfL6BEh1"
+      }
+    ],
+    "checkRuns": [
+      {
+        "name": "Vercel Preview Comments",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "reviews": [],
+  "commentDiagnostics": [
+    {
+      "author": "vercel[bot]",
+      "mentionsAuthor": false,
+      "mentionsPermission": false,
+      "mentionsPlan": false,
+      "mentionsDeployBlocked": false,
+      "urls": [
+        "https://vercel.link/github-learn-more",
+        "https://vercel.com/tm-d91f/analitika%22",
+        "https://vercel.com/api/www/avatar",
+        "https://vercel.com/tm-d91f/analitika",
+        "https://vercel.com/static/status/ready.svg",
+        "https://vercel.com/tm-d91f/analitika/833Fp43aHCXLFuj4ciH7VfL6BEh1",
+        "https://analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app/"
+      ]
+    }
+  ],
+  "remoteDiff": {
+    "files": 86,
+    "containsMigrationChanges": false,
+    "appliedSqlUnchanged": true,
+    "unexpectedSensitivePaths": []
+  },
+  "actualPreview": {
+    "deploymentStatus": "success via GitHub Vercel check",
+    "testedCodeCommit": "dd76d2e624ec43444cda974e5929a6124b4d6696",
+    "deploymentTarget": "833Fp43aHCXLFuj4ciH7VfL6BEh1",
+    "url": "https://analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+    "smoke": "FAIL actual Gemini generation; real login/clearance/retired routes/private storage PASS",
+    "functions": 6,
+    "productionFunctions": 8
+  },
+  "releaseCodeUnchangedByReceipt": true
+}

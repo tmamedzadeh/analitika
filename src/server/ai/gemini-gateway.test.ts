@@ -14,6 +14,17 @@ afterEach(() => {
 });
 
 describe("Gemini request gateway", () => {
+  it("bounds transient 503 retries in the same attempt budget after SDK retries are disabled", async () => {
+    vi.useFakeTimers();
+    const operation = vi.fn(async () => {
+      throw Object.assign(new Error("Synthetic unavailable"), { statusCode: 503 });
+    });
+    const pending = withGeminiRequest("AI_CHAT_MODEL", operation, 2);
+    const rejected = expect(pending).rejects.toMatchObject({ statusCode: 503 });
+    await vi.runAllTimersAsync();
+    await rejected;
+    expect(operation).toHaveBeenCalledTimes(2);
+  });
   it("keeps concurrent provider requests at or below three", async () => {
     let active = 0;
     let maximum = 0;

@@ -1,0 +1,349 @@
+{
+  "checkedAt": "2026-10-22T04:24:28.413Z",
+  "branch": "codex/zirve-v1-rc-resume",
+  "baseHead": "dd76d2e624ec43444cda974e5929a6124b4d6696",
+  "gates": [
+    {
+      "label": "final-unit",
+      "command": [
+        "bun",
+        "run",
+        "test"
+      ],
+      "startedAt": "2026-10-22T03:34:20.683Z",
+      "completedAt": "2026-10-22T03:35:35.254Z",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": ".release-backup.local/final-unit.log"
+    },
+    {
+      "label": "final-tsc",
+      "command": [
+        "bun",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit"
+      ],
+      "startedAt": "2026-10-22T03:47:40.356Z",
+      "completedAt": "2026-10-22T03:47:52.443Z",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": ".release-backup.local/final-tsc.log"
+    },
+    {
+      "label": "final-scripts-tsc",
+      "command": [
+        "bun",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "-p",
+        "tsconfig.eval.json"
+      ],
+      "startedAt": "2026-10-22T03:44:00.650Z",
+      "completedAt": "2026-10-22T03:44:07.339Z",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": ".release-backup.local/final-scripts-tsc.log"
+    },
+    {
+      "label": "final-lint",
+      "command": [
+        "bun",
+        "run",
+        "lint"
+      ],
+      "startedAt": "2026-10-22T03:47:52.486Z",
+      "completedAt": "2026-10-22T03:48:02.931Z",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": ".release-backup.local/final-lint.log"
+    },
+    {
+      "label": "final-build",
+      "command": [
+        "bun",
+        "run",
+        "build"
+      ],
+      "startedAt": "2026-10-22T03:47:28.872Z",
+      "completedAt": "2026-10-22T03:47:39.629Z",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": ".release-backup.local/final-build.log"
+    },
+    {
+      "label": "final-audit",
+      "command": [
+        "bun",
+        "audit",
+        "--json"
+      ],
+      "startedAt": "2026-10-22T03:23:58.820Z",
+      "completedAt": "2026-10-22T03:24:00.497Z",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": ".release-backup.local/final-audit.log"
+    },
+    {
+      "label": "final-frozen",
+      "command": [
+        "bun",
+        "--no-env-file",
+        "install",
+        "--frozen-lockfile",
+        "--dry-run"
+      ],
+      "startedAt": "2026-10-22T03:26:56.038Z",
+      "completedAt": "2026-10-22T03:26:56.084Z",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": ".release-backup.local/final-frozen.log"
+    },
+    {
+      "label": "final-drift",
+      "command": [
+        "bun",
+        "run",
+        "db:check-drift"
+      ],
+      "startedAt": "2026-10-22T03:26:58.060Z",
+      "completedAt": "2026-10-22T03:27:05.348Z",
+      "exitCode": 0,
+      "status": "PASS",
+      "log": ".release-backup.local/final-drift.log"
+    }
+  ],
+  "unit": {
+    "files": 45,
+    "tests": 197
+  },
+  "lint": {
+    "errors": 0,
+    "existingWarnings": 6
+  },
+  "browser": {
+    "status": "PASS",
+    "cases": 9,
+    "artifactSha256": "d9b68d4aff35d51fbbf77666297507b80417d5c938578f95d92bc6ea04a23523",
+    "fixtureLeftovers": 0,
+    "storage": {
+      "keys": 4,
+      "absenceVerified": true
+    }
+  },
+  "localHttp": {
+    "status": "PASS",
+    "cases": 9,
+    "fixtureLeftovers": 0,
+    "provider": "actual SDK; synthetic fetch transport in local subprocess; no external AI calls"
+  },
+  "liveIntegration": {
+    "runId": "9a4e9acb-a4d5-4dca-8a47-801a77bcafea",
+    "capturedAt": "2026-10-22T03:23:47.346Z",
+    "checks": [
+      {
+        "name": "document: initial indexing and duplicate delivery",
+        "status": "PASS"
+      },
+      {
+        "name": "document: provider failure preserves the committed index; retry succeeds",
+        "status": "PASS"
+      },
+      {
+        "name": "document: transaction rollback restores chunks after delete/insert failure",
+        "status": "PASS"
+      },
+      {
+        "name": "document: duplicate concurrent events and expired lease fence stale success",
+        "status": "PASS"
+      },
+      {
+        "name": "document: expired predecessor failure cannot corrupt a newer ready index",
+        "status": "PASS"
+      },
+      {
+        "name": "brief: initial indexing and duplicate delivery",
+        "status": "PASS"
+      },
+      {
+        "name": "brief: provider failure preserves the committed index; retry succeeds",
+        "status": "PASS"
+      },
+      {
+        "name": "brief: transaction rollback restores chunks after delete/insert failure",
+        "status": "PASS"
+      },
+      {
+        "name": "brief: duplicate concurrent events and expired lease fence stale success",
+        "status": "PASS"
+      },
+      {
+        "name": "brief: expired predecessor failure cannot corrupt a newer ready index",
+        "status": "PASS"
+      },
+      {
+        "name": "brief: actual save and queue failure retain old chunks; edited chunks stay ineligible",
+        "status": "PASS"
+      },
+      {
+        "name": "document: lost event, failed send, persisted attempt count and bounded recovery",
+        "status": "PASS"
+      },
+      {
+        "name": "brief: lost event, failed send, persisted attempt count and bounded recovery",
+        "status": "PASS"
+      },
+      {
+        "name": "brief lexical search: Azerbaijani NFC, AND terms across title/body, distinct i/ı",
+        "status": "PASS"
+      },
+      {
+        "name": "authorization: low-clearance owner and administrator cannot read a secret document",
+        "status": "PASS"
+      },
+      {
+        "name": "mutations: clearance and live role guard direction, retry and deletion predicates",
+        "status": "PASS"
+      },
+      {
+        "name": "citations: current chunk ownership, exact text and live clearance revalidation",
+        "status": "PASS"
+      },
+      {
+        "name": "history: administrator clearance filters list metadata and direct records",
+        "status": "PASS"
+      },
+      {
+        "name": "history: live administrator demotion rejects stale-session access to another author",
+        "status": "PASS"
+      }
+    ],
+    "status": "PASS",
+    "fixtureLeftovers": 0,
+    "failureCase": null
+  },
+  "artifact": {
+    "entrySha256": "d9b68d4aff35d51fbbf77666297507b80417d5c938578f95d92bc6ea04a23523",
+    "analytics": {
+      "handler": "index.mjs",
+      "launcherType": "Nodejs",
+      "shouldAddHelpers": false,
+      "supportsResponseStreaming": true,
+      "runtime": "nodejs22.x",
+      "maxDuration": 120
+    },
+    "inngest": {
+      "handler": "index.mjs",
+      "launcherType": "Nodejs",
+      "shouldAddHelpers": false,
+      "supportsResponseStreaming": true,
+      "runtime": "nodejs22.x",
+      "maxDuration": 300
+    }
+  },
+  "limitations": [
+    "Local HTTP provider transport is synthetic; not external/cloud proof",
+    "Primary and light live generation evidence separately reported",
+    "Production Vercel access skipped at owner request; current runtime/revision not verified",
+    "No semantic entailment engine; scoped manual support review only",
+    "Actual preview generation FAIL (sources then error, no validated final); local PASS does not override it"
+  ],
+  "productionDecision": "NO-GO",
+  "actualPreview": {
+    "checkedAt": "2026-10-22T04:17:17.859Z",
+    "target": "https://analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+    "status": "FAIL",
+    "checks": [
+      {
+        "name": "Actual preview login and Secure HttpOnly session uses the configured project DB",
+        "status": "PASS"
+      },
+      {
+        "name": "Preview hydrated document UUID, owner clearance denial, retired routes",
+        "status": "PASS"
+      },
+      {
+        "name": "Preview authenticated attachment reads the same private storage object",
+        "status": "PASS"
+      },
+      {
+        "name": "Provider failure diagnostics",
+        "status": "FAIL",
+        "eventTypes": [
+          "sources",
+          "error"
+        ]
+      }
+    ],
+    "diagnostics": {
+      "failedHttp": [
+        {
+          "host": "analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+          "path": "/osint",
+          "status": 404
+        },
+        {
+          "host": "analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+          "path": "/sorgu",
+          "status": 404
+        }
+      ],
+      "openDocument": {
+        "status": 200,
+        "hydratedMarkerPresent": true
+      },
+      "restrictedDocument": {
+        "denied": true
+      },
+      "/osint": 404,
+      "/sorgu": 404,
+      "lastPath": "/sorgu"
+    },
+    "fixtureLeftovers": 0,
+    "storageCleanup": "Exact one synthetic object removed; absence verified",
+    "corpusSourcesModified": false,
+    "methodCorrection": "Initial raw HTML marker assertion was invalid for client-hydrated document detail; corrected to wait for actual browser rendering",
+    "realProviderCalls": "Only open query/source processing through actual preview endpoint if generation stage reached; no synthetic transport",
+    "indexFixture": "One manually inserted synthetic vector/chunk for scoped retrieval, not cloud indexing proof",
+    "productionSmoke": false,
+    "cloudWorkerDelivery": false,
+    "revisionEvidence": "GitHub Vercel successful deployment associated with dd76d2e; this preview smoke is not production revision proof"
+  },
+  "runtimeIntrospection": {
+    "checkedAt": "2026-10-22T03:59:40.962Z",
+    "method": "GET only; existing project automation credential via official header, existing Inngest signing key; no management access/config changes",
+    "results": [
+      {
+        "origin": "https://analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+        "loginStatus": 200,
+        "unsignedWorkerStatus": 401,
+        "signedWorkerStatus": 200,
+        "introspection": {
+          "app_id": "analitika",
+          "function_count": 6,
+          "has_event_key": true,
+          "has_signing_key": true,
+          "mode": "cloud",
+          "sdk_language": "js",
+          "sdk_version": "4.24.0",
+          "authentication_succeeded": true
+        }
+      },
+      {
+        "origin": "https://analitika-one.vercel.app",
+        "loginStatus": 200,
+        "unsignedWorkerStatus": 401,
+        "signedWorkerStatus": 200,
+        "introspection": {
+          "app_id": "analitika",
+          "function_count": 8,
+          "has_event_key": true,
+          "has_signing_key": true,
+          "mode": "cloud",
+          "sdk_language": "js",
+          "sdk_version": "4.24.0",
+          "authentication_succeeded": true
+        }
+      }
+    ]
+  }
+}

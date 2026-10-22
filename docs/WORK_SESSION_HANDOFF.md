@@ -1,4 +1,70 @@
-# ZIRVƏ / ANALİTİKA — передача рабочей сессии
+# Актуальная передача — final code merge, 22 октября 2026
+
+**CODE READY: YES; GITHUB MAIN UPDATED: PENDING; PRODUCTION VERIFIED: NO / NO-GO.** Последнее [задание владельца](release/FINAL_CODE_MERGE_REQUEST.md) разрешает Ready/merge PR #1 после passing code gates. Владелец самостоятельно выполняет Vercel/env/logs/runtime, cloud Inngest и rollback проверки; больше не запрашивать management access. Прежние запреты merge в архиве ниже заменены этим заданием. Merge может запустить Vercel auto-deployment; production GO не присваивать.
+
+Final review не изменил source/config/scripts/lock относительно проверенного dd76d2e; 45 files/197 tests, обе tsc, lint/build/audit/frozen, 19 integration, browser9/HTTP9, storage/lexical/retrieval/index lifecycle и DB evidence переиспользованы с исходными timestamps. Подтверждённых незакрытых обязательных code-level P0/P1 не найдено. Actual preview generation FAIL (sources→error без final) остаётся открытым, причина ещё не установлена; он может потребовать code fix после external diagnostics.
+
+Точный operational handoff: [PRODUCTION_MANUAL_CHECKLIST.md](PRODUCTION_MANUAL_CHECKLIST.md). Актуальные acceptance/readiness: [audit](V1_PROD_HARDENING_AUDIT.md), [final report](V1_FINAL_PRODUCTION_REPORT.md). DB/corpus/applied SQL не менялись в final merge session. GitHub outcome следует записать после операции, не предполагать успешный merge заранее.
+
+---
+
+## Архив предыдущей сессии (статусы и разрешения superseded)
+
+# Актуальный итог — 22 октября 2026
+
+**Production NO-GO.** Продолжено по [финальному заданию](release/PRODUCTION_RELEASE_REQUEST.md), разрешающему commit/push/PR/merge/deploy после gates. Позднее владелец ответил «пропусти это» на запрос Vercel доступа: access-dependent work пропущен, gate не объявлен PASS.
+
+Code commit **dd76d2e624ec43444cda974e5929a6124b4d6696** pushed, [draft PR #1](https://github.com/tmamedzadeh/analitika/pull/1). Vercel auto-preview success (`833Fp43aHCXLFuj4ciH7VfL6BEh1`); никаких manual production deploy/merge. Существующий project automation credential позволил read-only runtime probe без management: preview signed Inngest GET200 / 6functions, production200 / 8functions; unsigned401. Новый preview не считать production. Receipt/preview evidence в release/.
+
+**P0 actual preview generation FAIL:** настоящий HTTP open query вернул sources→error без validated final. Real login/Secure cookie в ту же DB, browser-hydrated document/clearance/retired404 и private attachment PASS. PREVIEW_SMOKE / PREVIEW_MODEL_CONFIG: configured primary gemini-3.8-flash, sources-only done, actual answer FAIL. Причина (provider/config/validation) без logs не установлена; локальные generation3PASS это не перекрывают. Exact preview fixture/object cleanup выполнен. Для GO нужно устранить runtime failure и проверить cloud/revision/rollback, не merge зелёный preview deployment автоматически.
+
+Результат и подробная acceptance matrix: [V1_FINAL_PRODUCTION_REPORT.md](V1_FINAL_PRODUCTION_REPORT.md), актуальный [audit](V1_PROD_HARDENING_AUDIT.md). Git branch codex/zirve-v1-rc-resume, исходная база a45706e8c0979df1babd20851639e0c9d6a99982; итоговые SHA/PR/status — [delivery record](release/GITHUB_FINAL_DELIVERY.json).
+
+Сделано: исправлен clearance bypass document mutations и stale-role brief mutations; prompt ограничен body evidence/реальным числом фактов; quota fallback сообщает actual light model в history; Vitest 4.1.12 закрывает 2 новых advisory. Quality 45/197 PASS, оба tsc/build/audit/frozen PASS, lint 6 старых warnings. Browser 9, live integration 19, local HTTP 9, index edges 7, retrieval edges 6, storage/lexical/drift PASS. Real generation numeric+2 no-answer PASS через разрешённый quota fallback; primary inline sample и manual support spot PASS. Automatic entailment отсутствует.
+
+Fresh retrieval: 17 queries, 20/20 gold IDs; Recall@5 .933333 / @10 1, MRR .842857, nDCG .868204. 16 embedding HTTP200, 1 network/timeout; old baseline сохранён. Не заявлять, что historical @5=1 является свежим результатом.
+
+Live DB: 24 migrations через0023, 13 docs/10 briefs/107 chunks+embeddings, RLS15, grants0, native drift0. Для этой сессии full-row corpus SHA256 before/after снят до fixtures и после cleanup. Applied SQL не менялся, test DB не создавалась. Финальные evidence — FINAL_CHECKS / LIVE_DB_FINAL_AFTER / FINAL_DATA_PRESERVATION.
+
+Cloud API доступен: Inngest app analitika всё ещё old sync 20Oct, 8 функций вместо6, нет document recovery. Старый OSINT cron систематически FAILED; brief recovery/cleanups recent COMPLETED. Три OSINT jobs получили pause200; readback paused state API не показывает. Не sync старый deployment. Нужно опубликовать проверенный код после gates, sync ровно6jobs, реальные scoped open doc+brief/retry/lost-event/restart runs и production smoke на exact release SHA.
+
+Vercel management access отсутствует и пропущен по указанию. Project из GitHub status: tm-d91f/analitika; owner URL https://analitika-one.vercel.app. Main status blocked. Найден historical success a2af6269d81e57e839ecc226e7e1a8ae0014f10f, deployment target2VnHomtKSpAHZ3BcLR373qUBiDp2; это candidate, не confirmed rollback target. Не объявлять GO/merge/deploy без проверки runtime, workers и rollback. История Lovable сохраняется.
+
+---
+
+# Архив предыдущего отчёта (не текущая readiness)
+
+# ZIRVƏ / ANALİTİKA — актуальное продолжение hardening
+
+Обновлено **21 октября 2026, Asia/Baku**. Текущая рабочая ветка: `codex/zirve-v1-rc-resume`, база/HEAD `a45706e8c0979df1babd20851639e0c9d6a99982`. В начале resume `main`, HEAD и свежий remote main совпадали; staged/unstaged/untracked/conflicts = 0. Изменения этой сессии сохранены в рабочей ветке для review; push/merge/deployment не выполнялись. Применённые migrations не изменялись и не запускались.
+
+**Текущий результат: reviewable local candidate, production NO-GO.** Актуальная acceptance matrix на 20 задач и раздельная readiness: [V1_PROD_HARDENING_AUDIT.md](V1_PROD_HARDENING_AUDIT.md). Порядок release: [RELEASE_RUNBOOK.md](release/RELEASE_RUNBOOK.md). Ниже после разделителя сохранён исторический safe-stop checkpoint; его pending E2E/storage/lexical статусы устарели.
+
+## Выполнено при resume
+
+- Исправленный empty locator проверен. Browser E2E выявил и подтвердил исправления history source links/count/empty UI и mobile title overflow. Полный run: 8 сценариев PASS, photo uploads document/brief и authenticated reads, mobile 390px, expiry/logout; DB leftovers 0 и точное удаление storage keys проверено.
+- Private storage PASS: signed GET, unsigned/public denial, user-scoped uploads, bounded signature/size/MIME проверки, отдельные server-only committed copies. Повторный staging PUT/discard не меняет committed image. Signed PUT привязан к заявленным Content-Length/Content-Type; mismatch отклонён реальным S3. Bucket config не менялся; 3 существующих document attachments сохранены.
+- Expanded lexical PASS: AZ case/NFC/AND/i/ı/ə, month/date/order, реальная граница pagination, normal/forced GIN. Fixtures rollback-only.
+- Actual local HTTP gate: 8 PASS — attachment/session/policy, lexical fallback при embedding quota, malformed generation retry/exhaustion, disconnect/cancel, completed history и настоящий 105-секундный deadline. DB/history настоящие, provider transport synthetic в отдельном subprocess; это не cloud/provider availability evidence.
+- Retrieval edges: 6 PASS с нулём external calls; access/filters/model/vector/no-match/rerank-policy/abort. HNSW forced plan PASS, normal plan на маленьком corpus — seq scan; performance выводов не делать.
+- Index edges: 7 PASS — delete/edit races, malformed/quota retention, восстановление durable queued после DB pool reconnect. Полный worker process restart этим не проверен.
+- SDK retries больше не умножают gateway budget; gateway bounded quota/Retry-After и transient 408/5xx retries, общий timeout включает waits. AI_BACKUP_MODEL/Qwen не добавлялись.
+- Закрыт пропущенный external question path: V1 вопрос консервативно получает live clearance пользователя, как history. Embedding/rerank/generation остаются open-only; более высокий clearance сохраняет локальный lexical sources search. History дополнительно проверяет live admin role/owner и повторяет metadata visibility после child reads.
+- Reindex не считает пропущенный processing/missing source завершённым: готовность проверяется readback, есть skipped count.
+- Quality: 45 files / 195 tests PASS; итоговые type/lint/build/E2E и точные evidence — [RC_CHECKS.json](release/RC_CHECKS.json). На новом ПК найдены stale installed dependencies: frozen install восстановил locked Vite 8.1.6 без изменения package/lock.
+
+## Что продолжать
+
+1. Владелец подтвердил production URL **https://analitika-one.vercel.app**, read-only deployment/Inngest доступ проверит отдельно. Нет локальных hosting/Inngest management credentials; GitHub connector даёт 404. GET login/worker 401 не доказывает revision, signing/registration или delivery. Нужны точная revision/env и реальные open document+brief cloud runs, cron recovery и worker restart.
+2. Новый live primary Gemini sample (только inline fictional open text, без corpus) получил **503 UNAVAILABLE**, включая bounded retry. [SEMANTIC_SAMPLE.json](release/SEMANTIC_SAMPLE.json). Не менять согласованные модели ради зелёного gate. Три предыдущих live generation PASS сохранены как исторические, текущую availability не доказывают. Manual semantic sample NOT VERIFIED; entailment не реализован.
+3. [LIVE_DB_RC.json](release/LIVE_DB_RC.json) — свежий read-only итог после fixtures: 24 migrations, 13 documents / 10 briefs / 107 chunks+embeddings, history 0, integrity 0, RLS 15, client grants 0. [LIVE_DB_RESUME.json](release/LIVE_DB_RESUME.json) — начало resume. Исторический AFTER_MIGRATIONS предшествует 0023. Не применять SQL повторно и не восстанавливать counts искусственно при новых пользовательских данных.
+4. Историческая причина задержки 39–47 минут неизвестна без старой event/transition history. DB pool reconnect не заменяет проверку cloud cold restart. Не выдавать controlled transport за внешний Gemini/Inngest.
+5. Для resume diff использовать [RESUME_FILE_MANIFEST.json](release/RESUME_FILE_MANIFEST.json), initial inventory, file review и secret scan в release/. Старый CHECKPOINT_FILE_MANIFEST описывает перенос предыдущей сессии и сохранён неизменным.
+6. После review и снятия blockers запросить отдельное разрешение на конкретный push/merge/deploy; затем revision verification и production smoke. Не объявлять GO до проверки настоящего runtime. Сохранять Lovable history, corpus, open-only и lexical-only Xülasələr.
+
+---
+
+# Исторический checkpoint передачи до resume
 
 ## A. Текущее состояние
 

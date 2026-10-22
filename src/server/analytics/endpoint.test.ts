@@ -8,10 +8,10 @@ const mocks = vi.hoisted(() => ({
     async (
       sources: readonly AnalyticsSource[],
       _userId: string,
-      publish: (available: AnalyticsSource[]) => unknown,
+      publish: (available: AnalyticsSource[], queryClassification: string) => unknown,
     ) => {
       const available = [...sources];
-      return { sources: available, value: await publish(available) };
+      return { sources: available, value: await publish(available, "open") };
     },
   ),
   updateHistory: vi.fn(async (_id: string, _value: unknown) => undefined),
@@ -108,7 +108,7 @@ describe("analytics stream cancellation", () => {
     mocks.generate.mockResolvedValue({ text: "answer [1]", finishReason: "stop" });
     mocks.withSourceAccess.mockImplementation(async (sources, _userId, publish) => {
       const available = [...sources];
-      return { sources: available, value: await publish(available) };
+      return { sources: available, value: await publish(available, "open") };
     });
   });
 
@@ -164,7 +164,7 @@ describe("analytics stream cancellation", () => {
     let index = 0;
     mocks.withSourceAccess.mockImplementation(async (_sources, _userId, publish) => {
       const available = [...(availableByCheck[index++] ?? [])];
-      return { sources: available, value: await publish(available) };
+      return { sources: available, value: await publish(available, "open") };
     });
     const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
     const reader = response.body!.getReader();
@@ -180,6 +180,22 @@ describe("analytics stream cancellation", () => {
     expect(mocks.updateHistory).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ status: "failed", answer: "", sources: [] }),
+    );
+  });
+
+  it("withholds classified questions before provider dispatch even when sources are open", async () => {
+    mocks.withSourceAccess.mockImplementation(async (sources, _userId, publish) => {
+      const available = [...sources];
+      return { sources: available, value: await publish(available, "secret") };
+    });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const stream = await response.text();
+    expect(stream).toContain('"type":"error"');
+    expect(stream).not.toContain('"type":"final"');
+    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed" }),
     );
   });
 });

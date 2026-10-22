@@ -28,10 +28,13 @@ import { accessFilter, documentAccessFilter, getCurrentUser } from "@/server/db/
 import { attachments, briefAttachments, chunks, dailyBriefs, documents } from "@/server/db/schema";
 import { documentConditions, hasCommittedDocumentIndex, minimumDocDate } from "./filters";
 import { reciprocalRankFusion, resolveQueryEmbedding, settleRetrievalBranches } from "./ranking";
-import { withAnalyticsCandidateAccess } from "./source-access";
+import { withAnalyticsCandidateAccess, withAnalyticsQueryAccess } from "./source-access";
 import { hasCommittedBriefIndex } from "../briefs/index-state";
 import { getBakuDate } from "@/lib/briefs";
-import { isExternalAiClassificationAllowed } from "../ai/processing-policy";
+import {
+  assertExternalAiClassification,
+  isExternalAiClassificationAllowed,
+} from "../ai/processing-policy";
 
 const CANDIDATE_LIMIT = 50;
 const RESULT_LIMIT = 10;
@@ -137,6 +140,7 @@ export async function searchDocumentChunks(
   filters: AnalyticsFilters,
   options: SearchDocumentChunksOptions = {},
 ): Promise<AnalyticsSource[]> {
+  options.signal?.throwIfAborted();
   const db = getDb();
   const providers = createGeminiProviders();
   const config = getAppConfig();
@@ -145,14 +149,18 @@ export async function searchDocumentChunks(
     ...(options.embedding ? { provided: options.embedding } : {}),
     dimensions: config.embeddingDimensions,
     embed: () =>
-      providers.embeddings.embedQuery(query, {
-        maxAttempts: options.maxEmbeddingAttempts ?? 1,
-        signal: options.signal
-          ? AbortSignal.any([options.signal, AbortSignal.timeout(15_000)])
-          : AbortSignal.timeout(15_000),
+      withAnalyticsQueryAccess(getCurrentUser().id, (classification) => {
+        assertExternalAiClassification(classification);
+        return providers.embeddings.embedQuery(query, {
+          maxAttempts: options.maxEmbeddingAttempts ?? 1,
+          signal: options.signal
+            ? AbortSignal.any([options.signal, AbortSignal.timeout(15_000)])
+            : AbortSignal.timeout(15_000),
+        });
       }),
   });
   const embedding = embeddingResolution.embedding;
+  options.signal?.throwIfAborted();
   const embeddingFailure = embeddingResolution.failure;
 
   const vectorLiteral = embedding ? `[${embedding.join(",")}]` : undefined;
@@ -228,6 +236,7 @@ export async function searchDocumentChunks(
   const successfulLists = settled.results.filter(
     (list): list is Exclude<typeof list, null> => list !== null,
   );
+  options.signal?.throwIfAborted();
   const failedBranches = [...settled.failed];
   if (embeddingFailure) failedBranches.push(`embedding_${embeddingFailure}`);
   if (failedBranches.length) {
@@ -251,6 +260,7 @@ export async function searchDocumentChunks(
       documentIds: accessibleDocuments,
       briefIds: accessibleBriefs,
       chunkIds: accessibleChunks,
+      queryClassification,
     }) => {
       const accessibleCandidates = candidates.filter(
         ({ item }) =>
@@ -270,6 +280,7 @@ export async function searchDocumentChunks(
         })),
         rerankProvider,
         (options.enableRerank ?? config.enableRerank) &&
+          isExternalAiClassificationAllowed(queryClassification) &&
           accessibleCandidates.every(({ item }) =>
             isExternalAiClassificationAllowed(
               item.documentId ? (item.classification ?? "unknown") : "open",
@@ -285,6 +296,7 @@ export async function searchDocumentChunks(
   const candidateById = new Map(
     reranked.candidates.map((candidate) => [candidate.item.chunkId, candidate]),
   );
+  options.signal?.throwIfAborted();
   const fused = reranked.ids
     .map((id) => candidateById.get(id))
     .filter((candidate): candidate is (typeof candidates)[number] => candidate !== undefined)

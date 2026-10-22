@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-22T03:27:41.627Z",
+  "status": "PASS",
+  "checks": [
+    "Azerbaijani case/NFC; distinct i/ı and ə/a; AND words across text; reversed word order",
+    "Newest date/UUID ordering; actual page boundary; no duplicates/skips; month filter retained",
+    "Live GIN expression index usable by the actual catalogue predicate (forced planner check)"
+  ],
+  "normalIndexPlan": true,
+  "forcedIndexPlan": true,
+  "fixturePersistence": "transaction rolled back; no committed fixtures"
+}

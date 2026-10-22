@@ -1,0 +1,60 @@
+{
+  "checkedAt": "2026-10-22T04:17:17.859Z",
+  "target": "https://analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+  "status": "FAIL",
+  "checks": [
+    {
+      "name": "Actual preview login and Secure HttpOnly session uses the configured project DB",
+      "status": "PASS"
+    },
+    {
+      "name": "Preview hydrated document UUID, owner clearance denial, retired routes",
+      "status": "PASS"
+    },
+    {
+      "name": "Preview authenticated attachment reads the same private storage object",
+      "status": "PASS"
+    },
+    {
+      "name": "Provider failure diagnostics",
+      "status": "FAIL",
+      "eventTypes": [
+        "sources",
+        "error"
+      ]
+    }
+  ],
+  "diagnostics": {
+    "failedHttp": [
+      {
+        "host": "analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+        "path": "/osint",
+        "status": 404
+      },
+      {
+        "host": "analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+        "path": "/sorgu",
+        "status": 404
+      }
+    ],
+    "openDocument": {
+      "status": 200,
+      "hydratedMarkerPresent": true
+    },
+    "restrictedDocument": {
+      "denied": true
+    },
+    "/osint": 404,
+    "/sorgu": 404,
+    "lastPath": "/sorgu"
+  },
+  "fixtureLeftovers": 0,
+  "storageCleanup": "Exact one synthetic object removed; absence verified",
+  "corpusSourcesModified": false,
+  "methodCorrection": "Initial raw HTML marker assertion was invalid for client-hydrated document detail; corrected to wait for actual browser rendering",
+  "realProviderCalls": "Only open query/source processing through actual preview endpoint if generation stage reached; no synthetic transport",
+  "indexFixture": "One manually inserted synthetic vector/chunk for scoped retrieval, not cloud indexing proof",
+  "productionSmoke": false,
+  "cloudWorkerDelivery": false,
+  "revisionEvidence": "GitHub Vercel successful deployment associated with dd76d2e; this preview smoke is not production revision proof"
+}

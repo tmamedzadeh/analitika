@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-22T03:32:18.616Z",
+  "status": "PASS",
+  "failureCase": null,
+  "checks": [
+    "deleted document and brief events are harmless no-ops",
+    "document: delete while embedding cannot resurrect chunks",
+    "brief: delete while embedding cannot resurrect chunks",
+    "brief edit fences active indexer; retained old chunks excluded until fresh pass",
+    "document: malformed vectors and terminal quota preserve committed index",
+    "brief: malformed vectors and terminal quota preserve committed index",
+    "durable queued state recovers after DB pool reconnect"
+  ],
+  "fixtureLeftovers": 0,
+  "provider": "local synthetic vectors only",
+  "coldRestartLimit": "Only DB pool restarted; actual worker process restart/cloud scheduled recovery remain NOT VERIFIED",
+  "nonpublishedBriefs": "Database constraint permits published only; no invalid nonpublished fixture forced into corpus"
+}

@@ -198,7 +198,7 @@ function AddDoc() {
       title="Məlumat bazasına əlavə et"
       badges={["Sistem aktivdir", "İndeksləmə: fonda"]}
     >
-      <div className="grid gap-6 lg:grid-cols-[1fr_352px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_352px]">
         <form ref={formRef} onSubmit={handleSubmit} className="panel space-y-5 p-6">
           <label className="block">
             <span className="mb-2 block text-sm font-semibold">{az.documents.form.title}</span>
@@ -373,7 +373,7 @@ function AddDoc() {
           </div>
         </form>
 
-        <aside>
+        <aside className="min-w-0">
           <p className="label-mono mb-3">{az.documents.recent}</p>
           {documentsQuery.isPending ? (
             <ZirveLoader variant="compact" label={az.documents.loading} />
@@ -390,7 +390,7 @@ function AddDoc() {
                     <Link
                       to="/senedler/$id"
                       params={{ id: document.id }}
-                      className="font-semibold hover:text-primary"
+                      className="font-semibold [overflow-wrap:anywhere] hover:text-primary"
                     >
                       {document.title}
                     </Link>

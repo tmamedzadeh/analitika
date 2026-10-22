@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-10-21T18:15:44.378Z",
+  "status": "PASS",
+  "comparisons": {
+    "migrations": "PASS",
+    "counts": "PASS",
+    "documents": "PASS",
+    "briefs": "PASS",
+    "embeddings": "PASS",
+    "integrity": "PASS",
+    "tables": "PASS",
+    "clientPrivileges": "PASS",
+    "columns": "PASS",
+    "indexes": "PASS",
+    "constraints": "PASS"
+  },
+  "comparisonMethod": "Canonical row/field content ignoring result ordering. Brief row order changed; no brief field changed.",
+  "currentContentDigests": {
+    "documents_sha256": "a2bc3da052d231865869b82e35ce31593ce80cff1902b063a3471c0da15a5ee4",
+    "briefs_sha256": "99b2becad81a83c1c913e6efc53db2c9ce8295a48d407cbc412afccee24e2782",
+    "chunks_sha256": "9ea20e9e8e995b77f3fd2efffc772725423b4750137164395c56b8b38e3a811f"
+  },
+  "priorFullContentDigest": "NOT CAPTURED before resume; no claim of before/after byte digest equality",
+  "evidence": "Source ids/timestamps/body lengths/statuses, vector model/counts, integrity, applied hashes and catalog match initial read-only resume capture. All writes scoped to own synthetic fixture ids/keys; corpus objects were not mutated."
+}

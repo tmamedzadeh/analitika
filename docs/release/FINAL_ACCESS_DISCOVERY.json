@@ -1,0 +1,42 @@
+{
+  "capturedAt": "2026-10-22T03:12:17.852Z",
+  "secureEnvironment": {
+    "VERCEL_TOKEN": false,
+    "VERCEL_ORG_ID": false,
+    "VERCEL_PROJECT_ID": false,
+    "INNGEST_API_KEY": false,
+    "INNGEST_SIGNING_KEY": true,
+    "INNGEST_EVENT_KEY": true,
+    "GH_TOKEN": false,
+    "GITHUB_TOKEN": false,
+    "APP_URL": false
+  },
+  "vercelAuthAvailable": false,
+  "gitCredentialAvailable": true,
+  "githubRepository": {
+    "status": 200,
+    "fullName": "tmamedzadeh/analitika",
+    "defaultBranch": "main",
+    "permissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    }
+  },
+  "inngestApps": {
+    "status": 200,
+    "topLevelKeys": [
+      "data",
+      "metadata",
+      "page"
+    ],
+    "data": [
+      {
+        "id": "analitika",
+        "name": "analitika"
+      }
+    ]
+  }
+}

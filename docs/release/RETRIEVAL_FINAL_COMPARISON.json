@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-10-22T04:24:28.768Z",
+  "baselineMetrics": {
+    "RecallAt5": 1,
+    "RecallAt10": 1,
+    "MRR": 0.8555555555555556,
+    "nDCG": 0.8793150243467073
+  },
+  "finalMetrics": {
+    "RecallAt5": 0.9333333333333333,
+    "RecallAt10": 1,
+    "MRR": 0.8428571428571429,
+    "nDCG": 0.8682039132355962
+  },
+  "metricsDelta": {
+    "RecallAt5": -0.06666666666666665,
+    "RecallAt10": 0,
+    "MRR": -0.012698412698412764,
+    "nDCG": -0.011111111111111072
+  },
+  "changedCases": [
+    {
+      "query": "Rusiya müdafiə sənayesinin komponent təchizatı",
+      "baseline": {
+        "recall5": 1,
+        "mrr": 0.3333333333333333,
+        "ndcg": 0.5
+      },
+      "final": {
+        "recall5": 0,
+        "mrr": 0.14285714285714285,
+        "ndcg": 0.3333333333333333
+      },
+      "embeddingHttp": "network/timeout"
+    }
+  ],
+  "limits": "Different timestamp/provider result and explicit open evaluation user. No causal attribution to one timeout or claim of unchanged Recall@5; no product acceptance threshold invented."
+}

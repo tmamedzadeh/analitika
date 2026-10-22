@@ -51,7 +51,7 @@ try {
   }
 
   const storage = getStorage();
-  const uploadUrl = await storage.getSignedUploadUrl(storageKey, "image/png", 60);
+  const uploadUrl = await storage.getSignedUploadUrl(storageKey, "image/png", png.length, 60);
   const putResponse = await fetch(uploadUrl, {
     method: "PUT",
     headers: { "Content-Type": "image/png" },

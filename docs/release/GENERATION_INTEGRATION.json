@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-21T14:34:59.091Z",
+  "checkedAt": "2026-10-22T03:26:28.755Z",
   "sourcesPolicy": "open only; text sent to configured Gemini provider under audit authorization",
   "results": [
     {
@@ -9,19 +9,19 @@
       "sourceCount": 10,
       "publishable": true,
       "evidenceChecks": {
-        "exactExcerptCount": 10,
+        "exactExcerptCount": 8,
         "unsupportedNumericFactCount": 0,
         "unanchoredClaimCount": 0
       },
-      "attempts": 2,
+      "attempts": 1,
       "status": "PASS",
-      "elapsedMs": 74814
+      "elapsedMs": 23999
     },
     {
       "id": "no-answer-export",
       "expectedNoAnswer": true,
       "actualNoAnswer": true,
-      "sourceCount": 10,
+      "sourceCount": 3,
       "publishable": true,
       "evidenceChecks": {
         "exactExcerptCount": 0,
@@ -30,7 +30,7 @@
       },
       "attempts": 1,
       "status": "PASS",
-      "elapsedMs": 19317
+      "elapsedMs": 13711
     },
     {
       "id": "no-answer-health",
@@ -45,7 +45,28 @@
       },
       "attempts": 1,
       "status": "PASS",
-      "elapsedMs": 25586
+      "elapsedMs": 13096
     }
-  ]
+  ],
+  "observedExecution": {
+    "configuredPrimary": "gemini-3.8-flash",
+    "configuredLight": "gemini-3.5-flash-lite",
+    "quotaFallbackObservedCases": [
+      "answerable-numeric",
+      "no-answer-export",
+      "no-answer-health"
+    ],
+    "observation": "All three cases logged gateway quota fallback to the configured light model. This live run preceded metadata-only reporting fix; model attribution comes from explicit gateway logs, not a fabricated provider response field.",
+    "earlierProbes": [
+      "03:17Z provider APICallError",
+      "03:22Z numeric validation rejected twice; export no-answer passed; health provider503"
+    ],
+    "manualSupportReview": {
+      "status": "PASS scoped spot",
+      "numericAnswerClaimUnits": 8,
+      "method": "Compared final cited claims with exact verified source excerpts; 17.1 trillion planned/27 percent/draft-vs-spent/economic-context claims correspond to supplied excerpts",
+      "noAnswerCases": 2,
+      "limit": "Manual sample review, not automatic entailment or factual verification of real-world source material"
+    }
+  }
 }

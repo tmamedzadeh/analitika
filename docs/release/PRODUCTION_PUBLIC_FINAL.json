@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-10-22T03:28:29.780Z",
+  "target": "https://analitika-one.vercel.app",
+  "method": "Public GET only; not authenticated smoke, not revision proof",
+  "checks": [
+    {
+      "path": "/login",
+      "status": 200,
+      "redirectsToLogin": false,
+      "brandMatched": true
+    },
+    {
+      "path": "/",
+      "status": 401,
+      "redirectsToLogin": false
+    },
+    {
+      "path": "/api/inngest",
+      "status": 401,
+      "redirectsToLogin": false
+    },
+    {
+      "path": "/osint",
+      "status": 401,
+      "redirectsToLogin": false
+    },
+    {
+      "path": "/sorgu",
+      "status": 401,
+      "redirectsToLogin": false
+    }
+  ],
+  "revisionVerified": false
+}

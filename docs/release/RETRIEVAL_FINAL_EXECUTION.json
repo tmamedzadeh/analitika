@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-22T03:40:37.916Z",
+  "exitCode": 0,
+  "fixtureUserClearance": "open",
+  "fixtureLeftovers": 0,
+  "queryPolicy": "17 predefined benchmark questions; no corpus text sent for retrieval",
+  "networkCalls": 17,
+  "statusCounts": {
+    "200": 16,
+    "networkError": 1
+  },
+  "metrics": {
+    "RecallAt5": 0.9333333333333333,
+    "RecallAt10": 1,
+    "MRR": 0.8428571428571429,
+    "nDCG": 0.8682039132355962
+  },
+  "queryCount": 17,
+  "baselineRetained": "RETRIEVAL_BASELINE.json remains unchanged"
+}

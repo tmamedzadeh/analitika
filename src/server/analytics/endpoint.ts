@@ -308,11 +308,12 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
           const generation = await withAnalyticsSourceAccess(
             sources,
             user.id,
-            async (available) => {
+            async (available, queryClassification) => {
               if (!sameAnalyticsSourceSet(sources, available)) {
                 return { accessChanged: true, validatedAnswer: null };
               }
               sources = available;
+              assertExternalAiClassification(queryClassification);
               for (const source of sources)
                 assertExternalAiClassification(source.classification ?? "unknown");
               const providers = createGeminiProviders();
@@ -341,6 +342,7 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
                   signal: aborter.signal,
                   timeoutMs: 60_000,
                 });
+                if (generated.model) model = generated.model;
                 const validated = validateCitations(
                   generated.text,
                   sources,
@@ -466,8 +468,12 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
         } finally {
           close();
         }
-      })().catch((error) => {
+      })().catch(async (error) => {
         clearTimeout(deadline);
+        await saveHistory({
+          status: aborter.signal.aborted ? abortedHistoryStatus() : "failed",
+          durationMs: Date.now() - startedAt,
+        });
         if (!aborter.signal.aborted)
           console.error("Analytics answer stream failed unexpectedly.", {
             requestId,

@@ -1,0 +1,398 @@
+{
+  "preparedAt": "2026-10-21T18:17:17.126Z",
+  "branch": "codex/zirve-v1-rc-resume",
+  "baseHead": "a45706e8c0979df1babd20851639e0c9d6a99982",
+  "selection": "Explicit reviewed paths only; no git add -A; initial tree clean; no other user edits discarded",
+  "fileCount": 55,
+  "codeDigestSha256": "3b1f195ad173b033bf11946ac6226d3bdde68893873abc72378d0439cdd198a5",
+  "checksumFormat": "Working-file SHA256 plus Git-normalized blob id; CRLF normalization is explicit",
+  "pushMergeDeployment": false,
+  "productionDecision": "NO-GO",
+  "paths": [
+    {
+      "path": "docs/AUTHENTICATION.md",
+      "statusBeforeSelection": " M",
+      "purpose": "Current scope, handoff, audit and operator documentation",
+      "workingFileSha256": "0020c627dd76badda1e63fe29b46d5be5a0f6b5d3b9a41ffbc1a85c10a396791",
+      "gitNormalizedBlobOid": "863ced4e21c8e0c9a7ff9202f71a43df878db375"
+    },
+    {
+      "path": "docs/DECISIONS.md",
+      "statusBeforeSelection": " M",
+      "purpose": "Current scope, handoff, audit and operator documentation",
+      "workingFileSha256": "161958562d52d01eff99535f275b4d51d1f43995db96288beafbd42bd622d7fe",
+      "gitNormalizedBlobOid": "891200139fadcb68d73d30ddcc1aeb5c3b6ebc84"
+    },
+    {
+      "path": "docs/release/BROWSER_E2E.json",
+      "statusBeforeSelection": " M",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "c69dbf8dae41878f7ea32554c1891109065bc68d1f6b9a2512adebd4bc98a9a6",
+      "gitNormalizedBlobOid": "ba4a9292158cd8fa2edc68e6c6ad03cfff8e8d63"
+    },
+    {
+      "path": "docs/release/BROWSER_MOBILE.png",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "e02a69424a2704620abb9271815fbcde49e7ebd201ad3b154310de86d2a064ce",
+      "gitNormalizedBlobOid": "fc13b44158e9a0055db8a00dedf68fccd0b654b0"
+    },
+    {
+      "path": "docs/release/CORPUS_PRESERVATION_RC.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "bb141142c063dc2a4a1d7fce2431252004deb6d707ce51aafb4a068f033a6acb",
+      "gitNormalizedBlobOid": "ce816687c340292ef6298480688200ca42181975"
+    },
+    {
+      "path": "docs/release/FILE_REVIEW_RC.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "2294b51aad984e91b7742bf8bb94f66e2414f1158dc1a6ee0b1d6de05f53cd70",
+      "gitNormalizedBlobOid": "750e3df86abebd8332e75986906d49e2ba58d228"
+    },
+    {
+      "path": "docs/release/INDEX_LIFECYCLE_EDGES.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "9e18ff28fb6af1aed17de7166872b58ac99e96c01b38a562484e2950af673c9d",
+      "gitNormalizedBlobOid": "e894120718eaa3e077287631c4175b71c7c45790"
+    },
+    {
+      "path": "docs/release/INDEXING_INTEGRATION_RC.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "d053f698cf8b7728b869103dc57c1ec3d1184a94ecfcc55e38ec5309e9572548",
+      "gitNormalizedBlobOid": "0d5f1ac97783ca8ff220a60dad52e202504ebf5e"
+    },
+    {
+      "path": "docs/release/LEXICAL_INTEGRATION.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "77e8528aaf6938b8766532dc483c33714df3fbaaae165a927c2eb752d073d2b8",
+      "gitNormalizedBlobOid": "19cbd5325a59172de327f9aacb2a26f8da76b98b"
+    },
+    {
+      "path": "docs/release/LIVE_DB_RC.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "5d9b16c20bf9d0a2e404a33d33903f16f4621fef1e9dc511e2fab90c6e6a75e0",
+      "gitNormalizedBlobOid": "d643923c761c83203a2301d1dc0e3e35e8bcc182"
+    },
+    {
+      "path": "docs/release/LIVE_DB_RESUME.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "99267dfa69a97302d30259eb78e652a8f7842ab919c3e59566993a1831bae8a3",
+      "gitNormalizedBlobOid": "e7bc795442176cf5cc3c412963306de5c4342345"
+    },
+    {
+      "path": "docs/release/RC_CHECKS.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "d71aa78772951f0f18bf715763cd8edea6d5c43309283da4c5bda4d4faef28a6",
+      "gitNormalizedBlobOid": "d7d7a30988a8d44ae27bba1dab02f2f116b7e136"
+    },
+    {
+      "path": "docs/release/RELEASE_RUNBOOK.md",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "60d011d294dfb86cee689f23017541ddd58d486069359f15ab522f73485d7ca7",
+      "gitNormalizedBlobOid": "d054431c8d59d5020cdb9311f620570c6cbac291"
+    },
+    {
+      "path": "docs/release/RESUME_FILE_MANIFEST.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Explicit resume review selection and checksums; own checksum intentionally omitted",
+      "workingFileSha256": null,
+      "gitNormalizedBlobOid": null
+    },
+    {
+      "path": "docs/release/RESUME_GIT_INVENTORY.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "0f608a346807c550de19629ebcb0e448759a47c714a5f8ba829040aa5a300923",
+      "gitNormalizedBlobOid": "e2e1dad05bf0134ca80bc330f6757f02f6ccd96c"
+    },
+    {
+      "path": "docs/release/RESUME_RUNTIME_DISCOVERY.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "352ea5ea2f90dc0591a2bc59e435eb642b38ff950ea1b5c3feb6f808dadd130d",
+      "gitNormalizedBlobOid": "7cb272ea827ea7cfca8929831b7cc055a13e2617"
+    },
+    {
+      "path": "docs/release/RETRIEVAL_EDGES.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "129f3479bb2f78bbc25553381c839d192df4259020e21c6c8f19f84e068d4162",
+      "gitNormalizedBlobOid": "b93ca101d2384fdce74dc35ad760aeb64d1604e7"
+    },
+    {
+      "path": "docs/release/RUNTIME_EDGES.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "8ff0017f173051a455ba6625ba1f45aaead8e9c146f8671c7b2d08f224d528b2",
+      "gitNormalizedBlobOid": "23f30838f6237c4b85f6dc1e9e939dad264aee1c"
+    },
+    {
+      "path": "docs/release/RUNTIME_PROBES.json",
+      "statusBeforeSelection": " M",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "41a8d5dbbbd3e821241ca64bcfff5f51478a07654ffedbb448b9255869ed614f",
+      "gitNormalizedBlobOid": "0a695cc4c84b8009e2a4d02c193046496145180d"
+    },
+    {
+      "path": "docs/release/SECRET_SCAN_RC.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "0fbb5d7508d91877848ca4b49c5d814d5f461b62f30796c48f4c2bc2c72a341b",
+      "gitNormalizedBlobOid": "ae1de83715f7eca539693718e90a777edbe14608"
+    },
+    {
+      "path": "docs/release/SEMANTIC_SAMPLE.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "601da1269fd4a0dfe6493f61ae4aeaf77ae93abaeabe756339959353a95d9821",
+      "gitNormalizedBlobOid": "f7aa1ee43af9cfafc5bd650832453d40dc5cd273"
+    },
+    {
+      "path": "docs/release/STORAGE_INTEGRATION.json",
+      "statusBeforeSelection": "??",
+      "purpose": "Safe timestamped evidence / release runbook",
+      "workingFileSha256": "e2a768af8354d4c2e6bc6f5c5dde7911ea6d85d260b5c0aac9bfaa05a4cd3bbf",
+      "gitNormalizedBlobOid": "5849989e2b0c44862e528e2b1f91acd7ce314f2c"
+    },
+    {
+      "path": "docs/V1_PROD_HARDENING_AUDIT.md",
+      "statusBeforeSelection": " M",
+      "purpose": "Current scope, handoff, audit and operator documentation",
+      "workingFileSha256": "fd4ab4aefc969969ea0af015eda50ee62a8bdb91f54ae4b4c011391bb410bcc1",
+      "gitNormalizedBlobOid": "9c57abac73ef20204a9cc1325a1de902963b63f6"
+    },
+    {
+      "path": "docs/WORK_SESSION_HANDOFF.md",
+      "statusBeforeSelection": " M",
+      "purpose": "Current scope, handoff, audit and operator documentation",
+      "workingFileSha256": "5ff710d36bbc5b96c85fbc714c59103a5cd4998bb73b79f0cbf98af48e65ab79",
+      "gitNormalizedBlobOid": "8acfc83b82e7b888d745c5c4ff03a8783226d905"
+    },
+    {
+      "path": "README.md",
+      "statusBeforeSelection": " M",
+      "purpose": "Current scope, handoff, audit and operator documentation",
+      "workingFileSha256": "95850eaeb24be122f5b44c2368bc72d492aa7dd47e7185876469ce041117b1a9",
+      "gitNormalizedBlobOid": "a6a84c4d9fb1aa3baaa0842474daec137beb6396"
+    },
+    {
+      "path": "scripts/controlled-ai-preload.ts",
+      "statusBeforeSelection": "??",
+      "purpose": "Scoped verification tooling and correct reindex result accounting",
+      "workingFileSha256": "47dae7ed1b7c2ad073c5218f06c853bb5b6c953076ebeedcfd15a6c9fe42f1cc",
+      "gitNormalizedBlobOid": "b2e6fff1ae4b296c8b31a30155c60d4980af365d"
+    },
+    {
+      "path": "scripts/reindex.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Scoped verification tooling and correct reindex result accounting",
+      "workingFileSha256": "1846f95cfefd1ae8c4dae6bd8dfc322174e50abe90bb3859c065d4799cb0d93f",
+      "gitNormalizedBlobOid": "c9d942bd357129783c89d69afae90836d85841d1"
+    },
+    {
+      "path": "scripts/verify-briefs-live.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Scoped verification tooling and correct reindex result accounting",
+      "workingFileSha256": "df6fb57c48a737f4356bccf18840aa3f50257f757b1975b269c5a547bf6b1907",
+      "gitNormalizedBlobOid": "c4a07b1902428a36c8fc14b2bdaeb17c2bc32ec9"
+    },
+    {
+      "path": "scripts/verify-browser.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Scoped verification tooling and correct reindex result accounting",
+      "workingFileSha256": "99bfbe2f1147069d414bb16b7c4b1b2f0a017994813df56e03c1b3ba99de0473",
+      "gitNormalizedBlobOid": "66c42065eb50841e6b738e4756bbf3b337c99a75"
+    },
+    {
+      "path": "scripts/verify-index-edges.ts",
+      "statusBeforeSelection": "??",
+      "purpose": "Scoped verification tooling and correct reindex result accounting",
+      "workingFileSha256": "cab653a3acb297b48f88332c5c5fd7a88ed49fd1a60aa1ace700173cd65291ab",
+      "gitNormalizedBlobOid": "b5c37fe023e08523b1dddfeae31c16988c44c985"
+    },
+    {
+      "path": "scripts/verify-release-integration.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Scoped verification tooling and correct reindex result accounting",
+      "workingFileSha256": "9857fdb254d29f7e2688a29bfc59b90c916929325a810007bbe1b44ff054b3f8",
+      "gitNormalizedBlobOid": "7c94d7d56b10b1c5c103df1cfbb2f1f4813d0c33"
+    },
+    {
+      "path": "scripts/verify-retrieval-edges.ts",
+      "statusBeforeSelection": "??",
+      "purpose": "Scoped verification tooling and correct reindex result accounting",
+      "workingFileSha256": "90e41be5a95905c508a07a4fb8b9be1d4b9721ee4b5f0b495f7b7d527559440d",
+      "gitNormalizedBlobOid": "99ed6213f728d0179414a1d5d0c5c06e24390c3d"
+    },
+    {
+      "path": "scripts/verify-runtime-edges.ts",
+      "statusBeforeSelection": "??",
+      "purpose": "Scoped verification tooling and correct reindex result accounting",
+      "workingFileSha256": "26ef7d62da9eefaf79b811ce26a4de7af1ac92f8e0bc55c01aa688773f629f57",
+      "gitNormalizedBlobOid": "0531cfda40ee0240006bbb453cbe365d3a60f9c4"
+    },
+    {
+      "path": "scripts/verify-semantic-sample.ts",
+      "statusBeforeSelection": "??",
+      "purpose": "Scoped verification tooling and correct reindex result accounting",
+      "workingFileSha256": "f1b6ac5941b8937e2ec3f4f9b002a68b2fb9cf5a3be6b13f5cdf77d78f380244",
+      "gitNormalizedBlobOid": "324e4a2669e3e850f5a8e5cff5b3a14d9d50eef8"
+    },
+    {
+      "path": "scripts/verify-stage-1.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Scoped verification tooling and correct reindex result accounting",
+      "workingFileSha256": "baeb1a74bd150e84cb2fc6a2226a9720930b0f1d09006e992a7cc04568e0af4e",
+      "gitNormalizedBlobOid": "359a82e28322f692d528d073f0057f598d9e8120"
+    },
+    {
+      "path": "scripts/verify-storage.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Scoped verification tooling and correct reindex result accounting",
+      "workingFileSha256": "c96943ed0ce52c3e929221cdae0d09e73370b08df7f563cc072d7b7338fa79c6",
+      "gitNormalizedBlobOid": "10d34e98e55df5dc13b6571c784390fe7b4fe8df"
+    },
+    {
+      "path": "src/components/Shell.tsx",
+      "statusBeforeSelection": " M",
+      "purpose": "History source navigation/counts, mobile title wrap and UI regression coverage",
+      "workingFileSha256": "64918662f9e9d6a1403f28a7b1b4f4a7dfde1fb0f9ac930c1ca66baa436fe543",
+      "gitNormalizedBlobOid": "85a77c24fd016645ef076aa7b4876b15347012fe"
+    },
+    {
+      "path": "src/lib/documents.functions.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Owner-bound, size/MIME-signed uploads and immutable verified committed images",
+      "workingFileSha256": "25f4ee47d52931ff7df4c2b066cceac96f5b29dc69ea2d815ebfd147c70afdb9",
+      "gitNormalizedBlobOid": "69a7c37821b99b18b2b8506de4e0689d590d42a3"
+    },
+    {
+      "path": "src/routes/_app.axtaris.tsx",
+      "statusBeforeSelection": " M",
+      "purpose": "History source navigation/counts, mobile title wrap and UI regression coverage",
+      "workingFileSha256": "c78149233c3dcb80261edb375742c6851062d0b2964464ba3a5e3b7465ba6919",
+      "gitNormalizedBlobOid": "1d0e49b5648fb07dac4ce873d9c3bbdf811dabe3"
+    },
+    {
+      "path": "src/server/ai/gemini-gateway.test.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Single bounded retry/deadline budget and SDK HTTP regression coverage",
+      "workingFileSha256": "c546a3d440c20443412c83df5338b66faadeb501785af1366cea8b8f0880745e",
+      "gitNormalizedBlobOid": "a846be61a882d351f29fbe2513f8fb8da2229f98"
+    },
+    {
+      "path": "src/server/ai/gemini-gateway.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Single bounded retry/deadline budget and SDK HTTP regression coverage",
+      "workingFileSha256": "021811b89a2f6f78cb5fe4a022c2d414e00552be1cbd821841146358347becb2",
+      "gitNormalizedBlobOid": "54c26b07aeb948acd8adebdf3fcef3181b3839e1"
+    },
+    {
+      "path": "src/server/ai/gemini.test.ts",
+      "statusBeforeSelection": "??",
+      "purpose": "Single bounded retry/deadline budget and SDK HTTP regression coverage",
+      "workingFileSha256": "be1deaebee79dd260d6888fe690d58edb1222d5895cbf7c8a5c62a8fa1471837",
+      "gitNormalizedBlobOid": "c1e3137a3bae62750d0d7ea1777f3b402eab06ed"
+    },
+    {
+      "path": "src/server/ai/gemini.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Single bounded retry/deadline budget and SDK HTTP regression coverage",
+      "workingFileSha256": "e540c74cb2b642c3ca3fb858db4f7cb66d72b64481f2669858b9969ac35e2f0e",
+      "gitNormalizedBlobOid": "5a261ba45a991f48a6f2207794aedc31bfca8b58"
+    },
+    {
+      "path": "src/server/analytics/endpoint.test.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Open-only question policy, abort/history live access and regression coverage",
+      "workingFileSha256": "203d920ad4720481d74e33e8c437b91b74b576a218778ad9425f2bbf8c765d61",
+      "gitNormalizedBlobOid": "82aeb5204f02ec62118a4d23489e7aa528bbfe1f"
+    },
+    {
+      "path": "src/server/analytics/endpoint.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Open-only question policy, abort/history live access and regression coverage",
+      "workingFileSha256": "bb24f33783be1805023d4304c0390f4b5e15daef7c0d51ad4aab8a2997416ae9",
+      "gitNormalizedBlobOid": "b83231be27ef296bd7a99e7637df6994386aae33"
+    },
+    {
+      "path": "src/server/analytics/history.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Open-only question policy, abort/history live access and regression coverage",
+      "workingFileSha256": "96ffcf25416e7e4e7cb8fdda746e31430d334a32bc0d664eae866cd91abfab5d",
+      "gitNormalizedBlobOid": "e97487420da2b9dfab042c900f59341e74c78a9a"
+    },
+    {
+      "path": "src/server/analytics/ranking.test.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Open-only question policy, abort/history live access and regression coverage",
+      "workingFileSha256": "32f9595a9097982f27ad2bb7c822f29bc22e12eb20e57e7af8602ab42ed98be9",
+      "gitNormalizedBlobOid": "017e0da5f04eeb4108bb473de805f47db77d2d89"
+    },
+    {
+      "path": "src/server/analytics/search.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Open-only question policy, abort/history live access and regression coverage",
+      "workingFileSha256": "4f7071a583092d68ade6356f1a938bca3a7dfe03db8828ddcd55f9e28f574e08",
+      "gitNormalizedBlobOid": "c13d9070c2a2ccf5c1e43e45a2e64b830edb44a6"
+    },
+    {
+      "path": "src/server/analytics/source-access.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Open-only question policy, abort/history live access and regression coverage",
+      "workingFileSha256": "9d77fc27847a91ae3b97edb5a6e02e608503d867b8669043f81a8e364643c533",
+      "gitNormalizedBlobOid": "495e3e48614c92d9616203a07cc5ed5921141eb0"
+    },
+    {
+      "path": "src/server/briefs/mutations.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Owner-bound, size/MIME-signed uploads and immutable verified committed images",
+      "workingFileSha256": "5d7aa53c205e676be60d709f56d5e4e9409ca2aeb9c8e2189af03c002a910207",
+      "gitNormalizedBlobOid": "ffa2ef282a0442743b4ce7f9abd649aba26a902c"
+    },
+    {
+      "path": "src/server/storage/image-uploads.test.ts",
+      "statusBeforeSelection": "??",
+      "purpose": "Owner-bound, size/MIME-signed uploads and immutable verified committed images",
+      "workingFileSha256": "4a9a3d2df9bcb9755bca97938c9a08a289f11616ef2e1ed29241efc256d9e631",
+      "gitNormalizedBlobOid": "f09eb74efceb9a886263ca75b75d3d7f3d2cb994"
+    },
+    {
+      "path": "src/server/storage/image-uploads.ts",
+      "statusBeforeSelection": "??",
+      "purpose": "Owner-bound, size/MIME-signed uploads and immutable verified committed images",
+      "workingFileSha256": "882e2dd16d5906def591c28cf1d34dc017606086af2d3d50b23f965243ce6bdd",
+      "gitNormalizedBlobOid": "5e18f65084e31e40392f359744615358413b2680"
+    },
+    {
+      "path": "src/server/storage/s3.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Owner-bound, size/MIME-signed uploads and immutable verified committed images",
+      "workingFileSha256": "4c433e12e175239e718fdf78d314beca80c81561018f268361795e7186017855",
+      "gitNormalizedBlobOid": "7bdbeb349e9d05adc69ad6aaed20582065553541"
+    },
+    {
+      "path": "src/server/storage/types.ts",
+      "statusBeforeSelection": " M",
+      "purpose": "Owner-bound, size/MIME-signed uploads and immutable verified committed images",
+      "workingFileSha256": "fc483bd2b29e677a87170598442b3c3bd031ae87c4430f5ca33c0310c4e411a2",
+      "gitNormalizedBlobOid": "7066214b93618591086271cc33c0ba4f41488f9c"
+    },
+    {
+      "path": "src/test/analytics-layout.test.tsx",
+      "statusBeforeSelection": " M",
+      "purpose": "History source navigation/counts, mobile title wrap and UI regression coverage",
+      "workingFileSha256": "13cccf35fc57ab5e2dbc484b498a94e3bbc7d7067a0d9e28f6f7329664a2c0a2",
+      "gitNormalizedBlobOid": "ae28db851e24a7755bf7f2ac4f1263a89faa352c"
+    }
+  ]
+}

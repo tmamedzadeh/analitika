@@ -6,13 +6,12 @@ import {
   briefIdSchema,
   briefInputSchema,
   briefPhotoMetadataSchema,
-  imageMimeFromSignature,
   MAX_BRIEF_PHOTOS,
 } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
-import { accessFilter } from "@/server/db/access";
+import { accessFilter, adminAccessFilter } from "@/server/db/access";
 import { getDb } from "@/server/db";
-import { briefAttachments, dailyBriefs } from "@/server/db/schema";
+import { appUsers, briefAttachments, dailyBriefs } from "@/server/db/schema";
 import { briefIndexingRequested } from "@/server/inngest/events";
 import { inngest } from "@/server/inngest/client";
 import { getStorage } from "@/server/storage/s3";
@@ -21,6 +20,12 @@ import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 import { getCurrentUser, requireAdmin } from "@/server/auth";
 import { briefContentHash } from "./index-state";
 import { indexProgress } from "../jobs/index-state";
+import {
+  commitImageUploads,
+  discardImageUploads,
+  isOwnedImageUploadKey,
+  newImageUploadKey,
+} from "../storage/image-uploads";
 
 const photoListSchema = z.array(briefPhotoMetadataSchema).max(MAX_BRIEF_PHOTOS);
 const idListSchema = z
@@ -74,28 +79,6 @@ const extensionForMime = {
   "image/webp": "webp",
 } as const;
 
-function validUploadKey(
-  briefId: string,
-  key: string,
-  mime: keyof typeof extensionForMime,
-): boolean {
-  const suffix = extensionForMime[mime];
-  return new RegExp(`^briefs/${briefId}/[0-9a-f-]{36}\\.${suffix}$`, "i").test(key);
-}
-
-async function deleteUploadedKeys(keys: string[]): Promise<void> {
-  if (!keys.length) return;
-  const referenced = await getDb()
-    .select({ key: briefAttachments.storageKey })
-    .from(briefAttachments)
-    .where(inArray(briefAttachments.storageKey, keys));
-  const attachedKeys = new Set(referenced.map((row) => row.key));
-  const storage = getStorage();
-  await Promise.allSettled(
-    keys.filter((key) => !attachedKeys.has(key)).map((key) => storage.delete(key)),
-  );
-}
-
 export async function prepareBriefUploadUrls(
   input: z.infer<typeof prepareBriefUploadsSchema>,
 ): Promise<{
@@ -110,6 +93,7 @@ export async function prepareBriefUploadUrls(
   }>;
 }> {
   const parsed = prepareBriefUploadsSchema.parse(input);
+  const user = getCurrentUser();
   if (!(await consumeIpRateLimit("upload-prepare", getRequest(), 30, 10 * 60_000))) {
     throw new Error(az.analytics.rateLimited);
   }
@@ -122,10 +106,15 @@ export async function prepareBriefUploadUrls(
     const [brief] = await db
       .select({ id: dailyBriefs.id, authorId: dailyBriefs.authorId })
       .from(dailyBriefs)
-      .where(and(eq(dailyBriefs.id, briefId), accessFilter()))
+      .where(
+        and(
+          eq(dailyBriefs.id, briefId),
+          accessFilter(),
+          sql`(${dailyBriefs.authorId} = ${user.id} or ${adminAccessFilter(user)})`,
+        ),
+      )
       .limit(1);
     if (!brief) throw new Error(az.briefs.missing);
-    const user = getCurrentUser();
     if (!canEditBrief(user, brief.authorId)) throw new Error(az.briefs.missing);
     currentAttachments = await db
       .select()
@@ -146,41 +135,17 @@ export async function prepareBriefUploadUrls(
   const uploads = await Promise.all(
     parsed.photos.map(async (photo) => {
       const mime = photo.mime as keyof typeof extensionForMime;
-      const key = `briefs/${briefId}/${crypto.randomUUID()}.${extensionForMime[mime]}`;
+      const key = newImageUploadKey("briefs", briefId, user.id, mime);
       return {
         name: safeFileName(photo.name),
         mime,
         size: photo.size,
         key,
-        url: await storage.getSignedUploadUrl(key, mime, 300),
+        url: await storage.getSignedUploadUrl(key, mime, photo.size, 300),
       };
     }),
   );
   return { briefId, isNew, uploads };
-}
-
-async function verifyUploadedPhotos(
-  briefId: string,
-  uploads: z.infer<typeof uploadSchema>[],
-): Promise<void> {
-  const storage = getStorage();
-  for (const upload of uploads) {
-    if (!validUploadKey(briefId, upload.key, upload.mime)) {
-      throw new Error(az.briefs.uploadVerifyFailed);
-    }
-    const [metadata, prefix] = await Promise.all([
-      storage.getMetadata(upload.key),
-      storage.getPrefix(upload.key, 12),
-    ]);
-    const actualMime = imageMimeFromSignature(prefix);
-    if (
-      metadata.size !== upload.size ||
-      (metadata.contentType !== undefined && metadata.contentType !== upload.mime) ||
-      actualMime !== upload.mime
-    ) {
-      throw new Error(az.briefs.uploadVerifyFailed);
-    }
-  }
 }
 
 export async function saveBriefRecord(
@@ -191,11 +156,23 @@ export async function saveBriefRecord(
   const db = getDb();
   const user = getCurrentUser();
   const uploadedKeys = parsed.uploads
-    .filter((upload) => validUploadKey(parsed.briefId, upload.key, upload.mime))
+    .filter((upload) =>
+      isOwnedImageUploadKey("briefs", parsed.briefId, user.id, upload.key, upload.mime),
+    )
     .map((upload) => upload.key);
 
+  let committedUploads: z.infer<typeof uploadSchema>[] = [];
+  let recordCommitted = false;
   try {
-    await verifyUploadedPhotos(parsed.briefId, parsed.uploads);
+    committedUploads = await commitImageUploads(
+      getStorage(),
+      "briefs",
+      parsed.briefId,
+      user.id,
+      parsed.uploads,
+    ).catch(() => {
+      throw new Error(az.briefs.uploadVerifyFailed);
+    });
     if (parsed.keepAttachmentIds.length + parsed.uploads.length > MAX_BRIEF_PHOTOS) {
       throw new Error(az.briefs.validation.tooManyPhotos);
     }
@@ -233,6 +210,13 @@ export async function saveBriefRecord(
       .map((file) => file.storageKey);
     const now = new Date();
     await db.transaction(async (transaction) => {
+      const [actor] = await transaction
+        .select({ id: appUsers.id, role: appUsers.role })
+        .from(appUsers)
+        .where(and(eq(appUsers.id, user.id), eq(appUsers.active, true)))
+        .for("share")
+        .limit(1);
+      if (!actor) throw new Error(az.briefs.missing);
       if (!parsed.isNew) {
         const [locked] = await transaction
           .select({
@@ -245,7 +229,7 @@ export async function saveBriefRecord(
           .limit(1);
         if (
           !locked ||
-          !canEditBrief(user, locked.authorId) ||
+          !canEditBrief(actor, locked.authorId) ||
           locked.version !== existingBrief!.version
         ) {
           throw new Error(az.briefs.saveFailed);
@@ -305,7 +289,7 @@ export async function saveBriefRecord(
           size: file.size,
           ord,
         })),
-        ...parsed.uploads.map((file, index) => ({
+        ...committedUploads.map((file, index) => ({
           briefId: parsed.briefId,
           storageKey: file.key,
           name: safeFileName(file.name),
@@ -318,6 +302,8 @@ export async function saveBriefRecord(
         await transaction.insert(briefAttachments).values(finalAttachments);
     });
 
+    recordCommitted = true;
+    await discardImageUploads(getStorage(), "briefs", parsed.briefId, user.id, uploadedKeys);
     let cleanupIncomplete = false;
     if (removedKeys.length > 0) {
       const results = await Promise.allSettled(removedKeys.map((key) => getStorage().delete(key)));
@@ -344,7 +330,10 @@ export async function saveBriefRecord(
     }
     return { ok: true, briefId: parsed.briefId, queueFailed, cleanupIncomplete };
   } catch (error) {
-    if (uploadedKeys.length > 0) await deleteUploadedKeys(uploadedKeys);
+    if (!recordCommitted)
+      await Promise.allSettled(committedUploads.map(({ key }) => getStorage().delete(key)));
+    if (uploadedKeys.length > 0)
+      await discardImageUploads(getStorage(), "briefs", parsed.briefId, user.id, uploadedKeys);
     throw error;
   }
 }
@@ -353,15 +342,13 @@ export async function discardBriefUploads(
   input: z.infer<typeof discardUploadsSchema>,
 ): Promise<void> {
   const parsed = discardUploadsSchema.parse(input);
-  const prefix = `briefs/${parsed.briefId}/`;
-  if (parsed.keys.some((key) => !key.startsWith(prefix))) throw new Error(az.briefs.saveFailed);
-  const [brief] = await getDb()
-    .select({ authorId: dailyBriefs.authorId })
-    .from(dailyBriefs)
-    .where(eq(dailyBriefs.id, parsed.briefId))
-    .limit(1);
-  if (brief && !canEditBrief(getCurrentUser(), brief.authorId)) throw new Error(az.briefs.missing);
-  await deleteUploadedKeys(parsed.keys);
+  await discardImageUploads(
+    getStorage(),
+    "briefs",
+    parsed.briefId,
+    getCurrentUser().id,
+    parsed.keys,
+  );
 }
 
 export async function removeBrief(briefId: string): Promise<{ cleanupIncomplete: boolean }> {
@@ -373,10 +360,10 @@ export async function removeBrief(briefId: string): Promise<{ cleanupIncomplete:
       .select({ storageKey: briefAttachments.storageKey })
       .from(briefAttachments)
       .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
-      .where(and(eq(dailyBriefs.id, briefId), accessFilter(user)));
+      .where(and(eq(dailyBriefs.id, briefId), adminAccessFilter(user)));
     const [brief] = await transaction
       .delete(dailyBriefs)
-      .where(and(eq(dailyBriefs.id, briefId), accessFilter(user)))
+      .where(and(eq(dailyBriefs.id, briefId), adminAccessFilter(user)))
       .returning({ id: dailyBriefs.id });
     if (!brief) throw new Error(az.briefs.missing);
     return files.map(({ storageKey }) => storageKey);

@@ -1,6 +1,7 @@
 {
-  "checkedAt": "2026-10-21T14:39:53.319Z",
+  "checkedAt": "2026-10-22T03:52:36.212Z",
   "target": "http://127.0.0.1:4175",
+  "artifactSha256": "d9b68d4aff35d51fbbf77666297507b80417d5c938578f95d92bc6ea04a23523",
   "checks": [
     {
       "name": "anonymous routes redirect to login and data APIs reject access",
@@ -17,10 +18,35 @@
     {
       "name": "owner/admin clearance cannot open a restricted document by UUID",
       "status": "PASS"
+    },
+    {
+      "name": "brief creation, detail/edit route, lexical AND search and empty search state",
+      "status": "PASS"
+    },
+    {
+      "name": "analytics real HTTP retrieval, source rendering, history and source navigation",
+      "status": "PASS"
+    },
+    {
+      "name": "admin account creation, keyboard submit, clearance update and deactivation",
+      "status": "PASS"
+    },
+    {
+      "name": "administration, removed routes and responsive layout",
+      "status": "PASS"
+    },
+    {
+      "name": "session expiration redirects and logout revokes the session",
+      "status": "PASS"
     }
   ],
-  "status": "FAIL",
-  "failureCase": "brief creation, detail/edit route, lexical AND search and empty search state",
+  "status": "PASS",
+  "failureCase": null,
   "fixtureCleanup": "completed",
+  "fixtureLeftovers": 0,
+  "storageFixtureCleanup": {
+    "keys": 4,
+    "absenceVerified": true
+  },
   "cloudWorkerDelivery": "NOT VERIFIED; local worker explicitly exercised"
 }

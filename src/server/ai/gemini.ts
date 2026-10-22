@@ -34,10 +34,12 @@ function signalFor(input: TextGenerationInput): AbortSignal | undefined {
   return input.signal ?? (input.timeoutMs ? AbortSignal.timeout(input.timeoutMs) : undefined);
 }
 
-function requestOptionsFor(input: TextGenerationInput, model: string) {
+function requestOptionsFor(input: TextGenerationInput, model: string, signal = signalFor(input)) {
   const providerOptions = providerOptionsFor(input, model);
-  const abortSignal = signalFor(input);
+  const abortSignal = signal;
   return {
+    // The gateway owns retries and Retry-After. SDK retries would multiply its budget.
+    maxRetries: 0,
     ...(providerOptions === undefined ? {} : { providerOptions }),
     ...(abortSignal === undefined ? {} : { abortSignal }),
   };
@@ -60,20 +62,21 @@ export class GeminiLLMProvider implements LLMProvider {
 
   private withRequest<T>(
     input: TextGenerationInput,
-    operation: (model: string) => Promise<T>,
+    operation: (model: string, signal: AbortSignal | undefined) => Promise<T>,
     allowQuotaFallback = true,
   ): Promise<T> {
+    const signal = signalFor(input);
     const run = (model: string, quotaKey: GeminiQuotaKey, maxAttempts = input.maxAttempts) =>
       withGeminiRequest(
         quotaKey,
         async () => {
           this.usageStats.apiCalls += 1;
-          const result = await operation(model);
+          const result = await operation(model, signal);
           this.recordUsage(result);
           return result;
         },
         maxAttempts,
-        input.signal,
+        signal,
       );
     const primary = () => run(this.model, this.quotaKey);
     const fallbackModel = this.quotaKey === "AI_CHAT_MODEL" ? this.fallbackModel : undefined;
@@ -130,19 +133,21 @@ export class GeminiLLMProvider implements LLMProvider {
 
   async generateTextWithMetadata(
     input: TextGenerationInput,
-  ): Promise<{ text: string; finishReason: string }> {
+  ): Promise<{ text: string; finishReason: string; model?: string }> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
-    const result = await this.withRequest(input, (model) =>
-      generateText({
+    let completedModel = this.model;
+    const result = await this.withRequest(input, (model, signal) => {
+      completedModel = model;
+      return generateText({
         model: google(model),
         ...(input.system ? { system: input.system } : {}),
         prompt: input.prompt,
         ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
         ...(input.maxOutputTokens === undefined ? {} : { maxOutputTokens: input.maxOutputTokens }),
-        ...requestOptionsFor(input, model),
-      }),
-    );
-    return { text: result.text, finishReason: result.finishReason };
+        ...requestOptionsFor(input, model, signal),
+      });
+    });
+    return { text: result.text, finishReason: result.finishReason, model: completedModel };
   }
 
   async generateText(input: TextGenerationInput): Promise<string> {
@@ -154,7 +159,7 @@ export class GeminiLLMProvider implements LLMProvider {
     schema: TSchema,
   ): Promise<z.output<TSchema>> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
-    const result = await this.withRequest(input, (model) =>
+    const result = await this.withRequest(input, (model, signal) =>
       generateText({
         model: google(model),
         ...(input.system ? { system: input.system } : {}),
@@ -162,7 +167,7 @@ export class GeminiLLMProvider implements LLMProvider {
         output: Output.object({ schema }),
         ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
         ...(input.maxOutputTokens === undefined ? {} : { maxOutputTokens: input.maxOutputTokens }),
-        ...requestOptionsFor(input, model),
+        ...requestOptionsFor(input, model, signal),
       }),
     );
     if (result.output === undefined) throw new Error("Gemini returned no structured output.");
@@ -176,7 +181,7 @@ export class GeminiLLMProvider implements LLMProvider {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
     const result = await this.withRequest(
       input,
-      (model) =>
+      (model, signal) =>
         generateText({
           model: google(model),
           ...(input.system ? { system: input.system } : {}),
@@ -186,7 +191,7 @@ export class GeminiLLMProvider implements LLMProvider {
           ...(input.maxOutputTokens === undefined
             ? {}
             : { maxOutputTokens: input.maxOutputTokens }),
-          ...requestOptionsFor(input, model),
+          ...requestOptionsFor(input, model, signal),
         }),
       false,
     );
@@ -196,6 +201,7 @@ export class GeminiLLMProvider implements LLMProvider {
 
   async streamText(input: TextGenerationInput): Promise<AsyncIterable<string>> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
+    const signal = signalFor(input);
     const createStream = (
       model: string,
       quotaKey: GeminiQuotaKey,
@@ -213,11 +219,11 @@ export class GeminiLLMProvider implements LLMProvider {
             ...(input.maxOutputTokens === undefined
               ? {}
               : { maxOutputTokens: input.maxOutputTokens }),
-            ...requestOptionsFor(input, model),
+            ...requestOptionsFor(input, model, signal),
           }).textStream;
         },
         maxAttempts,
-        input.signal,
+        signal,
       );
     const primary = createStream(this.model, this.quotaKey);
     if (this.quotaKey !== "AI_CHAT_MODEL") return primary;
@@ -267,6 +273,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
       async () => {
         this.usage.apiCalls += 1;
         const result = await embed({
+          maxRetries: 0,
           model: google.embedding(this.model),
           value: this.prepareValue(value, "RETRIEVAL_DOCUMENT"),
           providerOptions: this.options("RETRIEVAL_DOCUMENT"),
@@ -294,6 +301,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
         async () => {
           this.usage.apiCalls += 1;
           const response = await embedMany({
+            maxRetries: 0,
             model: google.embedding(this.model),
             values: batch.map((value) => this.prepareValue(value, "RETRIEVAL_DOCUMENT")),
             providerOptions: this.options("RETRIEVAL_DOCUMENT"),
@@ -316,6 +324,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
       async () => {
         this.usage.apiCalls += 1;
         const result = await embed({
+          maxRetries: 0,
           model: google.embedding(this.model),
           value: this.prepareValue(value, "RETRIEVAL_QUERY"),
           providerOptions: this.options("RETRIEVAL_QUERY"),
@@ -340,6 +349,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
         async () => {
           this.usage.apiCalls += 1;
           const response = await embedMany({
+            maxRetries: 0,
             model: google.embedding(this.model),
             values: batch.map((value) => this.prepareValue(value, "RETRIEVAL_QUERY")),
             providerOptions: this.options("RETRIEVAL_QUERY"),

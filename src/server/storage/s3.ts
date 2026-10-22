@@ -59,8 +59,11 @@ export class S3Storage implements StorageProvider {
   async getSignedUploadUrl(
     key: string,
     contentType: string,
+    size: number,
     expiresInSeconds = 300,
   ): Promise<string> {
+    if (!Number.isInteger(size) || size < 1 || size > 10 * 1024 * 1024)
+      throw new Error("Invalid upload size.");
     const expiresIn = Math.min(Math.max(Math.floor(expiresInSeconds), 1), 900);
     return presignUrl(
       this.client,
@@ -68,8 +71,9 @@ export class S3Storage implements StorageProvider {
         Bucket: this.bucket,
         Key: key,
         ContentType: contentType,
+        ContentLength: size,
       }),
-      { expiresIn },
+      { expiresIn, signableHeaders: new Set(["content-type", "content-length"]) },
     );
   }
 
