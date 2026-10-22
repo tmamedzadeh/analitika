@@ -1,3 +1,5 @@
+> Historical specification/evaluation evidence. Original claims and retired module paths are preserved for context; current behavior is described in [Executive Analytics V1](analytics-v1.md) and [shared search](search-v1.md).
+
 ## ДОПОЛНЕНИЕ К БРИФУ (заменяет противоречащие места)
 
 > Historical planning note. Its information-request section was retired by migration 0018 and is not part of the current product. The current access model has no individual document-sharing controls.

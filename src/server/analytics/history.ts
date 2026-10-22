@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { analyticsFiltersSchema, citedSourceNumbers } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
-import { canAccessClassification, getCurrentUser, type Clearance } from "@/server/auth";
+import { canAccessClassification, getCurrentUser } from "@/server/auth";
 import { getDb } from "@/server/db";
 import { accessFilter, classificationAccessFilter, documentAccessFilter } from "@/server/db/access";
 import { analyticsQueries, appUsers, chunks, dailyBriefs, documents } from "@/server/db/schema";
@@ -343,10 +343,6 @@ export async function pruneAnalyticsHistory(now = new Date()): Promise<number> {
   return removed.length;
 }
 
-export function analyticsHistoryOwnerCondition(userId: string, isAdmin: boolean) {
-  return isAdmin ? undefined : eq(analyticsQueries.createdBy, userId);
-}
-
 function liveHistoryOwnerCondition(userId: string) {
   return or(
     eq(analyticsQueries.createdBy, userId),
@@ -371,11 +367,4 @@ export function analyticsHistoryVisibilityFilter(userId: string) {
         )
     )`,
   );
-}
-
-export function analyticsHistoryClassificationAllowed(
-  clearance: Clearance,
-  value: string,
-): boolean {
-  return canAccessClassification({ clearance }, value);
 }

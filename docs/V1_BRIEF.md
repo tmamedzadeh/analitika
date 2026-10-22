@@ -1,3 +1,5 @@
+> Historical specification/evaluation evidence. Original claims and retired module paths are preserved for context; current behavior is described in [Executive Analytics V1](analytics-v1.md) and [shared search](search-v1.md).
+
 # Historical bootstrap brief: MVP V1 «Analitika»
 
 > Archive only. This document records retired planning instructions and is not active product scope. In particular, the former OSINT Web/search pipeline described below was retired; the `OSINT` document-direction value is separate and remains valid. Use the current source, schema and `docs/V1_PROD_HARDENING_AUDIT.md` for active scope.

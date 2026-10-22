@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { parseMode } from "../../scripts/seed-demo";
+import { archivedSeedCounts, parseMode } from "../../scripts/seed-demo";
 
 describe("demo seed protected mode", () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -14,5 +14,9 @@ describe("demo seed protected mode", () => {
       /disabled for the configured project database/u,
     );
     expect(parseMode(["--dry-run"])).toBe("dry-run");
+  });
+
+  it("resolves the archived fixture relative to the script and returns only counts", async () => {
+    expect(await archivedSeedCounts()).toEqual({ documents: 10, briefs: 10 });
   });
 });

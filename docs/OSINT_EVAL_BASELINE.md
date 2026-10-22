@@ -1,3 +1,5 @@
+> Historical specification/evaluation evidence. Original claims and retired module paths are preserved for context; current behavior is described in [Executive Analytics V1](analytics-v1.md) and [shared search](search-v1.md).
+
 # Archived OSINT Web evaluation baseline (retired feature)
 
 > Historical evaluation artifact only. OSINT Web/search was removed. This is not active-scope guidance or current production evidence.

@@ -1,5 +1,6 @@
 ﻿/** This project has one protected database. Destructive demo seeding is disabled on every target. */
 import { readFile } from "node:fs/promises";
+import { URL as NodeURL } from "node:url";
 import { sql } from "drizzle-orm";
 import { closeDb, getDb } from "../src/server/db";
 
@@ -11,17 +12,31 @@ export function parseMode(args: string[] = process.argv.slice(2)): "dry-run" {
   return "dry-run";
 }
 
-async function main(): Promise<void> {
-  const mode = parseMode();
+/** Returns aggregate fixture counts only; archived material must never be sent to an AI provider. */
+export async function archivedSeedCounts(): Promise<{ documents: number; briefs: number }> {
   const dataset = JSON.parse(
-    await readFile("zirve_military_seed_data_2026-10-18.json", "utf8"),
+    await readFile(
+      new NodeURL("../fixtures/seed/zirve_military_seed_data_2026-10-18.json", import.meta.url),
+      "utf8",
+    ),
   ) as {
     documents?: unknown[];
     dailyBriefs?: unknown[];
   };
-  if (dataset.documents?.length !== 10 || dataset.dailyBriefs?.length !== 10) {
+  if (
+    !Array.isArray(dataset.documents) ||
+    !Array.isArray(dataset.dailyBriefs) ||
+    dataset.documents.length !== 10 ||
+    dataset.dailyBriefs.length !== 10
+  ) {
     throw new Error("Expected the archived 10-document/10-brief dataset.");
   }
+  return { documents: dataset.documents.length, briefs: dataset.dailyBriefs.length };
+}
+
+async function main(): Promise<void> {
+  const mode = parseMode();
+  await archivedSeedCounts();
   const counts = await getDb().execute(sql`select
     (select count(*)::int from documents) as documents,
     (select count(*)::int from daily_briefs) as briefs,

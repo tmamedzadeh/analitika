@@ -142,7 +142,6 @@ export const az = {
       5: "Ehtimal olunmayan",
       6: "Qiymətləndirilmir",
     },
-    lowReliabilityWarning: "bu məlumat aşağı etibarlılıq dərəcəsinə malikdir",
   },
   analytics: {
     historyTitle: "Son sor\u011fular",
@@ -150,7 +149,6 @@ export const az = {
     historyFailed:
       "Sor\u011fu tarix\u00e7\u0259sini y\u00fckl\u0259m\u0259k m\u00fcmk\u00fcn olmad\u0131.",
     historyOpenFailed: "Saxlanm\u0131\u015f cavab\u0131 a\u00e7maq m\u00fcmk\u00fcn olmad\u0131.",
-    historyRerun: "Yenid\u0259n i\u015f\u0259 sal",
     historyRunning: "\u0130cra olunur",
     historyDone: "Tamamland\u0131",
     historyIncomplete: "Natamam",
@@ -180,14 +178,12 @@ export const az = {
     synthesis: "Analitik sintez",
     waiting: "Sualınızı daxil edin",
     generating: "Cavab hazırlanır…",
-    sourcesCount: "{count} mənbə",
     citedSourcesCount: "{count} istinad edilmiş mənbə",
     retrievedSourcesCount: "{count} tapılmış mənbə",
     citationNumbering: "İstinad nömrələri tapılmış mənbələrin ilkin sırasını saxlayır.",
     timing: "{seconds} s",
     incompleteAnswer: "Bəzi istinadlar uyğun mənbə ilə təsdiqlənmədi və cavabdan çıxarıldı.",
     fragmentsOnly: "Tapılmış fraqmentlər aşağıda göstərilir; cavab yaradılmayıb.",
-    showOnlyFragments: "Yalnız fraqmentləri göstər",
     regenerate: "Yenidən yarat",
     copy: "Kopyala",
     copied: "Kopyalandı",
@@ -215,7 +211,6 @@ export const az = {
     rateLimited: "Sorğu limitinə çatdınız. Bir müddət sonra yenidən cəhd edin.",
     searchFailed: "Axtarışı yerinə yetirmək mümkün olmadı.",
     answerFailed: "Cavabı yaratmaq mümkün olmadı. Yenidən cəhd edin.",
-    errorReference: "Sorğu ID-si:",
     timeout: "Axtarış üçün ayrılmış vaxt bitdi. Yenidən cəhd edin.",
     quotaExceeded:
       "AI modelləri hazırda sorğunu tamamlaya bilmir. Bir qədər sonra yenidən cəhd edin.",

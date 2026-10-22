@@ -20,6 +20,7 @@ bun run lint
 bun run build
 bun run test
 bunx tsc --noEmit
+bun run check:references
 bun run db:migrate
 bun run db:reset-and-seed --dry-run
 bun run db:verify:search
@@ -92,7 +93,7 @@ Gemini fallback реализован как primary → light → backup (есл
 4. На `/axtaris` проверьте фильтры по направлению и достоверности, затем откройте сохранённую историю поиска.
 5. Покажите руководству, что citations ведут к доступным исходным документам и недоступный после изменения прав текст не раскрывается через историю.
 
-Для новых проверок используйте заведомо выдуманные данные. Сохранённый military seed — архивный fixture для dry-run; его синтетическое происхождение независимо не подтверждено. Не передавайте его содержимое внешнему AI и не выводите в logs.
+Для новых проверок используйте заведомо выдуманные данные. Сохранённый [military seed](fixtures/seed/README.md) — архивный fixture для dry-run; его синтетическое происхождение независимо не подтверждено. Не передавайте его содержимое внешнему AI и не выводите в logs. Полный перечень cleanup и сохранённых evidence: [repository manifest](docs/repository-cleanup.md).
 
 ## Authentication rollout
 
