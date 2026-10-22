@@ -15,12 +15,46 @@ export type ValidatedAnswer = {
   answer: string;
   incomplete: boolean;
   usedLowReliability: boolean;
+  failureReasons: CitationFailureReason[];
   evidenceChecks: {
     exactExcerptCount: number;
     unsupportedNumericFactCount: number;
     unanchoredClaimCount: number;
   };
 };
+
+export type CitationFailureReason =
+  | "malformed_evidence"
+  | "unpaired_evidence"
+  | "invalid_evidence_reference"
+  | "excerpt_not_in_source"
+  | "unsupported_numeric_fact"
+  | "invalid_citation_range"
+  | "unknown_citation"
+  | "no_sources_with_citations"
+  | "missing_citations"
+  | "missing_evidence"
+  | "unanchored_claim";
+
+type PublicationValidation = Pick<ValidatedAnswer, "incomplete"> &
+  Partial<Pick<ValidatedAnswer, "failureReasons">>;
+
+export function analyticsPublicationFailureReasons(
+  answer: string,
+  finishReason: string,
+  validation: PublicationValidation,
+): string[] {
+  const reasons: string[] = [];
+  const text = answer.replace(/⟦E\d+:\s*[^⟧]+⟧/gu, "").trim();
+  if (!text) reasons.push("empty_answer");
+  if (finishReason !== "stop") reasons.push("non_stop_finish");
+  if (validation.incomplete)
+    reasons.push(
+      ...(validation.failureReasons?.length ? validation.failureReasons : ["invalid_citations"]),
+    );
+  if (text.lastIndexOf("[") > text.lastIndexOf("]")) reasons.push("open_citation");
+  return reasons;
+}
 
 function normalizedEvidence(value: string): string {
   return value.normalize("NFKC").replace(/\s+/gu, " ").trim().toLocaleLowerCase();
@@ -51,11 +85,9 @@ function claimBeforeCitation(answer: string, citationIndex: number): string {
 export function canPublishAnalyticsAnswer(
   answer: string,
   finishReason: string,
-  validation: Pick<ValidatedAnswer, "incomplete">,
+  validation: PublicationValidation,
 ): boolean {
-  const text = answer.trim();
-  if (!text || finishReason !== "stop" || validation.incomplete) return false;
-  return text.lastIndexOf("[") <= text.lastIndexOf("]");
+  return analyticsPublicationFailureReasons(answer, finishReason, validation).length === 0;
 }
 
 export function validateCitations(
@@ -70,14 +102,19 @@ export function validateCitations(
   let exactExcerptCount = 0;
   let unsupportedNumericFactCount = 0;
   let incomplete = false;
+  const failureReasons = new Set<CitationFailureReason>();
+  const fail = (reason: CitationFailureReason) => {
+    incomplete = true;
+    failureReasons.add(reason);
+  };
 
   // Evidence markers are internal validation material. They are removed from
   // the user-facing answer after the referenced text is verified verbatim.
   const evidenceMarkers = [...answer.matchAll(/⟦E(\d+):\s*([^⟧]+)⟧/gu)];
   const evidencePairs = [...answer.matchAll(/\[(\d+)\]\s*⟦E(\d+):\s*([^⟧]+)⟧/gu)];
   const evidenceFreeInput = answer.replace(/⟦E\d+:\s*[^⟧]+⟧/gu, "");
-  if (/[⟦⟧]/u.test(evidenceFreeInput)) incomplete = true;
-  if (evidenceMarkers.length !== evidencePairs.length) incomplete = true;
+  if (/[⟦⟧]/u.test(evidenceFreeInput)) fail("malformed_evidence");
+  if (evidenceMarkers.length !== evidencePairs.length) fail("unpaired_evidence");
   for (const pair of evidencePairs) {
     const citedNumber = Number(pair[1]);
     const evidenceNumber = Number(pair[2]);
@@ -85,11 +122,11 @@ export function validateCitations(
     const source = available.get(citedNumber);
     evidenceCounts.set(evidenceNumber, (evidenceCounts.get(evidenceNumber) ?? 0) + 1);
     if (citedNumber !== evidenceNumber || !source?.text || !excerpt) {
-      incomplete = true;
+      fail("invalid_evidence_reference");
       continue;
     }
     if (!normalizedEvidence(source.text).includes(normalizedEvidence(excerpt))) {
-      incomplete = true;
+      fail("excerpt_not_in_source");
       continue;
     }
     exactExcerptCount += 1;
@@ -98,7 +135,7 @@ export function validateCitations(
     const missingFacts = numericFacts(claim).filter((fact) => !sourceFacts.has(fact));
     if (missingFacts.length) {
       unsupportedNumericFactCount += missingFacts.length;
-      incomplete = true;
+      fail("unsupported_numeric_fact");
     }
   }
 
@@ -112,7 +149,7 @@ export function validateCitations(
           const start = Number(range[1]);
           const end = Number(range[2]);
           if (end < start || end - start > 100) {
-            incomplete = true;
+            fail("invalid_citation_range");
             continue;
           }
           for (let n = start; n <= end; n += 1) numbers.push(n);
@@ -128,7 +165,7 @@ export function validateCitations(
         if (seen.has(n)) continue;
         seen.add(n);
         if (!available.has(n)) {
-          incomplete = true;
+          fail("unknown_citation");
           continue;
         }
         referenced.add(n);
@@ -142,14 +179,14 @@ export function validateCitations(
   const containsNoSourcesMessage =
     cleaned.trim().toLocaleLowerCase() === az.analytics.noSources.toLocaleLowerCase();
   if (containsNoSourcesMessage && (referenced.size > 0 || evidenceMarkers.length > 0))
-    incomplete = true;
+    fail("no_sources_with_citations");
   if (referenced.size === 0 && !containsNoSourcesMessage && answer.trim().length > 0)
-    incomplete = true;
+    fail("missing_citations");
 
   for (const [number, count] of referenceCounts) {
-    if ((evidenceCounts.get(number) ?? 0) < count) incomplete = true;
+    if ((evidenceCounts.get(number) ?? 0) < count) fail("missing_evidence");
   }
-  if (evidenceMarkers.length !== evidencePairs.length) incomplete = true;
+  if (evidenceMarkers.length !== evidencePairs.length) fail("unpaired_evidence");
 
   const evidenceFreeAnswer = cleaned.replace(/⟦E\d+:\s*[^⟧]+⟧/gu, "");
   let unanchoredClaimCount = 0;
@@ -172,7 +209,7 @@ export function validateCitations(
         continue;
       if (!/\[\d+\]/u.test(line)) {
         unanchoredClaimCount += 1;
-        incomplete = true;
+        fail("unanchored_claim");
       }
     }
   }
@@ -198,6 +235,7 @@ export function validateCitations(
       .trim(),
     incomplete,
     usedLowReliability,
+    failureReasons: [...failureReasons],
     evidenceChecks: {
       exactExcerptCount,
       unsupportedNumericFactCount,

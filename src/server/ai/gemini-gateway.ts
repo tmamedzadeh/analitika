@@ -1,3 +1,5 @@
+import { logAiDiagnostic, type AiErrorCategory } from "./diagnostics";
+
 export type GeminiQuotaKey = "AI_CHAT_MODEL" | "AI_LIGHT_MODEL" | "GEMINI_EMBED_MODEL";
 
 const MAX_CONCURRENT_REQUESTS = 3;
@@ -68,13 +70,34 @@ async function acquireRequestSlot(signal?: AbortSignal): Promise<() => void> {
   };
 }
 
-function getStatusCode(error: unknown): number | undefined {
-  if (!error || typeof error !== "object") return undefined;
+function getStatusCode(error: unknown, depth = 0): number | undefined {
+  if (depth > 3 || !error || typeof error !== "object") return undefined;
   const value = error as Record<string, unknown>;
   for (const key of ["statusCode", "status"]) {
     if (typeof value[key] === "number") return value[key];
   }
-  return undefined;
+  return getStatusCode(value["cause"], depth + 1);
+}
+
+export function getGeminiErrorCategory(error: unknown, signal?: AbortSignal): AiErrorCategory {
+  const names = new Set<string>();
+  let current: unknown = signal?.aborted ? signal.reason : error;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth += 1) {
+    const value = current as Record<string, unknown>;
+    if (typeof value["name"] === "string") names.add(value["name"]);
+    current = value["cause"];
+  }
+  if (names.has("TimeoutError")) return "timeout";
+  if (signal?.aborted || names.has("AbortError")) return "cancelled";
+  if (isGeminiQuotaError(error)) return "quota";
+  const status = getStatusCode(error);
+  if (status === 503) return "provider_unavailable";
+  if (status === 401 || status === 403) return "provider_auth";
+  if (status !== undefined && [408, 500, 502, 504].includes(status)) return "provider_transient";
+  if (status !== undefined && status >= 400 && status < 500) return "provider_request";
+  if (names.has("AI_NoOutputGeneratedError")) return "empty_response";
+  if (names.has("TypeError")) return "network";
+  return "provider_error";
 }
 
 function apiErrorBody(error: unknown, depth = 0): string | undefined {
@@ -210,15 +233,15 @@ export function isTerminalQuotaError(error: unknown): boolean {
   return /AllocationQuota\.FreeTierOnly|free.?tier.?only/i.test(body);
 }
 
-function getRetryAfterMs(error: unknown): number | undefined {
-  if (!error || typeof error !== "object") return undefined;
+function getRetryAfterMs(error: unknown, depth = 0): number | undefined {
+  if (depth > 3 || !error || typeof error !== "object") return undefined;
   const value = error as Record<string, unknown>;
   const headers = value["responseHeaders"];
-  if (!headers || typeof headers !== "object") return undefined;
+  if (!headers || typeof headers !== "object") return getRetryAfterMs(value["cause"], depth + 1);
   const entry = Object.entries(headers as Record<string, unknown>).find(
     ([name]) => name.toLowerCase() === "retry-after",
   )?.[1];
-  if (typeof entry !== "string") return undefined;
+  if (typeof entry !== "string") return getRetryAfterMs(value["cause"], depth + 1);
   const seconds = Number(entry);
   if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
   const date = Date.parse(entry);
@@ -255,6 +278,7 @@ export async function withGeminiRequest<T>(
   operation: () => Promise<T>,
   maxAttempts: GeminiAttemptLimit = MAX_ATTEMPTS,
   signal?: AbortSignal,
+  model?: string,
 ): Promise<T> {
   let limitKind: GeminiLimitKind = "unknown";
   let statusCode = 429;
@@ -264,9 +288,19 @@ export async function withGeminiRequest<T>(
     const release = await acquireRequestSlot(signal);
     let failure: unknown;
     try {
-      return await operation();
+      logAiDiagnostic({ event: "start", model, attempt });
+      const result = await operation();
+      logAiDiagnostic({ event: "success", model, attempt, providerStatus: 200 });
+      return result;
     } catch (error) {
       failure = error;
+      logAiDiagnostic({
+        event: "failure",
+        model,
+        attempt,
+        providerStatus: getStatusCode(error),
+        errorCategory: getGeminiErrorCategory(error, signal),
+      });
     } finally {
       release();
     }
@@ -279,6 +313,14 @@ export async function withGeminiRequest<T>(
         delay > MAX_RETRY_DELAY_MS
       )
         throw failure;
+      logAiDiagnostic({
+        event: "retry",
+        model,
+        attempt,
+        retryDelayMs: delay,
+        providerStatus: getStatusCode(failure),
+        errorCategory: getGeminiErrorCategory(failure, signal),
+      });
       await pause(delay, signal);
       continue;
     }
@@ -304,6 +346,14 @@ export async function withGeminiRequest<T>(
     if (attempt >= maxAttempts || delay > MAX_RETRY_DELAY_MS) {
       throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
     }
+    logAiDiagnostic({
+      event: "retry",
+      model,
+      attempt,
+      retryDelayMs: delay,
+      providerStatus: statusCode,
+      errorCategory: "quota",
+    });
     await pause(delay, signal);
   }
   throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
@@ -384,7 +434,16 @@ export async function withGeminiQuotaFallback<T>(
   } catch (error) {
     if (!isGeminiQuotaError(error)) throw error;
     if (!fallbackModel || !fallback || fallbackModel === primaryModel) throw error;
-    console.warn(`[AI] model=${primaryModel} quota_exhausted fallback=${fallbackModel}`);
+    if (
+      !logAiDiagnostic({
+        event: "fallback",
+        model: primaryModel,
+        fallbackModel,
+        providerStatus: getStatusCode(error),
+        errorCategory: "quota",
+      })
+    )
+      console.warn(`[AI] model=${primaryModel} quota_exhausted fallback=${fallbackModel}`);
     return fallback();
   }
 }

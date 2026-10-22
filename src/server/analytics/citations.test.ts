@@ -177,6 +177,16 @@ describe("validateCitations", () => {
 });
 
 describe("canPublishAnalyticsAnswer", () => {
+  it("checks answer brackets separately from a verified excerpt containing an open bracket", () => {
+    const excerpt = "Mənbədə [qeyd verilib";
+    const answer = `Mənbədə qeyd var [1]⟦E1: ${excerpt}⟧.`;
+    const validation = validateCitations(answer, [{ ...sources[0], text: excerpt }], "");
+
+    expect(validation.incomplete).toBe(false);
+    expect(canPublishAnalyticsAnswer(answer, "stop", validation)).toBe(true);
+    expect(canPublishAnalyticsAnswer(answer + " [", "stop", validation)).toBe(false);
+  });
+
   it("accepts a completed answer with validated citations", () => {
     expect(
       canPublishAnalyticsAnswer(
@@ -192,4 +202,13 @@ describe("canPublishAnalyticsAnswer", () => {
     expect(canPublishAnalyticsAnswer("Nəticə [1].", "length", { incomplete: false })).toBe(false);
     expect(canPublishAnalyticsAnswer("Nəticə [7].", "stop", { incomplete: true })).toBe(false);
   });
+
+  it.each(["length", "content-filter", "tool-calls", "error", "other", "unknown"])(
+    "does not publish a %s completion even when citations are valid",
+    (finishReason) => {
+      expect(canPublishAnalyticsAnswer("Nəticə [1].", finishReason, { incomplete: false })).toBe(
+        false,
+      );
+    },
+  );
 });

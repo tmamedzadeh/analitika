@@ -77,6 +77,7 @@ export class GeminiLLMProvider implements LLMProvider {
         },
         maxAttempts,
         signal,
+        model,
       );
     const primary = () => run(this.model, this.quotaKey);
     const fallbackModel = this.quotaKey === "AI_CHAT_MODEL" ? this.fallbackModel : undefined;
@@ -284,6 +285,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
       },
       request.maxAttempts,
       request.signal,
+      this.model,
     );
     return result.embedding;
   }
@@ -312,6 +314,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
         },
         request.maxAttempts,
         request.signal,
+        this.model,
       );
       embeddings.push(...result.embeddings);
     }
@@ -335,6 +338,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
       },
       request.maxAttempts,
       request.signal,
+      this.model,
     );
     return result.embedding;
   }
@@ -360,6 +364,7 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
         },
         request.maxAttempts,
         request.signal,
+        this.model,
       );
       embeddings.push(...result.embeddings);
     }

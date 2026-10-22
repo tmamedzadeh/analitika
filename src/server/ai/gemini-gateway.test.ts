@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   GeminiQuotaExceededError,
   isGeminiQuotaError,
+  getGeminiErrorCategory,
+  getGeminiFailureInfo,
   withGeminiQuotaFallback,
   withGeminiQuotaFallbackStream,
   withGeminiRequest,
@@ -14,6 +16,35 @@ afterEach(() => {
 });
 
 describe("Gemini request gateway", () => {
+  it("reads a wrapped provider status for diagnostics and bounded retries", async () => {
+    vi.useFakeTimers();
+    const cause = Object.assign(new Error("private provider body"), {
+      statusCode: 503,
+      responseHeaders: { "retry-after": "2" },
+    });
+    const failure = new Error("private wrapper message", { cause });
+    const operation = vi.fn(async () => {
+      throw failure;
+    });
+    expect(getGeminiFailureInfo(failure).statusCode).toBe(503);
+    expect(getGeminiErrorCategory(failure)).toBe("provider_unavailable");
+    const pending = withGeminiRequest("AI_CHAT_MODEL", operation, 2);
+    const rejected = expect(pending).rejects.toBe(failure);
+    await vi.advanceTimersByTimeAsync(1_999);
+    expect(operation).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(1);
+    await rejected;
+    expect(operation).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    [new DOMException("private", "TimeoutError"), "timeout"],
+    [new DOMException("private", "AbortError"), "cancelled"],
+    [Object.assign(new Error("private"), { statusCode: 401 }), "provider_auth"],
+    [Object.assign(new Error("private"), { statusCode: 400 }), "provider_request"],
+  ])("classifies failures without returning error messages (%s)", (failure, category) => {
+    expect(getGeminiErrorCategory(failure)).toBe(category);
+  });
   it("bounds transient 503 retries in the same attempt budget after SDK retries are disabled", async () => {
     vi.useFakeTimers();
     const operation = vi.fn(async () => {

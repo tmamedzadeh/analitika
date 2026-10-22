@@ -5,8 +5,21 @@ import { analyticsSearchRequestSchema } from "@/lib/analytics";
 import type { AnalyticsSource, AnalyticsSourcePreview } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
 import { createGeminiProviders } from "@/server/ai/gemini";
-import { getGeminiFailureInfo, isGeminiQuotaError } from "@/server/ai/gemini-gateway";
-import { canPublishAnalyticsAnswer, validateCitations } from "./citations";
+import {
+  getGeminiErrorCategory,
+  getGeminiFailureInfo,
+  isGeminiQuotaError,
+} from "@/server/ai/gemini-gateway";
+import {
+  logAiDiagnostic,
+  withAiDiagnostics,
+  type AiDiagnosticEvent,
+} from "@/server/ai/diagnostics";
+import {
+  analyticsPublicationFailureReasons,
+  canPublishAnalyticsAnswer,
+  validateCitations,
+} from "./citations";
 import { consumeAnalyticsRateLimit } from "./rate-limit";
 import { searchDocumentChunks } from "./search";
 import { buildAnalyticsPrompt } from "../prompts/analytics";
@@ -39,16 +52,6 @@ function eventStream(body: ReadableStream<Uint8Array>, requestId: string): Respo
   });
 }
 
-function errorSummary(error: unknown) {
-  const value = error instanceof Error ? error : new Error(String(error));
-  const failure = getGeminiFailureInfo(error);
-  return {
-    name: value.name,
-    statusCode: failure.statusCode,
-    quotaKey: failure.quotaKey,
-  };
-}
-
 function answerFailureMessage(error: unknown): string {
   if (!isGeminiQuotaError(error)) return az.analytics.answerFailed;
   const quota = getGeminiFailureInfo(error).quotaKey ?? "AI_CHAT_MODEL";
@@ -56,7 +59,19 @@ function answerFailureMessage(error: unknown): string {
 }
 
 export async function handleAnalyticsSearchRequest(request: Request): Promise<Response> {
-  const requestId = request.headers.get("x-vercel-id") || randomUUID();
+  const headerId = request.headers.get("x-vercel-id");
+  const requestId = headerId && /^[a-zA-Z0-9-]{1,128}$/.test(headerId) ? headerId : randomUUID();
+  const startedAt = Date.now();
+  return withAiDiagnostics({ requestId, startedAt, stage: "retrieval" }, () =>
+    handleAnalyticsSearch(request, requestId, startedAt),
+  );
+}
+
+async function handleAnalyticsSearch(
+  request: Request,
+  requestId: string,
+  startedAt: number,
+): Promise<Response> {
   if (!(await consumeAnalyticsRateLimit(request))) {
     return jsonError(429, az.analytics.rateLimited, requestId);
   }
@@ -72,9 +87,11 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
   if (!parsed.success) return jsonError(400, az.analytics.invalidRequest, requestId);
 
   const { query, filters, mode } = parsed.data;
-  const startedAt = Date.now();
   const historyId = randomUUID();
   const user = getCurrentUser();
+  let model = "";
+  let activeStage: NonNullable<AiDiagnosticEvent["stage"]> = "retrieval";
+  let activeAttempt = 0;
   try {
     await createAnalyticsHistoryRecord({ id: historyId, createdBy: user.id, query, filters });
   } catch {
@@ -82,12 +99,18 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
   }
   const aborter = new AbortController();
   // Keep both generation attempts inside the deployed 120-second function limit.
-  const deadline = setTimeout(
-    () => aborter.abort(new DOMException("Analytics deadline exceeded.", "TimeoutError")),
-    105_000,
-  );
+  const deadline = setTimeout(() => {
+    withAiDiagnostics({ requestId, startedAt, stage: activeStage }, () =>
+      logAiDiagnostic({
+        event: "deadline",
+        attempt: activeAttempt,
+        errorCategory: "timeout",
+      }),
+    );
+    aborter.abort(new DOMException("Analytics deadline exceeded.", "TimeoutError"));
+  }, 105_000);
   const abortedHistoryStatus = () =>
-    aborter.signal.reason instanceof Error && aborter.signal.reason.name === "TimeoutError"
+    getGeminiErrorCategory(aborter.signal.reason, aborter.signal) === "timeout"
       ? ("failed" as const)
       : ("cancelled" as const);
   let heartbeat: ReturnType<typeof setInterval> | undefined;
@@ -107,7 +130,6 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
   if (request.signal.aborted) abortFromRequest();
   else request.signal.addEventListener("abort", abortFromRequest, { once: true });
   let sources: AnalyticsSource[];
-  let model: string;
   try {
     const providers = createGeminiProviders();
     model = providers.analytics.model;
@@ -121,10 +143,11 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
         ? jsonError(504, az.analytics.searchFailed, requestId)
         : new Response(null, { status: 499, headers: { "x-analytics-request-id": requestId } });
     }
-    console.error("Analytics search failed before answer generation.", {
-      requestId,
+    logAiDiagnostic({
+      event: "failure",
       stage: "retrieval",
-      ...errorSummary(error),
+      providerStatus: getGeminiFailureInfo(error).statusCode,
+      errorCategory: getGeminiErrorCategory(error),
     });
     await saveHistory({ status: "failed", durationMs: Date.now() - startedAt });
     clearTimeout(deadline);
@@ -143,8 +166,13 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
       let closed = false;
+      let terminalSent = false;
       const close = () => {
         if (closed) return;
+        // A server deadline still needs a terminal event on a connected SSE stream.
+        if (aborter.signal.aborted && abortedHistoryStatus() === "failed" && !terminalSent) {
+          send({ type: "error", message: az.analytics.answerFailed, requestId });
+        }
         closed = true;
         clearTimeout(deadline);
         if (heartbeat) clearInterval(heartbeat);
@@ -156,9 +184,15 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
         }
       };
       const send = (event: Record<string, unknown>) => {
-        if (closed || aborter.signal.aborted || controller.desiredSize === null) return false;
+        const deadlineError =
+          event["type"] === "error" &&
+          abortedHistoryStatus() === "failed" &&
+          !request.signal.aborted;
+        if (closed || (aborter.signal.aborted && !deadlineError) || controller.desiredSize === null)
+          return false;
         try {
           controller.enqueue(encoder.encode("data: " + JSON.stringify(event) + "\n\n"));
+          if (event["type"] === "error" || event["type"] === "final") terminalSent = true;
           return true;
         } catch {
           aborter.abort(new Error("client disconnected"));
@@ -185,6 +219,7 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
           return;
         }
         const retrievedCount = sources.length;
+        activeStage = "source_access_before_prompt";
         try {
           await withAnalyticsSourceAccess(sources, user.id, (available) => {
             sources = available;
@@ -194,11 +229,11 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
             send({ type: "sources", sources: sourcePreviews });
           });
         } catch (error) {
-          console.error("Analytics source access recheck failed.", {
-            requestId,
+          logAiDiagnostic({
+            event: "failure",
             stage: "source_access_before_prompt",
-            sourceCount: retrievedCount,
-            ...errorSummary(error),
+            model,
+            errorCategory: getGeminiErrorCategory(error),
           });
           await saveHistory({
             status: "failed",
@@ -211,18 +246,19 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
           return;
         }
         if (sources.length !== retrievedCount) {
-          console.warn("Analytics sources became unavailable before prompt generation.", {
-            requestId,
+          logAiDiagnostic({
+            event: "rejected",
             stage: "source_access_before_prompt",
-            retrievedCount,
-            availableCount: sources.length,
+            model,
+            errorCategory: "source_access_changed",
           });
         }
         const denyRevokedSources = async () => {
-          console.warn("Analytics answer withheld after source access changed.", {
-            requestId,
+          logAiDiagnostic({
+            event: "failure",
             stage: "source_access_before_publish",
-            sourceCount: sources.length,
+            model,
+            errorCategory: "source_access_changed",
           });
           await saveHistory({
             status: "failed",
@@ -264,6 +300,7 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
         }
 
         if (mode === "sources") {
+          activeStage = "source_access_before_publish";
           const finalPublication = await withAnalyticsSourceAccess(
             sources,
             user.id,
@@ -303,6 +340,7 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
         }
 
         try {
+          activeStage = "generation";
           const generation = await withAnalyticsSourceAccess(
             sources,
             user.id,
@@ -319,6 +357,8 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
               );
               let validatedAnswer: ReturnType<typeof validateCitations> | null = null;
               for (let attempt = 0; attempt < 2; attempt += 1) {
+                activeStage = "generation";
+                activeAttempt = attempt + 1;
                 const generationPrompt =
                   attempt === 0
                     ? prompt
@@ -332,12 +372,17 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
                           prompt.prompt +
                           "\n\nXüsusi tələb: Cavabın sonunda açıq mötərizə və ya yarımçıq istinad qoyma; bütün istinadları mənbələr siyahısı ilə yoxla.",
                       };
-                const generated = await providers.analytics.generateTextWithMetadata({
-                  ...generationPrompt,
-                  signal: aborter.signal,
-                  timeoutMs: 60_000,
-                });
+                const generated = await withAiDiagnostics(
+                  { stage: "generation", generationAttempt: activeAttempt },
+                  () =>
+                    providers.analytics.generateTextWithMetadata({
+                      ...generationPrompt,
+                      signal: aborter.signal,
+                      timeoutMs: 60_000,
+                    }),
+                );
                 if (generated.model) model = generated.model;
+                activeStage = "answer_validation";
                 const validated = validateCitations(
                   generated.text,
                   sources,
@@ -348,23 +393,24 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
                   generated.finishReason,
                   validated,
                 );
+                logAiDiagnostic({
+                  event: publishable ? "success" : "rejected",
+                  stage: "answer_validation",
+                  model,
+                  attempt: activeAttempt,
+                  providerStatus: 200,
+                  ...(publishable ? {} : { errorCategory: "validation" as const }),
+                  finishReason: generated.finishReason,
+                  validationFailureReasons: analyticsPublicationFailureReasons(
+                    generated.text,
+                    generated.finishReason,
+                    validated,
+                  ),
+                });
                 if (publishable) {
                   validatedAnswer = validated;
                   break;
                 }
-                console.warn("Analytics answer rejected by completeness validation.", {
-                  requestId,
-                  stage: "answer_validation",
-                  model,
-                  sourceCount: sources.length,
-                  attempt: attempt + 1,
-                  finishReason: generated.finishReason,
-                  outputCharacters: generated.text.length,
-                  citationCount: [...generated.text.matchAll(/\[\d+\]/g)].length,
-                  invalidCitation: validated.incomplete,
-                  evidenceChecks: validated.evidenceChecks,
-                  openCitation: /\[\s*\d*\s*$/.test(generated.text.trim()),
-                });
               }
               return { accessChanged: false, validatedAnswer };
             },
@@ -395,6 +441,7 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
             return;
           }
 
+          activeStage = "source_access_before_publish";
           const finalPublication = await withAnalyticsSourceAccess(
             sources,
             user.id,
@@ -436,13 +483,12 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
               durationMs: Date.now() - startedAt,
             });
           } else {
-            console.error("Analytics answer generation failed.", {
-              requestId,
-              stage: "generation",
-              model,
-              sourceCount: sources.length,
-              durationMs: Date.now() - startedAt,
-              ...errorSummary(error),
+            logAiDiagnostic({
+              event: "failure",
+              stage: activeStage,
+              attempt: activeAttempt,
+              providerStatus: getGeminiFailureInfo(error).statusCode,
+              errorCategory: getGeminiErrorCategory(error),
             });
             const snapshot = buildAnalyticsHistorySnapshot(
               sources,
@@ -470,10 +516,11 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
           durationMs: Date.now() - startedAt,
         });
         if (!aborter.signal.aborted)
-          console.error("Analytics answer stream failed unexpectedly.", {
-            requestId,
+          logAiDiagnostic({
+            event: "failure",
             stage: "stream",
-            ...errorSummary(error),
+            model,
+            errorCategory: getGeminiErrorCategory(error),
           });
         if (heartbeat) clearInterval(heartbeat);
         if (!aborter.signal.aborted) controller.error(new Error(az.analytics.answerFailed));

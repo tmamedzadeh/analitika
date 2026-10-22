@@ -31,6 +31,7 @@ import { reciprocalRankFusion, resolveQueryEmbedding, settleRetrievalBranches } 
 import { withAnalyticsCandidateAccess, withAnalyticsQueryAccess } from "./source-access";
 import { hasCommittedBriefIndex } from "../briefs/index-state";
 import { getBakuDate } from "@/lib/briefs";
+import { withAiDiagnostics } from "@/server/ai/diagnostics";
 
 const CANDIDATE_LIMIT = 50;
 const RESULT_LIMIT = 10;
@@ -145,14 +146,16 @@ export async function searchDocumentChunks(
     ...(options.embedding ? { provided: options.embedding } : {}),
     dimensions: config.embeddingDimensions,
     embed: () =>
-      withAnalyticsQueryAccess(getCurrentUser().id, () => {
-        return providers.embeddings.embedQuery(query, {
-          maxAttempts: options.maxEmbeddingAttempts ?? 1,
-          signal: options.signal
-            ? AbortSignal.any([options.signal, AbortSignal.timeout(15_000)])
-            : AbortSignal.timeout(15_000),
-        });
-      }),
+      withAiDiagnostics({ stage: "query_embedding" }, () =>
+        withAnalyticsQueryAccess(getCurrentUser().id, () => {
+          return providers.embeddings.embedQuery(query, {
+            maxAttempts: options.maxEmbeddingAttempts ?? 1,
+            signal: options.signal
+              ? AbortSignal.any([options.signal, AbortSignal.timeout(15_000)])
+              : AbortSignal.timeout(15_000),
+          });
+        }),
+      ),
   });
   const embedding = embeddingResolution.embedding;
   options.signal?.throwIfAborted();
@@ -266,16 +269,18 @@ export async function searchDocumentChunks(
               : false),
       );
       if (!accessibleCandidates.length) return { candidates: [], ids: [] as string[] };
-      const ids = await rerankOrderOrOriginal(
-        query,
-        accessibleCandidates.map(({ item }) => ({
-          id: item.chunkId,
-          excerpt: item.text.slice(0, 500),
-        })),
-        rerankProvider,
-        options.enableRerank ?? config.enableRerank,
-        undefined,
-        options.signal,
+      const ids = await withAiDiagnostics({ stage: "rerank" }, () =>
+        rerankOrderOrOriginal(
+          query,
+          accessibleCandidates.map(({ item }) => ({
+            id: item.chunkId,
+            excerpt: item.text.slice(0, 500),
+          })),
+          rerankProvider,
+          options.enableRerank ?? config.enableRerank,
+          undefined,
+          options.signal,
+        ),
       );
       return { candidates: accessibleCandidates, ids };
     },

@@ -1,10 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AnalyticsSource } from "@/lib/analytics";
 
 const mocks = vi.hoisted(() => ({
   search: vi.fn(),
   generate: vi.fn(),
   buildPrompt: vi.fn(),
+  canPublish: vi.fn(),
+  validate: vi.fn(),
   withSourceAccess: vi.fn(
     async (
       sources: readonly AnalyticsSource[],
@@ -40,17 +42,14 @@ vi.mock("@/server/ai/gemini", () => ({
     analytics: { model: "test-model", generateTextWithMetadata: mocks.generate },
   }),
 }));
-vi.mock("@/server/ai/gemini-gateway", () => ({
-  getGeminiFailureInfo: () => ({}),
-  isGeminiQuotaError: () => false,
-}));
 vi.mock("@/server/config", () => ({ getAppConfig: () => ({ analyticsThinkingLevel: "low" }) }));
 vi.mock("../prompts/analytics", () => ({
   buildAnalyticsPrompt: mocks.buildPrompt,
 }));
-vi.mock("./citations", () => ({
-  canPublishAnalyticsAnswer: () => true,
-  validateCitations: (answer: string) => ({ answer, incomplete: false, citations: [] }),
+vi.mock("./citations", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./citations")>()),
+  canPublishAnalyticsAnswer: mocks.canPublish,
+  validateCitations: mocks.validate,
 }));
 
 import { directionIds } from "@/lib/directions";
@@ -103,8 +102,22 @@ function request(signal?: AbortSignal) {
 }
 
 describe("analytics stream access and cancellation", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.canPublish.mockReset().mockReturnValue(true);
+    mocks.validate.mockReset().mockImplementation((answer: string) => ({
+      answer,
+      incomplete: false,
+      failureReasons: [],
+    }));
     mocks.search.mockResolvedValue([source]);
     mocks.generate.mockResolvedValue({ text: "answer [1]", finishReason: "stop" });
     mocks.buildPrompt.mockReturnValue({ system: "system", prompt: "prompt", maxOutputTokens: 100 });
@@ -183,6 +196,98 @@ describe("analytics stream access and cancellation", () => {
       expect.any(String),
       expect.objectContaining({ status: "failed", answer: "", sources: [] }),
     );
+  });
+
+  it("sends a terminal SSE error with requestId when the overall deadline expires", async () => {
+    vi.useFakeTimers();
+    mocks.generate.mockImplementation(
+      (input: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          input.signal.addEventListener("abort", () => reject(input.signal.reason), { once: true });
+        }),
+    );
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = response.text();
+    await vi.advanceTimersByTimeAsync(105_000);
+    const stream = await output;
+
+    expect(response.status).toBe(200);
+    expect(stream).toContain('"type":"error"');
+    expect(stream).toContain(response.headers.get("x-analytics-request-id"));
+    expect(stream).not.toContain('"type":"final"');
+    expect(mocks.generate).toHaveBeenCalledOnce();
+    expect(vi.mocked(console.error).mock.calls.join(" ")).toContain('"errorCategory":"timeout"');
+  });
+
+  it("distinguishes a 60-second generation timeout after 11 seconds of retrieval", async () => {
+    vi.useFakeTimers();
+    mocks.search.mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 11_000));
+      return [source];
+    });
+    mocks.generate.mockImplementation(
+      (input: { timeoutMs: number }) =>
+        new Promise((_resolve, reject) =>
+          setTimeout(
+            () => reject(new DOMException("sensitive provider details", "TimeoutError")),
+            input.timeoutMs,
+          ),
+        ),
+    );
+    const pending = withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    await vi.advanceTimersByTimeAsync(11_000);
+    const response = await pending;
+    const output = response.text();
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(await output).toContain('"type":"error"');
+    expect(mocks.generate).toHaveBeenCalledOnce();
+    const logs = vi.mocked(console.error).mock.calls.join(" ");
+    expect(logs).toContain('"stage":"generation"');
+    expect(logs).toContain('"attempt":1');
+    expect(logs).toContain('"errorCategory":"timeout"');
+    expect(logs).toContain('"elapsedMs":71000');
+    expect(logs).not.toContain("sensitive provider details");
+  });
+
+  it("retries length-limited output once and publishes only the validated completion", async () => {
+    mocks.generate.mockResolvedValueOnce({
+      text: "private truncated output",
+      finishReason: "length",
+    });
+    mocks.canPublish.mockReturnValueOnce(false);
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const stream = await response.text();
+
+    expect(mocks.generate).toHaveBeenCalledTimes(2);
+    expect(mocks.generate.mock.calls[1]?.[0]).toMatchObject({ maxOutputTokens: 6144 });
+    expect(stream).toContain('"type":"final"');
+    expect(stream).not.toContain("private truncated output");
+    const logs = vi.mocked(console.warn).mock.calls.join(" ");
+    expect(logs).toContain('"finishReason":"length"');
+    expect(logs).toContain("non_stop_finish");
+    expect(logs).not.toContain("private truncated output");
+  });
+
+  it("withholds both invalid completions and logs only validation reason codes", async () => {
+    mocks.canPublish.mockReturnValue(false);
+    mocks.validate.mockReturnValue({
+      answer: "private answer",
+      incomplete: true,
+      failureReasons: ["excerpt_not_in_source"],
+    });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const stream = await response.text();
+
+    expect(mocks.generate).toHaveBeenCalledTimes(2);
+    expect(stream).toContain('"type":"error"');
+    expect(stream).not.toContain('"type":"final"');
+    const logs = vi.mocked(console.warn).mock.calls.join(" ");
+    expect(logs).toContain('"attempt":2');
+    expect(logs).toContain('"errorCategory":"validation"');
+    expect(logs).toContain("excerpt_not_in_source");
+    for (const secret of ["private answer", source.text, "question"])
+      expect(logs).not.toContain(secret);
   });
 
   it.each(["open", "secret", "top_secret", "special"] as const)(
