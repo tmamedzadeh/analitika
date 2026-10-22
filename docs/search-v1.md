@@ -26,6 +26,13 @@ descending date and descending UUID; empty queries use date/UUID. Document
 cursors retain PostgreSQL microseconds. Query/filter changes reset React Query
 pagination. No catalog search imports a Gemini provider or maintains an AI plan.
 
+Both catalogs keep draft text separate from the submitted query. Typing and clearing
+the input make no search request. Enter and the adjacent Axtar submit button apply
+trimmed text without resetting filters; filters continue using the last submitted
+query. Query keys isolate pagination and in-flight results, and submitting the same
+text again does not create another request. Document indexing-status polling remains
+independent of input edits.
+
 ## Existing indexes and verification limits
 
 - Bulletin FTS preserves the exact normalized title/body expression of

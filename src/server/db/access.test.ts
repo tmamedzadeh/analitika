@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { withCurrentUser, type SessionUser } from "@/server/auth";
 import {
   accessFilter,
+  briefAccessFilter,
   canManageDocument,
   documentAccessFilter,
   documentManagementFilter,
@@ -18,6 +19,18 @@ const user: SessionUser = {
 };
 
 describe("document visibility predicate", () => {
+  it("uses the same live clearance ceiling for briefs, including owners and admins", () => {
+    for (const role of ["user", "admin"] as const) {
+      const query = new PgDialect().sqlToQuery(
+        withCurrentUser({ ...user, role }, () => briefAccessFilter()),
+      );
+      expect(query.sql).toContain('case "daily_briefs"."classification"');
+      expect(query.sql).toContain('"app_users"."clearance"');
+      expect(query.sql).toContain('"app_users"."active" = true');
+      expect(query.sql).not.toContain('"author_id"');
+      expect(query.params).toEqual([user.id]);
+    }
+  });
   it("reads active clearance from the database in the content predicate", () => {
     const query = new PgDialect().sqlToQuery(withCurrentUser(user, () => documentAccessFilter()));
     expect(query.sql).toContain('case "documents"."classification"');

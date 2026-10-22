@@ -1,11 +1,12 @@
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Paperclip, Plus, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
 import { Button } from "@/components/ui/button";
+import { ClassificationBadge } from "@/components/ClassificationBadge";
 import { listDocuments, retryDocumentIndexing } from "@/lib/documents.functions";
 import { directions, directionLabel, type DirectionId } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
@@ -24,20 +25,16 @@ export const Route = createFileRoute("/_app/senedler")({
 
 function DocumentLibrary() {
   const queryClient = useQueryClient();
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [draftQuery, setDraftQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [direction, setDirection] = useState<DirectionId | "">("");
   const [retryingId, setRetryingId] = useState<string | null>(null);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedQuery(query), 300);
-    return () => window.clearTimeout(timer);
-  }, [query]);
   const documents = useInfiniteQuery({
-    queryKey: ["documents", "catalog", debouncedQuery, direction],
+    queryKey: ["documents", "catalog", submittedQuery, direction],
     initialPageParam: null as DocumentCursor | null,
     queryFn: ({ pageParam, signal }) =>
       listDocuments({
-        data: { query: debouncedQuery, direction: direction || undefined, cursor: pageParam },
+        data: { query: submittedQuery, direction: direction || undefined, cursor: pageParam },
         signal,
       }),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
@@ -79,21 +76,31 @@ function DocumentLibrary() {
       }
     >
       <div className="panel mb-6 flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-        <label className="relative min-w-0 flex-1">
-          <Search
-            size={17}
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <input
-            className="field pl-10"
-            aria-label={az.documentLibrary.search}
-            placeholder={az.documentLibrary.searchPlaceholder}
-            maxLength={200}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
+        <form
+          role="search"
+          className="flex min-w-0 flex-1 gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setSubmittedQuery(draftQuery.trim());
+          }}
+        >
+          <label className="relative min-w-0 flex-1">
+            <Search
+              size={17}
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              className="field pl-10"
+              aria-label={az.documentLibrary.search}
+              placeholder={az.documentLibrary.searchPlaceholder}
+              maxLength={200}
+              value={draftQuery}
+              onChange={(event) => setDraftQuery(event.target.value)}
+            />
+          </label>
+          <Button type="submit">{az.actions.search}</Button>
+        </form>
         <select
           className="field sm:w-56!"
           aria-label={az.directions.field}
@@ -149,13 +156,7 @@ function DocumentLibrary() {
             </p>
             <div className="mt-auto flex flex-wrap items-center gap-2 pt-2 text-xs text-muted-foreground">
               <span>{directionLabel(document.direction) ?? az.directions.unassigned}</span>
-              <span className="rounded-full border border-border px-2 py-1">
-                {
-                  az.documents.classification[
-                    document.classification as keyof typeof az.documents.classification
-                  ]
-                }
-              </span>
+              <ClassificationBadge classification={document.classification} />
               {document.status !== "ready" && (
                 <span
                   className={document.status === "failed" ? "text-destructive" : "text-warning"}
@@ -179,7 +180,7 @@ function DocumentLibrary() {
       </div>
       {!documents.isPending && !documents.isError && items.length === 0 && (
         <div className="panel p-12 text-center text-sm text-muted-foreground">
-          {query || direction ? az.documentLibrary.noMatches : az.documents.empty}
+          {submittedQuery || direction ? az.documentLibrary.noMatches : az.documents.empty}
         </div>
       )}
       {documents.hasNextPage && (

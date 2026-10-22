@@ -149,6 +149,7 @@ export const dailyBriefs = pgTable(
     briefDate: date("brief_date").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
+    classification: text("classification").notNull().default("open"),
     status: text("status").notNull().default("published"),
     authorId: text("author_id")
       .notNull()
@@ -170,6 +171,10 @@ export const dailyBriefs = pgTable(
     ),
     check("daily_briefs_body_length_check", sql.raw("char_length(body) <= 200000")),
     check("daily_briefs_status_check", sql.raw("status = 'published'")),
+    check(
+      "daily_briefs_classification_check",
+      sql.raw("classification IN ('open', 'secret', 'top_secret', 'special')"),
+    ),
     check(
       "daily_briefs_index_status_check",
       sql.raw("index_status IN ('none', 'queued', 'processing', 'ready', 'failed')"),

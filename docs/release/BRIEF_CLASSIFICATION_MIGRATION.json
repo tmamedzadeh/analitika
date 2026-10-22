@@ -1,0 +1,27 @@
+{
+  "capturedAt": "2026-10-22T11:14:47.223Z",
+  "targetFingerprint": "510780665ebed68a",
+  "runtimeTargetMatches": true,
+  "appliedMigrationCount": 25,
+  "journalHashesMatch": true,
+  "nativeSchemaMatches": true,
+  "migration": "0024_brief_classification.sql",
+  "status": "APPLIED",
+  "tempMigrationChecks": "PASS",
+  "counts": {
+    "briefs": 10,
+    "unchanged_columns_digest": "e4b48246f6fc94ed8ebf2804e71ac06f"
+  },
+  "classifications": {
+    "total": 10,
+    "open": 10,
+    "invalid": 0
+  },
+  "tableCounts": [
+    {
+      "documents": 14,
+      "chunks": 108,
+      "brief_attachments": 0
+    }
+  ]
+}

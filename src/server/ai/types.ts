@@ -21,6 +21,9 @@ export type TextGenerationInput = ProviderRequestOptions & {
   temperature?: number;
   maxOutputTokens?: number;
   thinkingLevel?: "minimal" | "low" | "medium" | "high";
+  // With deadlineAt, bounds one model's attempts without aborting the fallback route.
+  // Without deadlineAt, retains the legacy total request timeout.
+  // Analytics sets only deadlineAt so reasoning can use the full remaining budget.
   timeoutMs?: number;
   signal?: AbortSignal;
   maxAttempts?: GeminiAttemptLimit;

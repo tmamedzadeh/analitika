@@ -53,6 +53,8 @@ function eventStream(body: ReadableStream<Uint8Array>, requestId: string): Respo
 }
 
 function answerFailureMessage(error: unknown): string {
+  if (getGeminiErrorCategory(error) === "provider_unavailable")
+    return az.analytics.providerUnavailable;
   if (!isGeminiQuotaError(error)) return az.analytics.answerFailed;
   return az.analytics.quotaExceeded;
 }
@@ -105,6 +107,7 @@ async function handleAnalyticsSearch(
           event: "deadline",
           attempt: activeAttempt,
           errorCategory: "timeout",
+          timeoutScope: "overall",
         }),
       );
       aborter.abort(new DOMException("Analytics deadline exceeded.", "TimeoutError"));
@@ -384,7 +387,6 @@ async function handleAnalyticsSearch(
                     providers.analytics.generateTextWithMetadata({
                       ...generationPrompt,
                       signal: aborter.signal,
-                      timeoutMs: 60_000,
                       deadlineAt: startedAt + ANALYTICS_SERVER_DEADLINE_MS,
                       onFallback: (fallback) => send({ type: "model-fallback", fallback }),
                     }),
@@ -508,7 +510,14 @@ async function handleAnalyticsSearch(
               model,
               durationMs: Date.now() - startedAt,
             });
-            send({ type: "error", message: answerFailureMessage(error), requestId });
+            send({
+              type: "error",
+              message:
+                activeStage === "generation"
+                  ? answerFailureMessage(error)
+                  : az.analytics.answerFailed,
+              requestId,
+            });
           }
         } finally {
           close();

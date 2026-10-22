@@ -9,7 +9,7 @@ import {
   MAX_BRIEF_PHOTOS,
 } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
-import { accessFilter, adminAccessFilter } from "@/server/db/access";
+import { briefAccessFilter, adminAccessFilter } from "@/server/db/access";
 import { getDb } from "@/server/db";
 import { appUsers, briefAttachments, dailyBriefs } from "@/server/db/schema";
 import { briefIndexingRequested } from "@/server/inngest/events";
@@ -17,7 +17,13 @@ import { inngest } from "@/server/inngest/client";
 import { getStorage } from "@/server/storage/s3";
 import { deleteObjectsBestEffort } from "@/server/storage/delete-objects";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
-import { getCurrentUser, requireAdmin } from "@/server/auth";
+import {
+  getCurrentUser,
+  requireAdmin,
+  canAccessClassification,
+  clearanceValues,
+  type Clearance,
+} from "@/server/auth";
 import { briefContentHash } from "./index-state";
 import { indexProgress } from "../jobs/index-state";
 import {
@@ -61,6 +67,29 @@ export function canDeleteBrief(user: { role: "admin" | "user" }) {
   return user.role === "admin";
 }
 
+export function assertBriefClassificationWrite(
+  actor: { role: "admin" | "user"; clearance: string },
+  classification: string,
+  previous?: string,
+) {
+  if (
+    !canAccessClassification({ clearance: actor.clearance as Clearance }, classification) ||
+    (previous !== undefined &&
+      !canAccessClassification({ clearance: actor.clearance as Clearance }, previous))
+  ) {
+    throw new Error(az.briefs.validation.classification);
+  }
+  // No document declassification policy exists: lowering a brief is admin-only.
+  if (
+    previous !== undefined &&
+    clearanceValues.indexOf(classification as Clearance) <
+      clearanceValues.indexOf(previous as Clearance) &&
+    actor.role !== "admin"
+  ) {
+    throw new Error(az.briefs.validation.declassification);
+  }
+}
+
 function safeFileName(value: string): string {
   const name = value
     .replaceAll("\\", "/")
@@ -100,52 +129,68 @@ export async function prepareBriefUploadUrls(
   const db = getDb();
   const briefId = parsed.briefId ?? crypto.randomUUID();
   const isNew = parsed.briefId === undefined;
-  let currentAttachments: Array<typeof briefAttachments.$inferSelect> = [];
-
-  if (!isNew) {
-    const [brief] = await db
-      .select({ id: dailyBriefs.id, authorId: dailyBriefs.authorId })
-      .from(dailyBriefs)
-      .where(
-        and(
-          eq(dailyBriefs.id, briefId),
-          accessFilter(),
-          sql`(${dailyBriefs.authorId} = ${user.id} or ${adminAccessFilter(user)})`,
-        ),
-      )
+  return db.transaction(async (transaction) => {
+    const [actor] = await transaction
+      .select({ id: appUsers.id, role: appUsers.role, clearance: appUsers.clearance })
+      .from(appUsers)
+      .where(and(eq(appUsers.id, user.id), eq(appUsers.active, true)))
+      .for("share")
       .limit(1);
-    if (!brief) throw new Error(az.briefs.missing);
-    if (!canEditBrief(user, brief.authorId)) throw new Error(az.briefs.missing);
-    currentAttachments = await db
-      .select()
-      .from(briefAttachments)
-      .where(eq(briefAttachments.briefId, briefId))
-      .orderBy(briefAttachments.ord);
-    const available = new Set(currentAttachments.map((file) => file.id));
-    if (parsed.keepAttachmentIds.some((id) => !available.has(id)))
-      throw new Error(az.briefs.saveFailed);
-  } else if (parsed.keepAttachmentIds.length > 0) {
-    throw new Error(az.briefs.saveFailed);
-  }
+    if (!actor) throw new Error(az.briefs.missing);
+    assertBriefClassificationWrite(actor, parsed.classification);
+    let currentAttachments: Array<typeof briefAttachments.$inferSelect> = [];
 
-  if (parsed.keepAttachmentIds.length + parsed.photos.length > MAX_BRIEF_PHOTOS) {
-    throw new Error(az.briefs.validation.tooManyPhotos);
-  }
-  const storage = getStorage();
-  const uploads = await Promise.all(
-    parsed.photos.map(async (photo) => {
-      const mime = photo.mime as keyof typeof extensionForMime;
-      const key = newImageUploadKey("briefs", briefId, user.id, mime);
-      return {
-        name: safeFileName(photo.name),
-        mime,
-        size: photo.size,
-        key,
-        url: await storage.getSignedUploadUrl(key, mime, photo.size, 300),
-      };
-    }),
-  );
-  return { briefId, isNew, uploads };
+    if (!isNew) {
+      const [brief] = await transaction
+        .select({
+          id: dailyBriefs.id,
+          authorId: dailyBriefs.authorId,
+          classification: dailyBriefs.classification,
+        })
+        .from(dailyBriefs)
+        .where(
+          and(
+            eq(dailyBriefs.id, briefId),
+            briefAccessFilter(),
+            sql`(${dailyBriefs.authorId} = ${user.id} or ${adminAccessFilter(user)})`,
+          ),
+        )
+        .for("share")
+        .limit(1);
+      if (!brief) throw new Error(az.briefs.missing);
+      if (!canEditBrief(actor, brief.authorId)) throw new Error(az.briefs.missing);
+      assertBriefClassificationWrite(actor, parsed.classification, brief.classification);
+      currentAttachments = await transaction
+        .select()
+        .from(briefAttachments)
+        .where(eq(briefAttachments.briefId, briefId))
+        .orderBy(briefAttachments.ord);
+      const available = new Set(currentAttachments.map((file) => file.id));
+      if (parsed.keepAttachmentIds.some((id) => !available.has(id)))
+        throw new Error(az.briefs.saveFailed);
+    } else if (parsed.keepAttachmentIds.length > 0) {
+      throw new Error(az.briefs.saveFailed);
+    }
+
+    if (parsed.keepAttachmentIds.length + parsed.photos.length > MAX_BRIEF_PHOTOS) {
+      throw new Error(az.briefs.validation.tooManyPhotos);
+    }
+    const storage = getStorage();
+    const uploads = await Promise.all(
+      parsed.photos.map(async (photo) => {
+        const mime = photo.mime as keyof typeof extensionForMime;
+        const key = newImageUploadKey("briefs", briefId, user.id, mime);
+        return {
+          name: safeFileName(photo.name),
+          mime,
+          size: photo.size,
+          key,
+          url: await storage.getSignedUploadUrl(key, mime, photo.size, 300),
+        };
+      }),
+    );
+    return { briefId, isNew, uploads };
+  });
 }
 
 export async function saveBriefRecord(
@@ -164,15 +209,6 @@ export async function saveBriefRecord(
   let committedUploads: z.infer<typeof uploadSchema>[] = [];
   let recordCommitted = false;
   try {
-    committedUploads = await commitImageUploads(
-      getStorage(),
-      "briefs",
-      parsed.briefId,
-      user.id,
-      parsed.uploads,
-    ).catch(() => {
-      throw new Error(az.briefs.uploadVerifyFailed);
-    });
     if (parsed.keepAttachmentIds.length + parsed.uploads.length > MAX_BRIEF_PHOTOS) {
       throw new Error(az.briefs.validation.tooManyPhotos);
     }
@@ -185,13 +221,37 @@ export async function saveBriefRecord(
             version: sql<string>`${dailyBriefs.updatedAt}::text`,
           })
           .from(dailyBriefs)
-          .where(and(eq(dailyBriefs.id, parsed.briefId), accessFilter()))
+          .where(and(eq(dailyBriefs.id, parsed.briefId), briefAccessFilter()))
           .limit(1);
     if (parsed.isNew && existingBrief) throw new Error(az.briefs.saveFailed);
     if (!parsed.isNew && !existingBrief) throw new Error(az.briefs.missing);
     if (!parsed.isNew && !canEditBrief(user, existingBrief!.authorId)) {
       throw new Error(az.briefs.missing);
     }
+    const [currentActor] = await db
+      .select({ role: appUsers.role, clearance: appUsers.clearance })
+      .from(appUsers)
+      .where(and(eq(appUsers.id, user.id), eq(appUsers.active, true)))
+      .limit(1);
+    if (!currentActor) throw new Error(az.briefs.missing);
+    assertBriefClassificationWrite(
+      currentActor,
+      parsed.classification,
+      existingBrief?.classification,
+    );
+    committedUploads = await commitImageUploads(
+      getStorage(),
+      "briefs",
+      parsed.briefId,
+      user.id,
+      parsed.uploads,
+    ).catch(() => {
+      throw new Error(az.briefs.uploadVerifyFailed);
+    });
+    const needsIndexing =
+      !existingBrief ||
+      briefContentHash(existingBrief) !==
+        briefContentHash({ title: parsed.title, body: parsed.body, briefDate: parsed.date });
 
     const existingAttachments = parsed.isNew
       ? []
@@ -211,20 +271,22 @@ export async function saveBriefRecord(
     const now = new Date();
     await db.transaction(async (transaction) => {
       const [actor] = await transaction
-        .select({ id: appUsers.id, role: appUsers.role })
+        .select({ id: appUsers.id, role: appUsers.role, clearance: appUsers.clearance })
         .from(appUsers)
         .where(and(eq(appUsers.id, user.id), eq(appUsers.active, true)))
         .for("share")
         .limit(1);
       if (!actor) throw new Error(az.briefs.missing);
+      assertBriefClassificationWrite(actor, parsed.classification);
       if (!parsed.isNew) {
         const [locked] = await transaction
           .select({
             authorId: dailyBriefs.authorId,
+            classification: dailyBriefs.classification,
             version: sql<string>`${dailyBriefs.updatedAt}::text`,
           })
           .from(dailyBriefs)
-          .where(and(eq(dailyBriefs.id, parsed.briefId), accessFilter()))
+          .where(and(eq(dailyBriefs.id, parsed.briefId), briefAccessFilter()))
           .for("update")
           .limit(1);
         if (
@@ -234,6 +296,7 @@ export async function saveBriefRecord(
         ) {
           throw new Error(az.briefs.saveFailed);
         }
+        assertBriefClassificationWrite(actor, parsed.classification, locked.classification);
       }
       if (parsed.isNew) {
         await transaction.insert(dailyBriefs).values({
@@ -241,6 +304,7 @@ export async function saveBriefRecord(
           briefDate: parsed.date,
           title: parsed.title,
           body: parsed.body,
+          classification: parsed.classification,
           status: "published",
           authorId: user.id,
           updatedBy: user.id,
@@ -256,24 +320,29 @@ export async function saveBriefRecord(
             briefDate: parsed.date,
             title: parsed.title,
             body: parsed.body,
+            classification: parsed.classification,
             updatedBy: user.id,
             status: "published",
-            indexStatus: "queued",
-            indexProgress: {
-              ...indexProgress(existingBrief!.indexProgress),
-              percent: 0,
-              totalChunks: 0,
-              completedChunks: 0,
-              recoveryAttempts: 0,
-              leaseId: null,
-              ...(existingBrief!.indexStatus === "ready"
-                ? { contentHash: briefContentHash(existingBrief!) }
-                : {}),
-            },
+            ...(needsIndexing
+              ? {
+                  indexStatus: "queued",
+                  indexProgress: {
+                    ...indexProgress(existingBrief!.indexProgress),
+                    percent: 0,
+                    totalChunks: 0,
+                    completedChunks: 0,
+                    recoveryAttempts: 0,
+                    leaseId: null,
+                    ...(existingBrief!.indexStatus === "ready"
+                      ? { contentHash: briefContentHash(existingBrief!) }
+                      : {}),
+                  },
+                }
+              : {}),
             publishedAt: existingBrief!.publishedAt ?? now,
             updatedAt: now,
           })
-          .where(and(eq(dailyBriefs.id, parsed.briefId), accessFilter()));
+          .where(and(eq(dailyBriefs.id, parsed.briefId), briefAccessFilter()));
       }
 
       await transaction
@@ -312,9 +381,10 @@ export async function saveBriefRecord(
 
     let queueFailed = false;
     try {
-      await (options.sendIndexing
-        ? options.sendIndexing(parsed.briefId)
-        : inngest.send(briefIndexingRequested.create({ briefId: parsed.briefId })));
+      if (needsIndexing)
+        await (options.sendIndexing
+          ? options.sendIndexing(parsed.briefId)
+          : inngest.send(briefIndexingRequested.create({ briefId: parsed.briefId })));
     } catch {
       queueFailed = true;
       await db
@@ -324,7 +394,7 @@ export async function saveBriefRecord(
           and(
             eq(dailyBriefs.id, parsed.briefId),
             eq(dailyBriefs.indexStatus, "queued"),
-            accessFilter(),
+            briefAccessFilter(),
           ),
         );
     }
@@ -360,10 +430,10 @@ export async function removeBrief(briefId: string): Promise<{ cleanupIncomplete:
       .select({ storageKey: briefAttachments.storageKey })
       .from(briefAttachments)
       .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
-      .where(and(eq(dailyBriefs.id, briefId), adminAccessFilter(user)));
+      .where(and(eq(dailyBriefs.id, briefId), adminAccessFilter(user), briefAccessFilter(user)));
     const [brief] = await transaction
       .delete(dailyBriefs)
-      .where(and(eq(dailyBriefs.id, briefId), adminAccessFilter(user)))
+      .where(and(eq(dailyBriefs.id, briefId), adminAccessFilter(user), briefAccessFilter(user)))
       .returning({ id: dailyBriefs.id });
     if (!brief) throw new Error(az.briefs.missing);
     return files.map(({ storageKey }) => storageKey);

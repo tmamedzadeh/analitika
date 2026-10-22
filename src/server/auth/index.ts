@@ -5,8 +5,8 @@ import { and, eq, gt, lte, sql } from "drizzle-orm";
 import { getDb } from "@/server/db";
 import { appSessions, appUsers, authLoginAttempts } from "@/server/db/schema";
 
-export const clearanceValues = ["open", "secret", "top_secret", "special"] as const;
-export type Clearance = (typeof clearanceValues)[number];
+import { clearanceValues, type Clearance } from "@/lib/classification";
+export { clearanceValues, type Clearance } from "@/lib/classification";
 export type UserRole = "admin" | "user";
 
 export type SessionUser = {

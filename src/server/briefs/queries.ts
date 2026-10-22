@@ -14,7 +14,7 @@ import {
   type Brief,
   type BriefListItem,
 } from "@/lib/briefs";
-import { accessFilter } from "@/server/db/access";
+import { briefAccessFilter } from "@/server/db/access";
 import { getDb } from "@/server/db";
 import { getCurrentUser } from "@/server/auth";
 import { briefAttachments, chunks, dailyBriefs } from "@/server/db/schema";
@@ -43,7 +43,7 @@ export function briefWindow(filters: Pick<BriefListFilters, "period" | "month">,
 }
 
 export function buildBriefListConditions(filters: BriefListFilters) {
-  const conditions = [accessFilter()];
+  const conditions = [briefAccessFilter()];
   const window = briefWindow(filters);
   if (window) {
     conditions.push(gte(dailyBriefs.briefDate, window.from));
@@ -83,6 +83,7 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
       date: dailyBriefs.briefDate,
       title: dailyBriefs.title,
       body: dailyBriefs.body,
+      classification: dailyBriefs.classification,
       status: dailyBriefs.status,
       indexStatus: dailyBriefs.indexStatus,
       indexProgress: dailyBriefs.indexProgress,
@@ -106,7 +107,7 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
         .select({ briefId: briefAttachments.briefId, total: sql<number>`count(*)` })
         .from(briefAttachments)
         .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
-        .where(and(inArray(briefAttachments.briefId, ids), accessFilter()))
+        .where(and(inArray(briefAttachments.briefId, ids), briefAccessFilter()))
         .groupBy(briefAttachments.briefId)
     : [];
   const countByBrief = new Map(photoCounts.map((row) => [row.briefId, Number(row.total)]));
@@ -116,7 +117,7 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
         .select({ id: briefAttachments.id })
         .from(briefAttachments)
         .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
-        .where(and(eq(briefAttachments.briefId, featuredRow.id), accessFilter()))
+        .where(and(eq(briefAttachments.briefId, featuredRow.id), briefAccessFilter()))
         .orderBy(briefAttachments.ord)
         .limit(1)
     : [];
@@ -126,6 +127,7 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
     id: row.id,
     date: row.date,
     title: row.title,
+    classification: row.classification as BriefListItem["classification"],
     excerpt: briefExcerpt(row.body),
     status: row.status as BriefListItem["status"],
     indexStatus: row.indexStatus as BriefListItem["indexStatus"],
@@ -165,7 +167,7 @@ export async function getBriefDetails(
   const [row] = await db
     .select()
     .from(dailyBriefs)
-    .where(and(eq(dailyBriefs.id, briefId), accessFilter()))
+    .where(and(eq(dailyBriefs.id, briefId), briefAccessFilter()))
     .limit(1);
   if (!row) return null;
 
@@ -173,7 +175,7 @@ export async function getBriefDetails(
     .select()
     .from(briefAttachments)
     .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
-    .where(and(eq(briefAttachments.briefId, briefId), accessFilter()))
+    .where(and(eq(briefAttachments.briefId, briefId), briefAccessFilter()))
     .orderBy(briefAttachments.ord);
   const photos = files.map(({ brief_attachments: file }) => ({
     id: file.id,
@@ -190,7 +192,7 @@ export async function getBriefDetails(
             eq(chunks.id, chunkId),
             eq(chunks.briefId, briefId),
             hasCommittedBriefIndex(),
-            accessFilter(),
+            briefAccessFilter(),
           ),
         )
         .limit(1)
@@ -200,13 +202,13 @@ export async function getBriefDetails(
   const [older] = await db
     .select({ id: dailyBriefs.id })
     .from(dailyBriefs)
-    .where(and(afterBriefPosition(position), accessFilter()))
+    .where(and(afterBriefPosition(position), briefAccessFilter()))
     .orderBy(desc(dailyBriefs.briefDate), desc(dailyBriefs.id))
     .limit(1);
   const [newer] = await db
     .select({ id: dailyBriefs.id })
     .from(dailyBriefs)
-    .where(and(beforeBriefPosition(position), accessFilter()))
+    .where(and(beforeBriefPosition(position), briefAccessFilter()))
     .orderBy(asc(dailyBriefs.briefDate), asc(dailyBriefs.id))
     .limit(1);
   return {
@@ -215,6 +217,7 @@ export async function getBriefDetails(
       date: row.briefDate,
       title: row.title,
       body: row.body,
+      classification: row.classification as Brief["classification"],
       status: row.status as Brief["status"],
       indexStatus: row.indexStatus as Brief["indexStatus"],
       indexProgress: briefProgress(row.indexProgress),

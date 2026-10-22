@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { z } from "zod";
 
 import { BriefMarkdown } from "@/components/BriefMarkdown";
+import { ClassificationBadge } from "@/components/ClassificationBadge";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
 import {
@@ -161,6 +162,9 @@ function BriefDetail() {
         </p>
       )}
       <div>
+        <div className="mb-4">
+          <ClassificationBadge classification={brief.classification} />
+        </div>
         <article className="rounded-xl border border-border bg-card p-5 text-sm leading-7 sm:p-6">
           <h2 className="sr-only">{az.briefs.markdown}</h2>
           <BriefMarkdown markdown={brief.body} highlight={brief.highlight} />

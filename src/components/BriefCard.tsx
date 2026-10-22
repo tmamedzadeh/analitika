@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Images } from "lucide-react";
+import { ClassificationBadge } from "./ClassificationBadge";
 
 import { briefDate, type BriefListItem } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
@@ -43,8 +43,8 @@ export function BriefCard({
           <h2
             className={
               featured
-                ? "text-lg font-semibold leading-6 tracking-[-0.01em] text-foreground sm:text-xl"
-                : "text-base font-semibold leading-6 text-foreground"
+                ? "text-lg font-semibold leading-6 tracking-[-0.01em] text-foreground [overflow-wrap:anywhere] sm:text-xl"
+                : "text-base font-semibold leading-6 text-foreground [overflow-wrap:anywhere]"
             }
           >
             {brief.title}
@@ -52,6 +52,9 @@ export function BriefCard({
           <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">
             {brief.excerpt}
           </p>
+          <div className="mt-3">
+            <ClassificationBadge classification={brief.classification} />
+          </div>
         </div>
       </div>
     </>

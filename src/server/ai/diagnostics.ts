@@ -39,6 +39,7 @@ export type AiDiagnosticEvent = {
   attempt?: number;
   providerStatus?: number | undefined;
   errorCategory?: AiErrorCategory;
+  timeoutScope?: "model" | "overall";
   retryDelayMs?: number;
   finishReason?: string;
   validationFailureReasons?: readonly string[];
@@ -75,6 +76,7 @@ export function logAiDiagnostic(event: AiDiagnosticEvent): boolean {
     generationAttempt: current.generationAttempt ?? null,
     providerStatus: event.providerStatus ?? null,
     errorCategory: event.errorCategory ?? null,
+    ...(event.timeoutScope ? { timeoutScope: event.timeoutScope } : {}),
     elapsedMs: Math.max(0, Date.now() - current.startedAt),
     ...(event.fallbackModel ? { fallbackModel: safeModel(event.fallbackModel) } : {}),
     ...(event.retryDelayMs === undefined ? {} : { retryDelayMs: event.retryDelayMs }),

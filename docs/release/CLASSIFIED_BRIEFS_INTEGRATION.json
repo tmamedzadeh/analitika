@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-10-22T11:05:16.687Z",
+  "status": "PASS",
+  "checks": [
+    "all four live clearance levels for users/admins across catalog, UUID details, photos, vector/FTS/trigram candidates and source metadata; stale special session and owner never bypass ceiling",
+    "server rejects over-clearance creation, inaccessible edits, non-admin declassification and stale admin role",
+    "classified bulletin creation persists validated classification and queues indexing",
+    "classification-only save preserves ready chunks and emits no indexing event",
+    "history metadata/answer/previews and pre-prompt/publication rechecks deny clearance downgrade and source upgrade, including legacy open snapshots",
+    "direct classified photo URL returns 404 through the real local HTTP route",
+    "deactivated user denied"
+  ],
+  "externalAiCalls": 0
+}

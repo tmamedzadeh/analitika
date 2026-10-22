@@ -224,6 +224,7 @@ export function getGeminiFailureInfo(error: unknown): {
 export function isGeminiQuotaError(error: unknown): boolean {
   if (error instanceof GeminiQuotaExceededError) return true;
   const statusCode = getStatusCode(error);
+  if (statusCode === 503) return false;
   if (statusCode === 429) return true;
   const message = apiErrorMessage(error);
   const body = apiErrorBody(error) ?? "";
@@ -265,7 +266,23 @@ export function isTerminalQuotaError(error: unknown): boolean {
 
 export function canFallbackGemini(error: unknown): boolean {
   if (isTerminalQuotaError(error)) return false;
-  return isGeminiQuotaError(error) || [502, 503, 504].includes(getStatusCode(error) ?? 0);
+  return (
+    isGeminiQuotaError(error) ||
+    [502, 503, 504].includes(getStatusCode(error) ?? 0) ||
+    getGeminiErrorCategory(error) === "timeout"
+  );
+}
+
+function shouldRetryUnavailable(error: unknown, attempt: number, deadlineAt?: number): boolean {
+  if (getStatusCode(error) !== 503) return true;
+  // One short retry after an explicit rejection. Leave the rest for fallback;
+  // this never imposes a timer on a provider that is still reasoning.
+  const delay = retryDelay(error, attempt);
+  return (
+    attempt < 2 &&
+    delay <= 1_000 &&
+    (deadlineAt === undefined || Date.now() + delay + 5_000 < deadlineAt)
+  );
 }
 
 function getRetryAfterMs(error: unknown, depth = 0): number | undefined {
@@ -340,6 +357,14 @@ export async function withGeminiRequest<T>(
         attempt,
         providerStatus: getStatusCode(error),
         errorCategory: getGeminiErrorCategory(error, signal),
+        ...(getGeminiErrorCategory(error, signal) === "timeout"
+          ? {
+              timeoutScope:
+                deadlineAt !== undefined && Date.now() >= deadlineAt
+                  ? ("overall" as const)
+                  : ("model" as const),
+            }
+          : {}),
       });
     } finally {
       release();
@@ -351,6 +376,7 @@ export async function withGeminiRequest<T>(
       const delay = retryDelay(failure, attempt);
       if (
         !isTransientProviderFailure(failure) ||
+        !shouldRetryUnavailable(failure, attempt, deadlineAt) ||
         attempt >= maxAttempts ||
         delay > MAX_RETRY_DELAY_MS ||
         (deadlineAt !== undefined && Date.now() + delay + 100 >= deadlineAt)
@@ -450,6 +476,7 @@ export async function* withGeminiStream<T>(
       if (
         emitted ||
         !isTransientProviderFailure(failure) ||
+        !shouldRetryUnavailable(failure, attempt, deadlineAt) ||
         attempt >= maxAttempts ||
         delay > MAX_RETRY_DELAY_MS ||
         (deadlineAt !== undefined && Date.now() + delay + 100 >= deadlineAt)

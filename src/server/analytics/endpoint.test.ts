@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AnalyticsSource } from "@/lib/analytics";
+import { az } from "@/lib/i18n/az";
 
 const mocks = vi.hoisted(() => ({
   search: vi.fn(),
@@ -94,6 +95,20 @@ function request(signal?: AbortSignal) {
 }
 
 describe("analytics stream access and cancellation", () => {
+  it("returns a localized unavailable error and failed history when the provider route fails with 503", async () => {
+    mocks.generate.mockRejectedValueOnce(
+      Object.assign(new Error("private provider details"), { statusCode: 503 }),
+    );
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const stream = await response.text();
+    expect(stream).toContain(az.analytics.providerUnavailable);
+    expect(stream).not.toContain('"type":"final"');
+    expect(stream).not.toContain("private provider details");
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed" }),
+    );
+  });
   it("sends backend fallback events and persists the actual completing model", async () => {
     mocks.generate.mockImplementation(async (input) => {
       input.onFallback({
@@ -228,35 +243,47 @@ describe("analytics stream access and cancellation", () => {
     expect(vi.mocked(console.error).mock.calls.join(" ")).toContain('"errorCategory":"timeout"');
   });
 
-  it("distinguishes a 60-second generation timeout after 11 seconds of retrieval", async () => {
+  it("allows 75-second reasoning after retrieval without a 60-second generation cap", async () => {
     vi.useFakeTimers();
     mocks.search.mockImplementation(async () => {
       await new Promise((resolve) => setTimeout(resolve, 11_000));
       return [source];
     });
-    mocks.generate.mockImplementation(
-      (input: { timeoutMs: number }) =>
-        new Promise((_resolve, reject) =>
-          setTimeout(
-            () => reject(new DOMException("sensitive provider details", "TimeoutError")),
-            input.timeoutMs,
-          ),
+    mocks.generate.mockImplementation((input: { timeoutMs?: number; deadlineAt: number }) => {
+      expect(input.timeoutMs).toBeUndefined();
+      expect(input.deadlineAt - Date.now()).toBe(94_000);
+      return new Promise((resolve) =>
+        setTimeout(
+          () =>
+            resolve({
+              text: "Synthetic answer [1]",
+              finishReason: "stop",
+              model: "long-reasoning-model",
+            }),
+          75_000,
         ),
-    );
+      );
+    });
     const pending = withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
     await vi.advanceTimersByTimeAsync(11_000);
     const response = await pending;
     const output = response.text();
     await vi.advanceTimersByTimeAsync(60_000);
-
-    expect(await output).toContain('"type":"error"');
+    expect(mocks.updateHistory).not.toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed" }),
+    );
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(await output).toContain('"type":"final"');
     expect(mocks.generate).toHaveBeenCalledOnce();
-    const logs = vi.mocked(console.error).mock.calls.join(" ");
-    expect(logs).toContain('"stage":"generation"');
-    expect(logs).toContain('"attempt":1');
-    expect(logs).toContain('"errorCategory":"timeout"');
-    expect(logs).toContain('"elapsedMs":71000');
-    expect(logs).not.toContain("sensitive provider details");
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        status: "done",
+        durationMs: 86_000,
+        model: "long-reasoning-model",
+      }),
+    );
   });
 
   it("includes history setup time in the 105-second overall budget", async () => {

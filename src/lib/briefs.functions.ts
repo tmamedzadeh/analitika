@@ -11,6 +11,24 @@ import {
   saveBriefSchema,
 } from "@/server/briefs/mutations";
 import { getBriefDetails, listBriefsPage } from "@/server/briefs/queries";
+import { and, eq } from "drizzle-orm";
+import { getDb } from "@/server/db";
+import { appUsers } from "@/server/db/schema";
+import { allowedClassifications, getCurrentUser, type Clearance } from "@/server/auth";
+
+export const getBriefFormContext = createServerFn({ method: "GET" }).handler(async () => {
+  const [actor] = await getDb()
+    .select({ role: appUsers.role, clearance: appUsers.clearance })
+    .from(appUsers)
+    .where(and(eq(appUsers.id, getCurrentUser().id), eq(appUsers.active, true)))
+    .limit(1);
+  return {
+    classifications: actor
+      ? allowedClassifications({ clearance: actor.clearance as Clearance })
+      : [],
+    canDeclassify: actor?.role === "admin",
+  };
+});
 
 const listInputSchema = z.object({
   query: z.string().trim().max(200).default(""),

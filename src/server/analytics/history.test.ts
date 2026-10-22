@@ -98,7 +98,9 @@ function arrange(
             : [["Current title", "2026-10-21", "OSINT", "D", 5, "open"]],
       };
     if (sql.includes('from "daily_briefs"') && sql.startsWith('select "title"'))
-      return { rows: options.document === false ? [] : [["Current brief", "2026-10-21"]] };
+      return {
+        rows: options.document === false ? [] : [["Current brief", "2026-10-21", "secret"]],
+      };
     return { rows: [[id]] };
   });
 }
@@ -176,6 +178,7 @@ describe("authorized current history previews", () => {
     expect(record?.sources[0]?.preview).toMatchObject({
       n: 8,
       sourceKind: "brief",
+      classification: "secret",
       briefId: id,
       docDate: null,
       briefDate: "2026-10-21",

@@ -18,6 +18,7 @@ import {
   type BriefListItem,
 } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
+import { clearanceValues, type Clearance } from "@/lib/classification";
 
 type PhotoDraft = { id?: string; name: string; url: string; file?: File };
 
@@ -28,12 +29,27 @@ function validationMessage(path: string | undefined): string {
   return az.briefs.validation.required;
 }
 
-export function BriefEditor({ existing }: { existing?: Brief }) {
+export function BriefEditor({
+  existing,
+  formContext,
+}: {
+  existing?: Brief;
+  formContext: { classifications: Clearance[]; canDeclassify: boolean };
+}) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [date, setDate] = useState(existing?.date ?? getBakuDate());
   const [title, setTitle] = useState(existing?.title ?? "");
   const [body, setBody] = useState(existing?.body ?? "");
+  const [classification, setClassification] = useState<Clearance>(
+    existing?.classification ?? "open",
+  );
+  const classifications = formContext.classifications.filter(
+    (value) =>
+      !existing ||
+      formContext.canDeclassify ||
+      clearanceValues.indexOf(value) >= clearanceValues.indexOf(existing.classification),
+  );
   const [photos, setPhotos] = useState<PhotoDraft[]>(
     existing?.photos.map((photo) => ({ ...photo })) ?? [],
   );
@@ -48,6 +64,7 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
     title: title.trim() || az.briefs.titlePlaceholder,
     excerpt: briefExcerpt(body) || az.briefs.bodyPlaceholder,
     status: "published",
+    classification,
     indexStatus: "none",
     indexProgress: { percent: 0, totalChunks: 0, completedChunks: 0 },
     photoCount: photos.length,
@@ -83,7 +100,13 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
     event.preventDefault();
     if (busy) return;
     setError("");
-    const parsed = briefInputSchema.safeParse({ date, title, body, status: "published" });
+    const parsed = briefInputSchema.safeParse({
+      date,
+      title,
+      body,
+      classification,
+      status: "published",
+    });
     if (!parsed.success) {
       setError(validationMessage(String(parsed.error.issues[0]?.path[0] ?? "")));
       return;
@@ -195,6 +218,28 @@ export function BriefEditor({ existing }: { existing?: Brief }) {
             </label>
           </div>
 
+          <fieldset className="mt-5 grid gap-2 border-0 p-0">
+            <legend className="mb-2 text-sm font-semibold">{az.briefs.classificationLabel}</legend>
+            <div className="flex flex-wrap gap-2">
+              {classifications.map((value) => (
+                <label key={value} className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="classification"
+                    value={value}
+                    checked={classification === value}
+                    onChange={() => setClassification(value)}
+                    className="peer sr-only"
+                  />
+                  <span
+                    className={`${classification === value ? "pill pill-active" : "pill"} peer-focus-visible:ring-2 peer-focus-visible:ring-ring`}
+                  >
+                    {az.documents.classification[value]}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <div className="mt-5 block text-sm font-medium">
             <p>{az.briefs.body}</p>
             <MarkdownEditor

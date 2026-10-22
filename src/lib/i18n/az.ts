@@ -96,6 +96,7 @@ export const az = {
     unassigned: "Təyin edilməyib",
   },
   actions: {
+    search: "Axtar",
     home: "Ana səhifəyə qayıt",
     retry: "Yenidən cəhd et",
     logout: "Çıxış",
@@ -211,11 +212,13 @@ export const az = {
     rateLimited: "Sorğu limitinə çatdınız. Bir müddət sonra yenidən cəhd edin.",
     searchFailed: "Axtarışı yerinə yetirmək mümkün olmadı.",
     answerFailed: "Cavabı yaratmaq mümkün olmadı. Yenidən cəhd edin.",
+    providerUnavailable: "AI xidməti müvəqqəti əlçatan deyil. Bir qədər sonra yenidən cəhd edin.",
     timeout: "Axtarış üçün ayrılmış vaxt bitdi. Yenidən cəhd edin.",
     quotaExceeded:
       "AI modelləri hazırda sorğunu tamamlaya bilmir. Bir qədər sonra yenidən cəhd edin.",
   },
   briefs: {
+    classificationLabel: "Məxfilik qrifi",
     title: "Gündəlik bülletenlər",
     description: "Gündəlik bülletenlər.",
     add: "Əlavə et",
@@ -278,6 +281,8 @@ export const az = {
     deleted: "Məlumat silindi.",
     markdown: "Mətn",
     validation: {
+      classification: "Bu məxfilik qrifi üçün icazəniz yoxdur.",
+      declassification: "Məxfilik qrifini yalnız administrator aşağı sala bilər.",
       required: "Bu sahə mütləq doldurulmalıdır.",
       title: "Başlıq daxil edin.",
       body: "Mətni daxil edin.",

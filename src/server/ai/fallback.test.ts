@@ -36,6 +36,7 @@ beforeEach(() => {
   vi.stubEnv("GEMINI_EMBED_MODEL", "gemini-embedding-2");
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   vi.useRealTimers();
@@ -43,6 +44,124 @@ afterEach(() => {
 });
 
 describe("three-level Gemini routing", () => {
+  it("does not announce or call fallback after a late rejection exhausts the overall deadline", async () => {
+    vi.useFakeTimers();
+    const startedAt = Date.now();
+    const onFallback = vi.fn();
+    const fetch = vi.fn(async () => {
+      vi.setSystemTime(startedAt + 11_000);
+      return failure(503);
+    });
+    vi.stubGlobal("fetch", fetch);
+    await expect(
+      createGeminiProviders().analytics.generateText({
+        prompt: "synthetic",
+        deadlineAt: startedAt + 10_000,
+        onFallback,
+      }),
+    ).rejects.toMatchObject({ name: "TimeoutError" });
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(onFallback).not.toHaveBeenCalled();
+  });
+  it.each([false, true])(
+    "retries explicit 503 once, then uses light/optional backup (backup=%s)",
+    async (useBackup) => {
+      vi.useFakeTimers();
+      const fetch = vi.fn(async (url: unknown) =>
+        modelFrom(url) === chat || (useBackup && modelFrom(url) === light) ? failure(503) : ok(),
+      );
+      vi.stubGlobal("fetch", fetch);
+      const pending = createGeminiProviders().analytics.generateTextWithMetadata({
+        prompt: "synthetic",
+        deadlineAt: Date.now() + 105_000,
+      });
+      await vi.runAllTimersAsync();
+      expect((await pending).model).toBe(useBackup ? backup : light);
+      expect(fetch.mock.calls.map(([url]) => modelFrom(url))).toEqual(
+        useBackup ? [chat, chat, light, light, backup] : [chat, chat, light],
+      );
+      expect(isGeminiModelCoolingDown(chat)).toBe(false);
+    },
+  );
+
+  it("does not retry a duplicate model under another quota key", async () => {
+    vi.useFakeTimers();
+    const fetch = vi.fn(async () => failure(503));
+    vi.stubGlobal("fetch", fetch);
+    const pending = expect(
+      new GeminiLLMProvider(chat, "AI_CHAT_MODEL", chat, chat).generateText({
+        prompt: "synthetic",
+      }),
+    ).rejects.toMatchObject({ statusCode: 503 });
+    await vi.runAllTimersAsync();
+    await pending;
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips unavailable retry when Retry-After would consume the fallback budget", async () => {
+    const fetch = vi.fn(async (url: unknown) =>
+      modelFrom(url) === chat
+        ? Response.json(
+            { error: { message: "unavailable" } },
+            { status: 503, headers: { "retry-after": "30" } },
+          )
+        : ok(),
+    );
+    vi.stubGlobal("fetch", fetch);
+    expect(
+      (
+        await createGeminiProviders().analytics.generateTextWithMetadata({
+          prompt: "synthetic",
+          deadlineAt: Date.now() + 10_000,
+        })
+      ).model,
+    ).toBe(light);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["success", "deadline", "model-timeout"] as const)(
+    "uses the absolute budget for long reasoning (%s)",
+    async (outcome) => {
+      vi.useFakeTimers();
+      vi.spyOn(AbortSignal, "timeout").mockImplementation((ms) => {
+        const controller = new AbortController();
+        setTimeout(
+          () => controller.abort(new DOMException("Synthetic timeout", "TimeoutError")),
+          ms,
+        );
+        return controller.signal;
+      });
+      const fetch = vi.fn(async (url: unknown, init?: RequestInit) => {
+        if (modelFrom(url) !== chat) return ok();
+        return new Promise<Response>((resolve, reject) => {
+          const timer = setTimeout(() => resolve(ok()), 75_000);
+          init?.signal?.addEventListener(
+            "abort",
+            () => {
+              clearTimeout(timer);
+              reject(init.signal?.reason);
+            },
+            { once: true },
+          );
+        });
+      });
+      vi.stubGlobal("fetch", fetch);
+      const startedAt = Date.now();
+      const pending = createGeminiProviders().analytics.generateTextWithMetadata({
+        prompt: "synthetic",
+        deadlineAt: startedAt + (outcome === "deadline" ? 70_000 : 105_000),
+        ...(outcome === "model-timeout" ? { timeoutMs: 65_000 } : {}),
+      });
+      const checked = outcome === "deadline" ? expect(pending).rejects.toBeDefined() : pending;
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(fetch).toHaveBeenCalledOnce();
+      await vi.advanceTimersByTimeAsync(15_000);
+      const result = await checked;
+      if (outcome !== "deadline")
+        expect(result).toMatchObject({ model: outcome === "model-timeout" ? light : chat });
+      expect(fetch).toHaveBeenCalledTimes(outcome === "model-timeout" ? 2 : 1);
+    },
+  );
   it("falls chat → light → backup immediately on daily quotas and keeps corrective calls on backup", async () => {
     const fetch = vi.fn(async (url: unknown) =>
       modelFrom(url) === backup ? ok() : failure(429, "GenerateRequestsPerDayPerProjectPerModel"),

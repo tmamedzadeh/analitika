@@ -28,7 +28,7 @@ bun run db:verify:search
 
 `db:migrate` использует `DATABASE_URL_MIGRATE`; приложение использует `DATABASE_URL` через Supabase Transaction pooler. Миграция `0005_allow_duplicate_brief_dates.sql` снимает уникальность даты брифа. `db:reset-and-seed` выполняет только read-only dry run с counts: destructive reset отключён для всех targets, `--reset-and-seed` отклоняется. Пользовательский corpus нельзя очищать для проверки.
 
-`bun run db:check-drift` сравнивает схему с последним Drizzle snapshot и с native catalog настроенной Supabase DB, включая RLS. После `bun run build` команда `bun run preview` обслуживает Vercel artifact локально на `127.0.0.1:4175`.
+`bun run db:check-drift` сравнивает схему с последним Drizzle snapshot и с native catalog настроенной Supabase DB, включая RLS. После `bun run build` команда `bun run preview` обслуживает Vercel artifact локально на `127.0.0.1:4175`. Текущие изменения Gemini, Enter/Axtar и classification бюллетеней описаны в [отчёте 0024](docs/release/ZIRVE_RELIABILITY_CLASSIFICATION_REPORT.md).
 
 Краткая передача состояния: [WORK_SESSION_HANDOFF.md](./docs/WORK_SESSION_HANDOFF.md). Исторические checkpoints сохраняются для воспроизводимости; они не означают production GO.
 
@@ -43,7 +43,7 @@ bun run db:verify:search
 | `GOOGLE_GENERATIVE_AI_API_KEY`                                                      | Gemini API key                                                       |
 | `AI_CHAT_MODEL`                                                                     | Основная модель для Core RAG; quota fallback использует light-модель |
 | `AI_LIGHT_MODEL`                                                                    | Необязательная fallback-модель и модель для облегчённых AI-задач     |
-| `AI_BACKUP_MODEL`                                                                   | Необязательный третий уровень fallback после primary/light          |
+| `AI_BACKUP_MODEL`                                                                   | Необязательный третий уровень fallback после primary/light           |
 | `GEMINI_EMBED_MODEL`                                                                | Gemini embeddings; текущая схема ждёт 768 измерений                  |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` | Приватное S3-совместимое файловое хранилище                          |
 | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`                                          | Доставка и проверка подписей Inngest                                 |

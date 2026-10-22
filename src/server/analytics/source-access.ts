@@ -2,7 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import type { AnalyticsSource } from "@/lib/analytics";
 import { getDb } from "@/server/db";
-import { accessFilter, documentAccessFilter } from "@/server/db/access";
+import { briefAccessFilter, documentAccessFilter } from "@/server/db/access";
 import { appUsers, chunks, dailyBriefs, documents } from "@/server/db/schema";
 import { hasCommittedDocumentIndex } from "./filters";
 import { hasCommittedBriefIndex } from "../briefs/index-state";
@@ -75,14 +75,14 @@ export async function withAnalyticsCandidateAccess<T>(
         : Promise.resolve([]),
       briefIds.length
         ? transaction
-            .select({ id: dailyBriefs.id })
+            .select({ id: dailyBriefs.id, classification: dailyBriefs.classification })
             .from(dailyBriefs)
             .where(
               and(
                 inArray(dailyBriefs.id, [...briefIds]),
                 eq(dailyBriefs.status, "published"),
                 hasCommittedBriefIndex(),
-                accessFilter({ id: userId }),
+                briefAccessFilter({ id: userId }),
               ),
             )
             .for("share")
@@ -145,14 +145,14 @@ export async function withAnalyticsSourceAccess<T>(
         : Promise.resolve([]),
       briefIds.length
         ? transaction
-            .select({ id: dailyBriefs.id })
+            .select({ id: dailyBriefs.id, classification: dailyBriefs.classification })
             .from(dailyBriefs)
             .where(
               and(
                 inArray(dailyBriefs.id, briefIds),
                 eq(dailyBriefs.status, "published"),
                 hasCommittedBriefIndex(),
-                accessFilter({ id: userId }),
+                briefAccessFilter({ id: userId }),
               ),
             )
             .for("share")
@@ -177,7 +177,7 @@ export async function withAnalyticsSourceAccess<T>(
       .for("share");
     const chunkById = new Map(currentChunks.map((chunk) => [chunk.id, chunk]));
     const documentById = new Map(accessibleDocuments.map((document) => [document.id, document]));
-    const availableBriefIds = new Set(accessibleBriefs.map((brief) => brief.id));
+    const briefById = new Map(accessibleBriefs.map((brief) => [brief.id, brief]));
     const available = sources
       .flatMap((source, index) => {
         const chunk = chunkById.get(source.chunkId);
@@ -196,12 +196,14 @@ export async function withAnalyticsSourceAccess<T>(
             ? [{ ...source, n: index + 1, classification: document.classification }]
             : [];
         }
-        if (
-          source.sourceKind === "brief" &&
-          source.briefId &&
-          availableBriefIds.has(source.briefId)
-        ) {
-          return [{ ...source, n: index + 1, classification: "open" as const }];
+        if (source.sourceKind === "brief" && source.briefId && briefById.has(source.briefId)) {
+          return [
+            {
+              ...source,
+              n: index + 1,
+              classification: briefById.get(source.briefId)!.classification,
+            },
+          ];
         }
         return [];
       })

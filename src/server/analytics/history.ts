@@ -5,7 +5,11 @@ import { analyticsFiltersSchema, citedSourceNumbers } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
 import { canAccessClassification, getCurrentUser } from "@/server/auth";
 import { getDb } from "@/server/db";
-import { accessFilter, classificationAccessFilter, documentAccessFilter } from "@/server/db/access";
+import {
+  briefAccessFilter,
+  classificationAccessFilter,
+  documentAccessFilter,
+} from "@/server/db/access";
 import { analyticsQueries, appUsers, chunks, dailyBriefs, documents } from "@/server/db/schema";
 import { readServerEnv } from "@/server/env";
 import type { AnalyticsFilters, AnalyticsSource, AnalyticsSourcePreview } from "@/lib/analytics";
@@ -224,13 +228,17 @@ export async function getAnalyticsHistoryRecord(id: string) {
           };
       } else if (source.briefId) {
         const [brief] = await db
-          .select({ title: dailyBriefs.title, briefDate: dailyBriefs.briefDate })
+          .select({
+            title: dailyBriefs.title,
+            briefDate: dailyBriefs.briefDate,
+            classification: dailyBriefs.classification,
+          })
           .from(dailyBriefs)
           .where(
             and(
               eq(dailyBriefs.id, source.briefId),
               eq(dailyBriefs.status, "published"),
-              accessFilter(user),
+              briefAccessFilter(user),
             ),
           )
           .for("share")
@@ -244,7 +252,6 @@ export async function getAnalyticsHistoryRecord(id: string) {
             direction: null,
             sourceReliability: null,
             infoCredibility: null,
-            classification: "open",
           };
       }
       if (available && metadata && source.chunkId) {
@@ -364,6 +371,19 @@ export function analyticsHistoryVisibilityFilter(userId: string) {
           select 1 from ${documents}
           where ${documents.id}::text = source ->> 'documentId'
             and ${documentAccessFilter({ id: userId })}
+        )
+    )`,
+    sql`not exists (
+      select 1 from jsonb_array_elements(
+        case when jsonb_typeof(${analyticsQueries.sources}) = 'array'
+          then ${analyticsQueries.sources} else '[]'::jsonb end
+      ) as source
+      where source ->> 'briefId' is not null
+        and not exists (
+          select 1 from ${dailyBriefs}
+          where ${dailyBriefs.id}::text = source ->> 'briefId'
+            and ${dailyBriefs.status} = 'published'
+            and ${briefAccessFilter({ id: userId })}
         )
     )`,
   );

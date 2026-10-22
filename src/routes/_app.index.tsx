@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { BriefCard } from "@/components/BriefCard";
 import { Shell } from "@/components/Shell";
@@ -33,33 +33,29 @@ export const Route = createFileRoute("/_app/")({
 });
 
 function DailyBriefs() {
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState(query);
+  const [draftQuery, setDraftQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [period, setPeriod] = useState<"all" | "week" | "month">("all");
   const [month, setMonth] = useState("");
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const today = getBakuDate();
   const todayYear = Number(today.slice(0, 4));
   const [monthPickerYear, setMonthPickerYear] = useState(todayYear);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedQuery(query), 300);
-    return () => window.clearTimeout(timer);
-  }, [query]);
   const selectedMonthIndex = month ? Number(month.slice(5, 7)) - 1 : -1;
   const selectedMonthYear = month ? Number(month.slice(0, 4)) : undefined;
   const briefsQuery = useInfiniteQuery({
-    queryKey: ["daily-briefs", debouncedQuery, period, month],
+    queryKey: ["daily-briefs", submittedQuery, period, month],
     staleTime: 60_000,
     retry: false,
     initialPageParam: null as BriefCursor | null,
     queryFn: ({ pageParam, signal }) =>
-      listBriefs({ data: { query: debouncedQuery, period, month, cursor: pageParam }, signal }),
+      listBriefs({ data: { query: submittedQuery, period, month, cursor: pageParam }, signal }),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
   const briefs = briefsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const todayBrief = briefs.find((brief) => brief.date === today);
   const orderedBriefs =
-    todayBrief && !debouncedQuery.trim()
+    todayBrief && !submittedQuery.trim()
       ? [todayBrief, ...briefs.filter((brief) => brief.id !== todayBrief.id)]
       : briefs;
 
@@ -77,20 +73,31 @@ function DailyBriefs() {
       }
     >
       <div className="panel mb-6 flex flex-col gap-4 p-4 sm:flex-row sm:flex-wrap sm:items-center">
-        <label className="relative min-w-0 flex-1 sm:min-w-64">
-          <Search
-            size={17}
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <input
-            className="field pl-10"
-            aria-label={az.briefs.searchLabel}
-            placeholder={az.briefs.searchPlaceholder}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
+        <form
+          role="search"
+          className="flex min-w-0 flex-1 gap-2 sm:min-w-64"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setSubmittedQuery(draftQuery.trim());
+          }}
+        >
+          <label className="relative min-w-0 flex-1">
+            <Search
+              size={17}
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              className="field pl-10"
+              aria-label={az.briefs.searchLabel}
+              placeholder={az.briefs.searchPlaceholder}
+              maxLength={200}
+              value={draftQuery}
+              onChange={(event) => setDraftQuery(event.target.value)}
+            />
+          </label>
+          <Button type="submit">{az.actions.search}</Button>
+        </form>
         <div className="flex flex-wrap gap-2" role="group" aria-label={az.briefs.periodFilters}>
           {(
             [
@@ -101,6 +108,7 @@ function DailyBriefs() {
           ).map(([value, label]) => (
             <Button
               key={value}
+              type="button"
               variant={period === value ? "secondary" : "outline"}
               className={`rounded-full ${period === value ? "border border-primary/20 bg-accent text-primary" : ""}`}
               aria-pressed={period === value}
@@ -209,9 +217,9 @@ function DailyBriefs() {
             <Search size={20} aria-hidden="true" />
           </div>
           <p className="max-w-md text-sm leading-6 text-muted-foreground">
-            {query || period !== "all" || month ? az.briefs.noMatches : az.briefs.empty}
+            {submittedQuery || period !== "all" || month ? az.briefs.noMatches : az.briefs.empty}
           </p>
-          {!query && period === "all" && !month && (
+          {!submittedQuery && period === "all" && !month && (
             <Button asChild className="glow">
               <Link to="/brifler/yeni">
                 <Plus />

@@ -105,6 +105,7 @@ describe("short catalog and creation route smoke with synthetic services", () =>
     fireEvent.change(screen.getByRole("textbox", { name: az.documentLibrary.search }), {
       target: { value: "Iran" },
     });
+    fireEvent.click(screen.getByRole("button", { name: az.actions.search }));
     await waitFor(() =>
       expect(listDocuments).toHaveBeenLastCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ query: "Iran", cursor: null }) }),
@@ -128,6 +129,12 @@ describe("short catalog and creation route smoke with synthetic services", () =>
     fireEvent.click(screen.getByRole("button", { name: az.briefs.thisWeek }));
     await waitFor(() =>
       expect(listBriefs).toHaveBeenLastCalledWith(
+        expect.objectContaining({ data: { query: "", period: "week", month: "", cursor: null } }),
+      ),
+    );
+    fireEvent.submit(input.closest("form")!);
+    await waitFor(() =>
+      expect(listBriefs).toHaveBeenLastCalledWith(
         expect.objectContaining({
           data: { query: "müdafiə nazir təsdiq", period: "week", month: "", cursor: null },
         }),
@@ -136,6 +143,40 @@ describe("short catalog and creation route smoke with synthetic services", () =>
     expect(screen.queryByRole("switch")).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
   });
+  it.each([
+    ["/", az.briefs.searchLabel, listBriefs],
+    ["/senedler", az.documentLibrary.search, listDocuments],
+  ] as const)(
+    "submits only confirmed text and deduplicates/reset searches on %s",
+    async (path, label, service) => {
+      await open(path);
+      const input = await screen.findByRole("textbox", { name: label });
+      await waitFor(() => expect(service).toHaveBeenCalled());
+      const count = vi.mocked(service).mock.calls.length;
+      for (const value of ["I", "Ir", "Iran"]) fireEvent.change(input, { target: { value } });
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      expect(service).toHaveBeenCalledTimes(count);
+      fireEvent.submit(input.closest("form")!);
+      await waitFor(() =>
+        expect(service).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ query: "Iran", cursor: null }),
+          }),
+        ),
+      );
+      const submittedCount = vi.mocked(service).mock.calls.length;
+      fireEvent.click(screen.getByRole("button", { name: az.actions.search }));
+      expect(service).toHaveBeenCalledTimes(submittedCount);
+      fireEvent.change(input, { target: { value: "" } });
+      expect(service).toHaveBeenCalledTimes(submittedCount);
+      fireEvent.submit(input.closest("form")!);
+      await waitFor(() =>
+        expect(service).toHaveBeenLastCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ query: "", cursor: null }) }),
+        ),
+      );
+    },
+  );
   it("preserves image upload/save and navigates from the separate form to the created document", async () => {
     const router = await open("/senedler/yeni");
     const file = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "test.png", {

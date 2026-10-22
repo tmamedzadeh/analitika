@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { az } from "./i18n/az";
+import { clearanceValues, type Clearance } from "./classification";
 
 export const MAX_BRIEF_PHOTOS = 10;
 export const MAX_BRIEF_PHOTO_BYTES = 10 * 1024 * 1024;
@@ -19,6 +20,7 @@ export type Brief = {
   date: string;
   title: string;
   body: string;
+  classification: Clearance;
   status: BriefStatus;
   indexStatus: BriefIndexStatus;
   indexProgress: BriefIndexProgress;
@@ -44,6 +46,7 @@ export const briefDateSchema = z
   });
 
 export const briefInputSchema = z.object({
+  classification: z.enum(clearanceValues).default("open"),
   date: briefDateSchema,
   title: z.string().trim().min(1).max(500),
   body: z.string().trim().min(1).max(MAX_BRIEF_BODY_LENGTH),

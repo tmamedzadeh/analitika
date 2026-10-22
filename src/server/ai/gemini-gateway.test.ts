@@ -20,7 +20,7 @@ describe("Gemini request gateway", () => {
     vi.useFakeTimers();
     const cause = Object.assign(new Error("private provider body"), {
       statusCode: 503,
-      responseHeaders: { "retry-after": "2" },
+      responseHeaders: { "retry-after": "0.5" },
     });
     const failure = new Error("private wrapper message", { cause });
     const operation = vi.fn(async () => {
@@ -30,7 +30,7 @@ describe("Gemini request gateway", () => {
     expect(getGeminiErrorCategory(failure)).toBe("provider_unavailable");
     const pending = withGeminiRequest("AI_CHAT_MODEL", operation, 2);
     const rejected = expect(pending).rejects.toBe(failure);
-    await vi.advanceTimersByTimeAsync(1_999);
+    await vi.advanceTimersByTimeAsync(499);
     expect(operation).toHaveBeenCalledOnce();
     await vi.advanceTimersByTimeAsync(1);
     await rejected;

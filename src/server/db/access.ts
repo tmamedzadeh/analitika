@@ -1,7 +1,7 @@
 import { and, eq, or, sql, type SQLWrapper } from "drizzle-orm";
 
 import { getCurrentUser as getAuthenticatedUser, type SessionUser } from "@/server/auth";
-import { appUsers, documents } from "./schema";
+import { appUsers, documents, dailyBriefs } from "./schema";
 
 export type CurrentUser = SessionUser;
 
@@ -9,7 +9,7 @@ export function getCurrentUser(): CurrentUser {
   return getAuthenticatedUser();
 }
 
-// This predicate is for records that have no classification field (for example briefs).
+// This predicate is only for records that have no classification field.
 // Request authentication is still required by the Start middleware.
 export function accessFilter(user: Pick<CurrentUser, "id"> = getCurrentUser()) {
   return sql`exists (
@@ -20,6 +20,10 @@ export function accessFilter(user: Pick<CurrentUser, "id"> = getCurrentUser()) {
 
 export function documentAccessFilter(user: Pick<CurrentUser, "id"> = getCurrentUser()) {
   return classificationAccessFilter(documents.classification, user);
+}
+
+export function briefAccessFilter(user: Pick<CurrentUser, "id"> = getCurrentUser()) {
+  return classificationAccessFilter(dailyBriefs.classification, user);
 }
 
 export function classificationAccessFilter(

@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-10-22T11:17:18.880Z",
+  "status": "PASS",
+  "checks": [
+    "1440px /: no requests on typing/clearing, Enter and Axtar, no duplicate submit, empty catalog reset, keyboard and overflow",
+    "1440px /senedler: no requests on typing/clearing, Enter and Axtar, no duplicate submit, empty catalog reset, keyboard and overflow",
+    "1440px: create open default, classification choice/preview, edit current classification, save and detail badge, no reindex",
+    "390px /: no requests on typing/clearing, Enter and Axtar, no duplicate submit, empty catalog reset, keyboard and overflow",
+    "390px /senedler: no requests on typing/clearing, Enter and Axtar, no duplicate submit, empty catalog reset, keyboard and overflow",
+    "390px: create open default, classification choice/preview, edit current classification, save and detail badge, no reindex"
+  ],
+  "fixtureCleanup": "PASS",
+  "httpFailures": []
+}

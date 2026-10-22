@@ -33,11 +33,7 @@ function providerOptionsFor(input: TextGenerationInput, model: string) {
 function signalFor(input: TextGenerationInput): AbortSignal | undefined {
   if (input.deadlineAt !== undefined) {
     const deadline = AbortSignal.timeout(Math.max(0, input.deadlineAt - Date.now()));
-    return AbortSignal.any([
-      deadline,
-      ...(input.signal ? [input.signal] : []),
-      ...(input.timeoutMs ? [AbortSignal.timeout(input.timeoutMs)] : []),
-    ]);
+    return AbortSignal.any([deadline, ...(input.signal ? [input.signal] : [])]);
   }
   if (input.signal && input.timeoutMs) {
     return AbortSignal.any([input.signal, AbortSignal.timeout(input.timeoutMs)]);
@@ -117,30 +113,41 @@ export class GeminiLLMProvider implements LLMProvider {
     const signal = signalFor(input);
     const deadlineAt = Math.min(
       input.deadlineAt ?? Infinity,
-      input.timeoutMs ? Date.now() + input.timeoutMs : Infinity,
+      input.deadlineAt === undefined && input.timeoutMs ? Date.now() + input.timeoutMs : Infinity,
     );
-    const run = (model: string, quotaKey: GeminiQuotaKey, maxAttempts = input.maxAttempts) =>
-      withGeminiRequest(
+    const run = (model: string, quotaKey: GeminiQuotaKey, maxAttempts = input.maxAttempts) => {
+      // A caller-supplied model timeout must not poison the remaining route.
+      // Analytics uses only the absolute server deadline, allowing long reasoning.
+      const modelSignal =
+        input.deadlineAt !== undefined && input.timeoutMs
+          ? AbortSignal.any([signal!, AbortSignal.timeout(input.timeoutMs)])
+          : signal;
+      return withGeminiRequest(
         quotaKey,
         async () => {
           this.usageStats.apiCalls += 1;
-          const result = await operation(model, signal);
+          const result = await operation(model, modelSignal);
           this.recordUsage(result);
           return result;
         },
         maxAttempts,
-        signal,
+        modelSignal,
         model,
         deadlineAt,
       );
+    };
     const operationResult = async () => {
       const route = this.route(input, allowQuotaFallback);
       for (const [index, entry] of route.entries()) {
         signal?.throwIfAborted();
+        if (Date.now() >= deadlineAt)
+          throw new DOMException("AI deadline exceeded.", "TimeoutError");
         try {
           return await run(entry.model, entry.key);
         } catch (error) {
           signal?.throwIfAborted();
+          if (Date.now() >= deadlineAt)
+            throw new DOMException("AI deadline exceeded.", "TimeoutError");
           const next = route[index + 1];
           if (!next || !canFallbackGemini(error)) throw error;
           this.switched(
@@ -271,14 +278,18 @@ export class GeminiLLMProvider implements LLMProvider {
     const signal = signalFor(input);
     const deadlineAt = Math.min(
       input.deadlineAt ?? Infinity,
-      input.timeoutMs ? Date.now() + input.timeoutMs : Infinity,
+      input.deadlineAt === undefined && input.timeoutMs ? Date.now() + input.timeoutMs : Infinity,
     );
     const createStream = (
       model: string,
       quotaKey: GeminiQuotaKey,
       maxAttempts = input.maxAttempts,
-    ) =>
-      withGeminiStream(
+    ) => {
+      const modelSignal =
+        input.deadlineAt !== undefined && input.timeoutMs
+          ? AbortSignal.any([signal!, AbortSignal.timeout(input.timeoutMs)])
+          : signal;
+      return withGeminiStream(
         quotaKey,
         async () => {
           this.usageStats.apiCalls += 1;
@@ -290,14 +301,15 @@ export class GeminiLLMProvider implements LLMProvider {
             ...(input.maxOutputTokens === undefined
               ? {}
               : { maxOutputTokens: input.maxOutputTokens }),
-            ...requestOptionsFor(input, model, signal),
+            ...requestOptionsFor(input, model, modelSignal),
           }).textStream;
         },
         maxAttempts,
-        signal,
+        modelSignal,
         model,
         deadlineAt,
       );
+    };
     const route = this.route(input);
     const switched = this.switched.bind(this);
     return (async function* () {
@@ -312,6 +324,8 @@ export class GeminiLLMProvider implements LLMProvider {
           return;
         } catch (error) {
           signal?.throwIfAborted();
+          if (Date.now() >= deadlineAt)
+            throw new DOMException("AI deadline exceeded.", "TimeoutError");
           const next = route[index + 1];
           if (emitted || !next || !canFallbackGemini(error)) throw error;
           switched(

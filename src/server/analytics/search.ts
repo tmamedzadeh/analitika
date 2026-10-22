@@ -25,7 +25,7 @@ import {
 } from "@/server/ai/rerank";
 import { createGeminiProviders } from "@/server/ai/gemini";
 import { getDb } from "@/server/db";
-import { accessFilter, documentAccessFilter, getCurrentUser } from "@/server/db/access";
+import { briefAccessFilter, documentAccessFilter, getCurrentUser } from "@/server/db/access";
 import { attachments, briefAttachments, chunks, dailyBriefs, documents } from "@/server/db/schema";
 import { documentConditions, hasCommittedDocumentIndex, minimumDocDate } from "./filters";
 import { reciprocalRankFusion, resolveQueryEmbedding, settleRetrievalBranches } from "./ranking";
@@ -71,7 +71,7 @@ function sourceProjection() {
     isTable: chunks.isTable,
     sourceReliability: documents.sourceReliability,
     infoCredibility: documents.infoCredibility,
-    classification: documents.classification,
+    classification: sql<string>`coalesce(${documents.classification}, ${dailyBriefs.classification})`,
   };
 }
 
@@ -82,7 +82,7 @@ export function searchSourceConditions(filters: AnalyticsFilters, now = new Date
     isNotNull(chunks.briefId),
     eq(dailyBriefs.status, "published"),
     hasCommittedBriefIndex(),
-    accessFilter(),
+    briefAccessFilter(),
   ];
   const selectedDirections = new Set(filters.directionIds);
   const allDirectionsSelected =
@@ -288,7 +288,7 @@ export async function searchDocumentChunks(
           .select({ id: briefAttachments.briefId, total: count() })
           .from(briefAttachments)
           .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
-          .where(and(inArray(briefAttachments.briefId, briefIds), accessFilter()))
+          .where(and(inArray(briefAttachments.briefId, briefIds), briefAccessFilter()))
           .groupBy(briefAttachments.briefId)
       : Promise.resolve([]),
   ]);
@@ -324,7 +324,7 @@ export async function searchDocumentChunks(
             : 0,
       sourceReliability: item.sourceReliability as AnalyticsSource["sourceReliability"],
       infoCredibility: item.infoCredibility as AnalyticsSource["infoCredibility"],
-      classification: sourceKind === "document" ? item.classification : "open",
+      classification: item.classification,
     };
   });
 }
