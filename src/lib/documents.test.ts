@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createDocumentSchema, documentUploadMatches } from "./documents.functions";
+import * as documentFunctions from "./documents.functions";
 import { directionIds } from "./directions";
 
 const validDocument = {
@@ -15,6 +16,10 @@ const validDocument = {
 };
 
 describe("document form validation", () => {
+  it("does not expose a document direction update mutation", () => {
+    expect(documentFunctions).not.toHaveProperty("updateDocumentDirection");
+  });
+
   it("requires a valid intelligence direction", () => {
     expect(createDocumentSchema.safeParse(validDocument).success).toBe(true);
     expect(createDocumentSchema.safeParse({ ...validDocument, direction: undefined }).success).toBe(

@@ -12,7 +12,6 @@ import { searchDocumentChunks } from "./search";
 import { buildAnalyticsPrompt } from "../prompts/analytics";
 import { getAppConfig } from "@/server/config";
 import { sameAnalyticsSourceSet, withAnalyticsSourceAccess } from "./source-access";
-import { assertExternalAiClassification, ExternalAiPolicyError } from "../ai/processing-policy";
 import {
   buildAnalyticsHistorySnapshot,
   createAnalyticsHistoryRecord,
@@ -51,7 +50,6 @@ function errorSummary(error: unknown) {
 }
 
 function answerFailureMessage(error: unknown): string {
-  if (error instanceof ExternalAiPolicyError) return az.documents.form.externalProcessingNotAllowed;
   if (!isGeminiQuotaError(error)) return az.analytics.answerFailed;
   const quota = getGeminiFailureInfo(error).quotaKey ?? "AI_CHAT_MODEL";
   return az.analytics.quotaExceeded.replace("{quota}", quota);
@@ -308,14 +306,11 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
           const generation = await withAnalyticsSourceAccess(
             sources,
             user.id,
-            async (available, queryClassification) => {
+            async (available) => {
               if (!sameAnalyticsSourceSet(sources, available)) {
                 return { accessChanged: true, validatedAnswer: null };
               }
               sources = available;
-              assertExternalAiClassification(queryClassification);
-              for (const source of sources)
-                assertExternalAiClassification(source.classification ?? "unknown");
               const providers = createGeminiProviders();
               const prompt = buildAnalyticsPrompt(
                 query,

@@ -35,16 +35,6 @@ export const serverEnvSchema = z.object({
   INNGEST_EVENT_KEY: optionalValue,
   INNGEST_SIGNING_KEY: optionalValue,
   ENABLE_RERANK: z.enum(["true", "false"]).default("false"),
-  AI_EXTERNAL_ALLOWED_CLASSIFICATIONS: z.preprocess(
-    (value) => (typeof value === "string" && value.trim() ? value : "open"),
-    z
-      .string()
-      .transform((value) => value.split(",").map((level) => level.trim()))
-      .refine((levels) =>
-        levels.every((level) => ["open", "secret", "top_secret", "special"].includes(level)),
-      ),
-  ),
-  AI_EXTERNAL_POLICY_REFERENCE: optionalValue,
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

@@ -13,7 +13,6 @@ import {
 import { getCurrentUser } from "../src/server/auth";
 import { directionIds } from "../src/lib/directions";
 import { createGeminiProviders } from "../src/server/ai/gemini";
-import { assertExternalAiClassification } from "../src/server/ai/processing-policy";
 import { getGeminiFailureInfo } from "../src/server/ai/gemini-gateway";
 import { validateCitations, canPublishAnalyticsAnswer } from "../src/server/analytics/citations";
 import { buildAnalyticsPrompt } from "../src/server/prompts/analytics";
@@ -55,7 +54,6 @@ try {
         for (const source of available) {
           if (source.classification !== "open")
             throw new Error("Live generation probe accepts open sources only.");
-          assertExternalAiClassification(source.classification);
         }
         const prompt = buildAnalyticsPrompt(item.query, available);
         const provider = createGeminiProviders().analytics;

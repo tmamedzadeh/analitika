@@ -304,19 +304,6 @@ export const retryDocumentIndexing = createServerFn({ method: "POST" })
     return { documentId: data.documentId, queueFailed };
   });
 
-export const updateDocumentDirection = createServerFn({ method: "POST" })
-  .validator(z.object({ documentId: z.string().uuid(), direction: directionIdSchema }))
-  .handler(async ({ data }) => {
-    const db = getDb();
-    const [document] = await db
-      .update(documents)
-      .set({ direction: data.direction, updatedAt: new Date() })
-      .where(and(eq(documents.id, data.documentId), documentManagementFilter()))
-      .returning({ id: documents.id });
-    if (!document) throw new Error(az.documents.missing);
-    return { documentId: document.id, direction: data.direction };
-  });
-
 export const getDocumentDetails = createServerFn({ method: "GET" })
   .validator(idSchema)
   .handler(async ({ data }) => {

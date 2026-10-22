@@ -4,6 +4,7 @@ import type { AnalyticsSource } from "@/lib/analytics";
 const mocks = vi.hoisted(() => ({
   search: vi.fn(),
   generate: vi.fn(),
+  buildPrompt: vi.fn(),
   withSourceAccess: vi.fn(
     async (
       sources: readonly AnalyticsSource[],
@@ -45,7 +46,7 @@ vi.mock("@/server/ai/gemini-gateway", () => ({
 }));
 vi.mock("@/server/config", () => ({ getAppConfig: () => ({ analyticsThinkingLevel: "low" }) }));
 vi.mock("../prompts/analytics", () => ({
-  buildAnalyticsPrompt: () => ({ system: "system", prompt: "prompt", maxOutputTokens: 100 }),
+  buildAnalyticsPrompt: mocks.buildPrompt,
 }));
 vi.mock("./citations", () => ({
   canPublishAnalyticsAnswer: () => true,
@@ -101,11 +102,12 @@ function request(signal?: AbortSignal) {
   });
 }
 
-describe("analytics stream cancellation", () => {
+describe("analytics stream access and cancellation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.search.mockResolvedValue([source]);
     mocks.generate.mockResolvedValue({ text: "answer [1]", finishReason: "stop" });
+    mocks.buildPrompt.mockReturnValue({ system: "system", prompt: "prompt", maxOutputTokens: 100 });
     mocks.withSourceAccess.mockImplementation(async (sources, _userId, publish) => {
       const available = [...sources];
       return { sources: available, value: await publish(available, "open") };
@@ -183,19 +185,51 @@ describe("analytics stream cancellation", () => {
     );
   });
 
-  it("withholds classified questions before provider dispatch even when sources are open", async () => {
-    mocks.withSourceAccess.mockImplementation(async (sources, _userId, publish) => {
-      const available = [...sources];
-      return { sources: available, value: await publish(available, "secret") };
-    });
-    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
-    const stream = await response.text();
-    expect(stream).toContain('"type":"error"');
-    expect(stream).not.toContain('"type":"final"');
-    expect(mocks.generate).not.toHaveBeenCalled();
-    expect(mocks.updateHistory).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({ status: "failed" }),
-    );
-  });
+  it.each(["open", "secret", "top_secret", "special"] as const)(
+    "generates from authorized sources for %s clearance and classification",
+    async (clearance) => {
+      const classifiedSource = { ...source, classification: clearance };
+      mocks.search.mockResolvedValue([classifiedSource]);
+      mocks.withSourceAccess.mockImplementation(async (sources, _userId, publish) => {
+        const available = [...sources];
+        return { sources: available, value: await publish(available, clearance) };
+      });
+
+      const response = await withCurrentUser({ ...user, clearance }, () =>
+        handleAnalyticsSearchRequest(request()),
+      );
+      const stream = await response.text();
+
+      expect(stream).toContain('"type":"final"');
+      expect(stream).toContain("answer [1]");
+      expect(stream).not.toContain('"type":"error"');
+      expect(mocks.generate).toHaveBeenCalledOnce();
+      expect(mocks.buildPrompt).toHaveBeenCalledWith("question", [classifiedSource], "low");
+    },
+  );
+
+  it.each([false, true])(
+    "excludes denied sources before Gemini dispatch (all denied: %s)",
+    async (allDenied) => {
+      const denied = { ...source, chunkId: "denied-chunk", text: "inaccessible source text" };
+      mocks.search.mockResolvedValue([source, denied]);
+      mocks.withSourceAccess.mockImplementation(async (_sources, _userId, publish) => {
+        const available = allDenied ? [] : [source];
+        return { sources: available, value: await publish(available, "secret") };
+      });
+
+      const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+      const stream = await response.text();
+
+      expect(stream).toContain('"type":"final"');
+      expect(stream).not.toContain(denied.text);
+      if (allDenied) {
+        expect(mocks.generate).not.toHaveBeenCalled();
+        expect(mocks.buildPrompt).not.toHaveBeenCalled();
+      } else {
+        expect(mocks.generate).toHaveBeenCalledOnce();
+        expect(mocks.buildPrompt).toHaveBeenCalledWith("question", [source], "low");
+      }
+    },
+  );
 });

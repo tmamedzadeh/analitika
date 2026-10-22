@@ -10,6 +10,7 @@ import {
   listRecentDocuments,
 } from "@/lib/documents.functions";
 import { az } from "@/lib/i18n/az";
+import { directionLabel } from "@/lib/directions";
 
 vi.mock("@/lib/documents.functions", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/documents.functions")>();
@@ -168,4 +169,36 @@ describe("document detail route", () => {
 
     expect(await screen.findByRole("button", { name: az.documents.delete })).toBeInTheDocument();
   });
+
+  it.each([false, true])(
+    "keeps source text and direction visible without direction editing or fragment controls (manager: %s)",
+    async (canManage) => {
+      vi.mocked(getDocumentDetails).mockResolvedValue({
+        ...detail,
+        direction: "OSINT",
+        canManage,
+        chunks: [
+          {
+            id: "00000000-0000-4000-8000-000000000001",
+            ord: 0,
+            sectionTitle: "",
+            text: detail.body,
+            charStart: 0,
+            charEnd: detail.body.length,
+            isTable: false,
+          },
+        ],
+      } as Awaited<ReturnType<typeof getDocumentDetails>>);
+      const router = await makeRouter(`/senedler/${documentId}`);
+      render(<RouterProvider router={router} />);
+
+      expect(await screen.findByRole("heading", { name: documentTitle })).toBeInTheDocument();
+      expect(screen.getAllByText(detail.body)).toHaveLength(1);
+      expect(screen.getByText(directionLabel("OSINT")!)).toBeInTheDocument();
+      expect(screen.queryByRole("combobox")).toBeNull();
+      expect(screen.queryByRole("button", { name: /İstiqaməti yadda saxla/ })).toBeNull();
+      expect(screen.queryByText(/indeks fraqmenti/)).toBeNull();
+      expect(screen.queryByRole("button", { name: /1\. Mətn/ })).toBeNull();
+    },
+  );
 });

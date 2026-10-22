@@ -15,7 +15,6 @@ import {
   mergeIndexProgress,
   recoveryAttempts,
 } from "./index-state";
-import { assertExternalAiClassification, ExternalAiPolicyError } from "../ai/processing-policy";
 
 const EMBEDDING_BATCH_SIZE = 32;
 const EMBEDDING_DIMENSIONS = 768;
@@ -52,7 +51,6 @@ type DocumentProgress = {
 };
 
 function readableError(error: unknown): string {
-  if (error instanceof ExternalAiPolicyError) return az.documents.form.externalProcessingNotAllowed;
   const quotaKey = getGeminiQuotaKey(error);
   const message = quotaKey
     ? az.documents.form.processingQuotaExceeded.replace("{quota}", quotaKey)
@@ -121,8 +119,6 @@ export async function processDocumentJob(
   const attempts = recoveryAttempts(document.progress);
 
   try {
-    if (options.embeddings?.processingBoundary !== "local")
-      assertExternalAiClassification(document.classification);
     const sourceChunks = chunkDocument(document.body, document.title);
     if (sourceChunks.length === 0)
       throw new Error("Sənəd mətnindən emal edilə bilən fraqment tapılmadı.");

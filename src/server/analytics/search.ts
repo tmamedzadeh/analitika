@@ -31,10 +31,6 @@ import { reciprocalRankFusion, resolveQueryEmbedding, settleRetrievalBranches } 
 import { withAnalyticsCandidateAccess, withAnalyticsQueryAccess } from "./source-access";
 import { hasCommittedBriefIndex } from "../briefs/index-state";
 import { getBakuDate } from "@/lib/briefs";
-import {
-  assertExternalAiClassification,
-  isExternalAiClassificationAllowed,
-} from "../ai/processing-policy";
 
 const CANDIDATE_LIMIT = 50;
 const RESULT_LIMIT = 10;
@@ -149,8 +145,7 @@ export async function searchDocumentChunks(
     ...(options.embedding ? { provided: options.embedding } : {}),
     dimensions: config.embeddingDimensions,
     embed: () =>
-      withAnalyticsQueryAccess(getCurrentUser().id, (classification) => {
-        assertExternalAiClassification(classification);
+      withAnalyticsQueryAccess(getCurrentUser().id, () => {
         return providers.embeddings.embedQuery(query, {
           maxAttempts: options.maxEmbeddingAttempts ?? 1,
           signal: options.signal
@@ -260,7 +255,6 @@ export async function searchDocumentChunks(
       documentIds: accessibleDocuments,
       briefIds: accessibleBriefs,
       chunkIds: accessibleChunks,
-      queryClassification,
     }) => {
       const accessibleCandidates = candidates.filter(
         ({ item }) =>
@@ -279,13 +273,7 @@ export async function searchDocumentChunks(
           excerpt: item.text.slice(0, 500),
         })),
         rerankProvider,
-        (options.enableRerank ?? config.enableRerank) &&
-          isExternalAiClassificationAllowed(queryClassification) &&
-          accessibleCandidates.every(({ item }) =>
-            isExternalAiClassificationAllowed(
-              item.documentId ? (item.classification ?? "unknown") : "open",
-            ),
-          ),
+        options.enableRerank ?? config.enableRerank,
         undefined,
         options.signal,
       );

@@ -77,10 +77,6 @@ export const az = {
     selectedState: "seçilib",
     required: "Axtarış üçün ən azı bir istiqamət seçin.",
     unassigned: "Təyin edilməyib",
-    save: "İstiqaməti yadda saxla",
-    saving: "İstiqamət yadda saxlanılır…",
-    saved: "İstiqamət yadda saxlanıldı.",
-    saveFailed: "İstiqaməti yadda saxlamaq mümkün olmadı.",
   },
   actions: {
     home: "Ana səhifəyə qayıt",
@@ -297,8 +293,6 @@ export const az = {
         "Yüklənən şəklin ölçüsü və ya formatı uyğun gəlmir. Formanı yenidən göndərin.",
       queueFailed: "İndeksləmə tapşırığını növbəyə göndərmək mümkün olmadı.",
       savedQueuePending: "Sənəd saxlanıldı. Emal avtomatik yenidən başladılacaq.",
-      externalProcessingNotAllowed:
-        "Bu məxfilik səviyyəsi üçün xarici AI emalına icazə verilməyib.",
       retryOnlyFailed: "Yalnız xətalı sənədi yenidən emal etmək olar.",
       processingErrorPrefix: "İndeksləmə alınmadı: ",
       processingErrorGeneric: "Emal zamanı texniki xəta baş verdi. Yenidən cəhd edin.",
@@ -337,7 +331,6 @@ export const az = {
     loading: "Yüklənir…",
     loadingDocument: "Sənəd yüklənir",
     textSection: "Mətn",
-    plainText: "Mətn",
     missing: "Sənəd tapılmadı.",
     emptyContent: "Sənəd mövcuddur, lakin məzmunu hələ əlavə edilməyib.",
     delete: "Sənədi sil",
@@ -346,7 +339,5 @@ export const az = {
     storageCleanupPending:
       "Sənəd silindi, lakin bəzi şəkillər yaddaşdan silinmədi. Gündəlik təmizləmə onları yenidən yoxlayacaq.",
     noPhotos: "Şəkil əlavə edilməyib.",
-    chunks: "indeks fraqmenti",
-    table: "Cədvəl",
   },
 } as const;

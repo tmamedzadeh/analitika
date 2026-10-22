@@ -1,13 +1,11 @@
 /** One public synthetic generation sample for human semantic review after retry-budget changes. */
 import { writeFile } from "node:fs/promises";
 import { createGeminiProviders } from "../src/server/ai/gemini";
-import { assertExternalAiClassification } from "../src/server/ai/processing-policy";
 import { buildAnalyticsPrompt } from "../src/server/prompts/analytics";
 import { canPublishAnalyticsAnswer, validateCitations } from "../src/server/analytics/citations";
 import type { AnalyticsSource } from "../src/lib/analytics";
 import { getGeminiFailureInfo } from "../src/server/ai/gemini-gateway";
 
-assertExternalAiClassification("open");
 const text =
   "Açıq sintetik yoxlama paketi 42 vahiddən ibarətdir. Qeyd tarixi 21 oktyabr 2026-cı ildir. Bu məlumat uydurulmuş test nümunəsidir.";
 const source: AnalyticsSource = {
