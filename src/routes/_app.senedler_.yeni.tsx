@@ -27,7 +27,6 @@ import {
 const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxImageSize = 10 * 1024 * 1024;
 
-
 export const Route = createFileRoute("/_app/senedler_/yeni")({
   loader: () => getDocumentFormContext(),
   head: () => ({
@@ -64,8 +63,6 @@ function AddDoc() {
   const [saved, setSaved] = useState(false);
   const [queuePending, setQueuePending] = useState(false);
   const [saving, setSaving] = useState(false);
-
-
 
   function updatePhotos(files: FileList | null) {
     setPhotoError("");
@@ -143,7 +140,9 @@ function AddDoc() {
           ),
         },
       });
-      toast.success(result.queueFailed ? az.documents.form.savedQueuePending : az.documents.form.success);
+      toast.success(
+        result.queueFailed ? az.documents.form.savedQueuePending : az.documents.form.success,
+      );
       setSaved(true);
       setQueuePending(result.queueFailed);
       formRef.current?.reset();
@@ -169,7 +168,11 @@ function AddDoc() {
     <Shell
       crumb={az.navigation.documents}
       title={az.documentLibrary.addTitle}
-      actions={<Link to="/senedler" className="pill">{az.navigation.documents}</Link>}
+      actions={
+        <Link to="/senedler" className="pill">
+          {az.navigation.documents}
+        </Link>
+      }
     >
       <div className="mx-auto w-full max-w-4xl">
         <form ref={formRef} onSubmit={handleSubmit} className="panel space-y-5 p-6">
@@ -345,8 +348,6 @@ function AddDoc() {
             </button>
           </div>
         </form>
-
-
       </div>
     </Shell>
   );

@@ -1,3 +1,5 @@
+> Historical release/session evidence from 2026-10-22 and earlier, preserved without changing its original claims. Its open-only policy, fallback and validation descriptions predate later code changes and are not current runtime guarantees. For the current implementation and test-data authorization, read [Executive Analytics V1](analytics-v1.md) and the [release runbook](release/RELEASE_RUNBOOK.md).
+
 # Актуальная передача — final code merge, 22 октября 2026
 
 **CODE READY: YES; GITHUB MAIN UPDATED: YES; PRODUCTION VERIFIED: NO / NO-GO.** Последнее [задание владельца](release/FINAL_CODE_MERGE_REQUEST.md) разрешает Ready/merge PR #1 после passing code gates. Владелец самостоятельно выполняет Vercel/env/logs/runtime, cloud Inngest и rollback проверки; больше не запрашивать management access. Прежние запреты merge в архиве ниже заменены этим заданием. Merge может запустить Vercel auto-deployment; production GO не присваивать.

@@ -1,6 +1,7 @@
 import * as React from "react";
 import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { az } from "@/lib/i18n/az";
 
 export type MarkdownHighlight = { start: number; end: number } | null;
 
@@ -80,13 +81,20 @@ export function BriefMarkdown({
     table: ({ node, children, ...props }) => {
       const selected = node ? hasSelectedRange(node, highlight) : false;
       return (
-        <table
-          {...props}
-          data-chunk-highlight={selected ? "true" : undefined}
-          className={selected ? "rounded outline-2 outline-primary/50" : undefined}
+        <div
+          className="markdown-table-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label={az.analytics.table}
         >
-          {children}
-        </table>
+          <table
+            {...props}
+            data-chunk-highlight={selected ? "true" : undefined}
+            className={selected ? "rounded outline-2 outline-primary/50" : undefined}
+          >
+            {children}
+          </table>
+        </div>
       );
     },
   };

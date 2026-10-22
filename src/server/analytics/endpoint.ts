@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { getCurrentUser } from "@/server/auth";
 
-import { analyticsSearchRequestSchema } from "@/lib/analytics";
+import { ANALYTICS_SERVER_DEADLINE_MS, analyticsSearchRequestSchema } from "@/lib/analytics";
 import type { AnalyticsSource, AnalyticsSourcePreview } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
 import { createGeminiProviders } from "@/server/ai/gemini";
@@ -54,8 +54,7 @@ function eventStream(body: ReadableStream<Uint8Array>, requestId: string): Respo
 
 function answerFailureMessage(error: unknown): string {
   if (!isGeminiQuotaError(error)) return az.analytics.answerFailed;
-  const quota = getGeminiFailureInfo(error).quotaKey ?? "AI_CHAT_MODEL";
-  return az.analytics.quotaExceeded.replace("{quota}", quota);
+  return az.analytics.quotaExceeded;
 }
 
 export async function handleAnalyticsSearchRequest(request: Request): Promise<Response> {
@@ -99,16 +98,19 @@ async function handleAnalyticsSearch(
   }
   const aborter = new AbortController();
   // Keep both generation attempts inside the deployed 120-second function limit.
-  const deadline = setTimeout(() => {
-    withAiDiagnostics({ requestId, startedAt, stage: activeStage }, () =>
-      logAiDiagnostic({
-        event: "deadline",
-        attempt: activeAttempt,
-        errorCategory: "timeout",
-      }),
-    );
-    aborter.abort(new DOMException("Analytics deadline exceeded.", "TimeoutError"));
-  }, 105_000);
+  const deadline = setTimeout(
+    () => {
+      withAiDiagnostics({ requestId, startedAt, stage: activeStage }, () =>
+        logAiDiagnostic({
+          event: "deadline",
+          attempt: activeAttempt,
+          errorCategory: "timeout",
+        }),
+      );
+      aborter.abort(new DOMException("Analytics deadline exceeded.", "TimeoutError"));
+    },
+    Math.max(0, startedAt + ANALYTICS_SERVER_DEADLINE_MS - Date.now()),
+  );
   const abortedHistoryStatus = () =>
     getGeminiErrorCategory(aborter.signal.reason, aborter.signal) === "timeout"
       ? ("failed" as const)
@@ -383,17 +385,13 @@ async function handleAnalyticsSearch(
                       ...generationPrompt,
                       signal: aborter.signal,
                       timeoutMs: 60_000,
-                      deadlineAt: startedAt + 105_000,
+                      deadlineAt: startedAt + ANALYTICS_SERVER_DEADLINE_MS,
                       onFallback: (fallback) => send({ type: "model-fallback", fallback }),
                     }),
                 );
                 if (generated.model) model = generated.model;
                 activeStage = "answer_validation";
-                const validated = validateCitations(
-                  generated.text,
-                  sources,
-                  prompt.lowReliabilityWarning,
-                );
+                const validated = validateCitations(generated.text, sources);
                 const publishable = canPublishAnalyticsAnswer(
                   generated.text,
                   generated.finishReason,

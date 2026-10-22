@@ -1,6 +1,6 @@
 # ZIRVƏ V1 release candidate runbook
 
-Updated 2026-10-22 (Asia/Baku). Owner target: https://analitika-one.vercel.app. Latest [FINAL_CODE_MERGE_REQUEST.md](FINAL_CODE_MERGE_REQUEST.md) authorizes commit/push/Ready/merge after code gates; the owner takes over external production verification. This supersedes the old merge boundary. Production remains NO-GO; classified external processing remains unauthorized. Exact owner steps: [PRODUCTION_MANUAL_CHECKLIST.md](../PRODUCTION_MANUAL_CHECKLIST.md).
+Updated 2026-10-22 (Asia/Baku). Target: https://analitika-one.vercel.app. The current owner brief authorizes two verified commits and a normal push of both to main. Existing Git integration may deploy automatically. Production acceptance remains unverified. Read the [current analytics contract](../analytics-v1.md) and [owner acceptance checklist](../PRODUCTION_MANUAL_CHECKLIST.md); older release requests are historical evidence.
 
 ## Preserve and inspect
 
@@ -10,7 +10,7 @@ Use secrets from the configured secure environment. Keep `.env.local`, raw diagn
 
 ## Local verification
 
-Build with `bun run build`, then use `bun run preview` at `127.0.0.1:4175` and `bun run test:e2e`. Check the installed Edge/Chrome executable (`BROWSER_EXECUTABLE_PATH` if needed). Vite's generic preview command is not the project artifact adapter. Check both DB and storage fixture cleanup in evidence.
+For this bounded change, run targeted tests, `bunx tsc --noEmit`, `bun run lint` and `bun run build` after functional work and again after cleanup. Do not run the full E2E/production audit or mass AI evaluations. If separately testing the built runtime, use `bun run preview` at `127.0.0.1:4175` (the project artifact adapter), with approved invented fixtures and an installed Edge/Chrome.
 
 Target checks to changed behavior. Relevant scoped scripts:
 
@@ -26,15 +26,17 @@ Target checks to changed behavior. Relevant scoped scripts:
 
 ## External processing and storage
 
-Keep `AI_EXTERNAL_ALLOWED_CLASSIFICATIONS=open` and no classified allowance without actual approval. V1 has no separate question classification: the live user's clearance conservatively protects question embeddings/rerank/generation, matching history classification. Higher-clearance local lexical source search remains available. Owner/admin does not raise content clearance.
+The runtime no longer parses or enforces `AI_EXTERNAL_ALLOWED_CLASSIFICATIONS` or `AI_EXTERNAL_POLICY_REFERENCE`. Live active-user/clearance/source checks still apply; authorized source text and questions can be processed by Gemini at any classification. The owner approves current test-data usage. Real classified processing requires separate approval and an appropriate processing environment before introducing such data. Do not claim an open-only code gate exists or silently change execution policy during documentation work. Do not change production env.
 
-Use the agreed `gemini-3.8-flash`, `gemini-3.5-flash-lite`, and `gemini-embedding-2` (768 dimensions). Do not add `AI_BACKUP_MODEL` or switch models to hide an outage. Gateway retries are bounded, including transient 503s and Retry-After; SDK retries are disabled to prevent multiplied budgets. Current primary synthetic generation and manual support sample PASS; three current corpus cases PASS with the approved quota fallback to light. Intermittent 503, quota and earlier validation failures are recorded; availability is not guaranteed by a single success.
+Preserve configured model IDs and 768-dimensional embeddings. The existing route is primary → light → optional `AI_BACKUP_MODEL`; duplicate IDs are removed. Quota and transient retries, Retry-After, five-minute per-instance quota cooldown, cancellation and absolute deadline remain in the gateway; SDK retries are disabled. Record the actual completing model, not just the configured primary. Tests use synthetic transports; their success does not establish live provider availability.
 
 The bucket must stay private. Current bucket-level `file_size_limit` and MIME restrictions are unset; this session did not change them or existing objects. Application upload URLs now cryptographically bind a validated size (at most 10 MiB) and MIME. Live mismatches were rejected; save also validates actual bytes and creates a new server-only copy. Broader bucket limits can be managed separately through the supported storage administration interface. Supabase documents per-bucket restrictions in [Storage file limits](https://supabase.com/docs/guides/storage/uploads/file-limits).
 
 The new staging key format is intentionally owner-bound. Uploads prepared by an older runtime may need a refresh/retry after rollout; finish active upload sessions before the approved deployment. Existing committed attachment routes continue to use their stored keys.
 
 ## Production gates requiring access
+
+Historical observations below are from the earlier release audit, not a fresh cloud inspection.
 
 Vercel access was skipped at the owner's request. Inngest management API is available with the existing signing key; GitHub REST is available through the configured Git credential helper (connector itself returned 404). API inspection found an old 8-function sync, not the current six jobs. Three retired OSINT functions received pause HTTP200. Do not infer registration/revision from a 401 endpoint or login GET.
 
@@ -51,4 +53,4 @@ The old 39–47 minute upload delay cannot be explained without retained transit
 
 ## Release boundary
 
-Prepare a reviewed diff, passing code gates, fresh main/CI/protection/conflict checks, secret scan and source completeness first. The latest owner request explicitly authorizes Ready and a normal merge commit for PR #1; external hosting/cloud verification belongs to the owner. Merge may automatically deploy through the existing Vercel Git integration; management access to disable it was not established. Do not bypass protections or merge with an identified real data/security threat. Keep production **NO-GO** while critical runtime/cloud FAIL/NOT VERIFIED remains, including the actual preview Gemini failure. A green GitHub deployment check is not successful generation, cloud execution, revision or rollback proof. No corpus-wide reset/reindex or applied SQL change is a release gate.
+Commit A contains functional hardening and current documentation only after targeted tests, TypeScript, ESLint and production build pass. Commit B contains safe cleanup, link/reference fixes and its manifest, followed by the same gates and affected tests. Review the complete diff, confirm fresh remote main, then push both commits together without force or rewriting published history. Verify remote SHAs and any available deployment status. A successful push/build/deployment does not establish production GO; actual runtime, cloud, source access and semantic acceptance remain required. Do not reset/reindex the corpus, reapply migrations or change production env.

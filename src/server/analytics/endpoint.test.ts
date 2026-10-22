@@ -129,7 +129,6 @@ describe("analytics stream access and cancellation", () => {
       system: "system",
       prompt: "prompt",
       maxOutputTokens: 100,
-      lowReliabilityWarning: "",
     });
     mocks.withSourceAccess.mockImplementation(async (sources, _userId, publish) => {
       const available = [...sources];
@@ -258,6 +257,29 @@ describe("analytics stream access and cancellation", () => {
     expect(logs).toContain('"errorCategory":"timeout"');
     expect(logs).toContain('"elapsedMs":71000');
     expect(logs).not.toContain("sensitive provider details");
+  });
+
+  it("includes history setup time in the 105-second overall budget", async () => {
+    vi.useFakeTimers();
+    mocks.createHistory.mockImplementationOnce(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20_000));
+    });
+    mocks.generate.mockImplementation(
+      (input: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          input.signal.addEventListener("abort", () => reject(input.signal.reason), { once: true });
+        }),
+    );
+    const pending = withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    await vi.advanceTimersByTimeAsync(20_000);
+    const response = await pending;
+    const output = response.text();
+    await vi.advanceTimersByTimeAsync(85_000);
+    expect(await output).toContain('"type":"error"');
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed", durationMs: 105_000 }),
+    );
   });
 
   it("retries length-limited output once and publishes only the validated completion", async () => {

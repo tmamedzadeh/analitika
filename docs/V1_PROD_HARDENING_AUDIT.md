@@ -1,3 +1,5 @@
+> Historical release/session evidence from 2026-10-22 and earlier, preserved without changing its original claims. Its open-only policy, fallback and validation descriptions predate later code changes and are not current runtime guarantees. For the current implementation and test-data authorization, read [Executive Analytics V1](analytics-v1.md) and the [release runbook](release/RELEASE_RUNBOOK.md).
+
 # V1 Production — актуальный gate 22 октября 2026
 
 **CODE READY: YES; GITHUB MAIN UPDATED: YES; PRODUCTION VERIFIED: NO / NO-GO.** Последнее [задание](release/FINAL_CODE_MERGE_REQUEST.md) разрешает merge после code gates и передаёт external production verification владельцу. Оно заменяет прежний запрет merge до всех runtime gates. [Checklist](PRODUCTION_MANUAL_CHECKLIST.md), [report](V1_FINAL_PRODUCTION_REPORT.md). Auto-deployment Vercel возможен; protections не обходятся, реальной угрозы данным/безопасности в reviewed diff не выявлено.

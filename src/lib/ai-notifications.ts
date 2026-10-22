@@ -10,7 +10,10 @@ export function createFallbackNotifier() {
     if (shown.has(key)) return;
     shown.add(key);
     toast(event.backup ? az.ai.backupActivated : az.ai.switched, {
-      description: (event.reason === "quota" ? az.ai.quota : az.ai.unavailable).replace("{model}", modelDisplayName(event.toModel)),
+      description: (event.reason === "quota" ? az.ai.quota : az.ai.unavailable).replace(
+        "{model}",
+        modelDisplayName(event.toModel),
+      ),
       duration: 4500,
     });
   };

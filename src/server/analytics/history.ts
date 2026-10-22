@@ -1,19 +1,24 @@
 import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import { analyticsFiltersSchema } from "@/lib/analytics";
+import { analyticsFiltersSchema, citedSourceNumbers } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
 import { canAccessClassification, getCurrentUser, type Clearance } from "@/server/auth";
 import { getDb } from "@/server/db";
 import { accessFilter, classificationAccessFilter, documentAccessFilter } from "@/server/db/access";
-import { analyticsQueries, appUsers, dailyBriefs, documents } from "@/server/db/schema";
+import { analyticsQueries, appUsers, chunks, dailyBriefs, documents } from "@/server/db/schema";
 import { readServerEnv } from "@/server/env";
-import type { AnalyticsFilters, AnalyticsSource } from "@/lib/analytics";
+import type { AnalyticsFilters, AnalyticsSource, AnalyticsSourcePreview } from "@/lib/analytics";
+import { hasCommittedDocumentIndex } from "./filters";
+import { hasCommittedBriefIndex } from "../briefs/index-state";
+import type { InfoCredibility, SourceReliability } from "@/lib/reliability";
 
 const sourceSnapshotSchema = z.object({
   n: z.number().int().positive(),
   documentId: z.string().uuid().nullable(),
   briefId: z.string().uuid().nullable(),
+  // IDs only: previews are read from the current authorized chunk, never copied into history.
+  chunkId: z.string().uuid().optional(),
   title: z.string(),
   caption: z.string(),
   usedInAnswer: z.boolean(),
@@ -25,6 +30,7 @@ const sourceSnapshotSchema = z.object({
 
 export type AnalyticsHistorySource = z.infer<typeof sourceSnapshotSchema> & {
   available: boolean;
+  preview?: AnalyticsSourcePreview | null;
 };
 
 export function buildAnalyticsHistorySnapshot(
@@ -34,11 +40,12 @@ export function buildAnalyticsHistorySnapshot(
   durationMs: number,
   createdAt: Date,
 ) {
-  const cited = new Set([...answer.matchAll(/\[(\d+)\]/g)].map((match) => Number(match[1])));
+  const cited = citedSourceNumbers(answer);
   const snapshots = sources.map((source) => ({
     n: source.n,
     documentId: source.documentId,
     briefId: source.briefId,
+    chunkId: source.chunkId,
     title: source.title,
     caption: source.sectionTitle,
     usedInAnswer: cited.has(source.n),
@@ -139,55 +146,151 @@ export async function listAnalyticsHistory(): Promise<
 
 export async function getAnalyticsHistoryRecord(id: string) {
   const user = getCurrentUser();
-  const [row] = await getDb()
-    .select({
-      id: analyticsQueries.id,
-      createdBy: analyticsQueries.createdBy,
-      query: analyticsQueries.query,
-      filters: analyticsQueries.filters,
-      status: analyticsQueries.status,
-      answer: analyticsQueries.answer,
-      sources: analyticsQueries.sources,
-      maxClassification: analyticsQueries.maxClassification,
-      model: analyticsQueries.model,
-      durationMs: analyticsQueries.durationMs,
-      createdAt: analyticsQueries.createdAt,
-      author: appUsers.username,
-    })
-    .from(analyticsQueries)
-    .innerJoin(appUsers, eq(analyticsQueries.createdBy, appUsers.id))
-    .where(
-      and(
-        eq(analyticsQueries.id, id),
-        liveHistoryOwnerCondition(user.id),
-        analyticsHistoryVisibilityFilter(user.id),
-      ),
-    )
-    .limit(1);
-  if (!row || !canAccessClassification(user, row.maxClassification)) return null;
-  const parsedSources = z.array(sourceSnapshotSchema).safeParse(row.sources);
-  const snapshots = parsedSources.success ? parsedSources.data : [];
-  const resolved = await Promise.all(
-    snapshots.map(async (source): Promise<AnalyticsHistorySource> => {
+  return getDb().transaction(async (db) => {
+    // Serialize preview reads against account/clearance and source revocation.
+    const [activeUser] = await db
+      .select({ id: appUsers.id })
+      .from(appUsers)
+      .where(and(eq(appUsers.id, user.id), eq(appUsers.active, true)))
+      .for("share")
+      .limit(1);
+    if (!activeUser) return null;
+    const [row] = await db
+      .select({
+        id: analyticsQueries.id,
+        createdBy: analyticsQueries.createdBy,
+        query: analyticsQueries.query,
+        filters: analyticsQueries.filters,
+        status: analyticsQueries.status,
+        answer: analyticsQueries.answer,
+        sources: analyticsQueries.sources,
+        maxClassification: analyticsQueries.maxClassification,
+        model: analyticsQueries.model,
+        durationMs: analyticsQueries.durationMs,
+        createdAt: analyticsQueries.createdAt,
+        author: appUsers.username,
+      })
+      .from(analyticsQueries)
+      .innerJoin(appUsers, eq(analyticsQueries.createdBy, appUsers.id))
+      .where(
+        and(
+          eq(analyticsQueries.id, id),
+          liveHistoryOwnerCondition(user.id),
+          analyticsHistoryVisibilityFilter(user.id),
+        ),
+      )
+      .limit(1);
+    if (!row || !canAccessClassification(user, row.maxClassification)) return null;
+    const parsedSources = z.array(sourceSnapshotSchema).safeParse(row.sources);
+    if (!parsedSources.success) return null;
+    const snapshots = parsedSources.data;
+    const resolved: AnalyticsHistorySource[] = [];
+    for (const source of snapshots) {
       let available = false;
+      let preview: AnalyticsSourcePreview | null = null;
+      let metadata: Pick<
+        AnalyticsSourcePreview,
+        | "sourceKind"
+        | "title"
+        | "docDate"
+        | "briefDate"
+        | "direction"
+        | "sourceReliability"
+        | "infoCredibility"
+        | "classification"
+      > | null = null;
       if (source.documentId) {
-        const [document] = await getDb()
-          .select({ id: documents.id })
+        const [document] = await db
+          .select({
+            title: documents.title,
+            docDate: documents.docDate,
+            direction: documents.direction,
+            sourceReliability: documents.sourceReliability,
+            infoCredibility: documents.infoCredibility,
+            classification: documents.classification,
+          })
           .from(documents)
           .where(and(eq(documents.id, source.documentId), documentAccessFilter(user)))
+          .for("share")
           .limit(1);
         available = Boolean(document);
+        if (document)
+          metadata = {
+            ...document,
+            sourceKind: "document",
+            briefDate: null,
+            sourceReliability: document.sourceReliability as SourceReliability,
+            infoCredibility: document.infoCredibility as InfoCredibility,
+          };
       } else if (source.briefId) {
-        const [brief] = await getDb()
-          .select({ id: dailyBriefs.id })
+        const [brief] = await db
+          .select({ title: dailyBriefs.title, briefDate: dailyBriefs.briefDate })
           .from(dailyBriefs)
-          .where(and(eq(dailyBriefs.id, source.briefId), accessFilter(user)))
+          .where(
+            and(
+              eq(dailyBriefs.id, source.briefId),
+              eq(dailyBriefs.status, "published"),
+              accessFilter(user),
+            ),
+          )
+          .for("share")
           .limit(1);
         available = Boolean(brief);
+        if (brief)
+          metadata = {
+            ...brief,
+            sourceKind: "brief",
+            docDate: null,
+            direction: null,
+            sourceReliability: null,
+            infoCredibility: null,
+            classification: "open",
+          };
       }
-      return {
+      if (available && metadata && source.chunkId) {
+        // Bind the saved citation to its exact current parent and committed index.
+        const [chunk] = await db
+          .select({
+            id: chunks.id,
+            sectionTitle: chunks.sectionTitle,
+            quote: sql<string>`left(${chunks.text}, 360)`,
+            isTable: chunks.isTable,
+          })
+          .from(chunks)
+          .where(
+            and(
+              eq(chunks.id, source.chunkId),
+              source.documentId
+                ? and(
+                    eq(chunks.documentId, source.documentId),
+                    sql`exists (select 1 from ${documents} where ${documents.id} = ${source.documentId} and ${hasCommittedDocumentIndex()})`,
+                  )
+                : and(
+                    eq(chunks.briefId, source.briefId!),
+                    sql`exists (select 1 from ${dailyBriefs} where ${dailyBriefs.id} = ${source.briefId} and ${hasCommittedBriefIndex()})`,
+                  ),
+            ),
+          )
+          .for("share")
+          .limit(1);
+        if (chunk)
+          preview = {
+            ...metadata,
+            n: source.n,
+            chunkId: chunk.id,
+            documentId: source.documentId,
+            briefId: source.briefId,
+            sectionTitle: chunk.sectionTitle,
+            quote: chunk.quote,
+            isTable: chunk.isTable,
+            attachmentCount: 0,
+          };
+        else available = false;
+      }
+      resolved.push({
         ...source,
         available,
+        preview: available ? preview : null,
         ...(available
           ? {}
           : {
@@ -196,38 +299,39 @@ export async function getAnalyticsHistoryRecord(id: string) {
               usedInAnswer: false,
               title: az.analytics.sourceUnavailable,
               caption: "",
+              chunkId: undefined,
             }),
-      };
-    }),
-  );
-  const filters = analyticsFiltersSchema.safeParse(row.filters);
-  if (!filters.success) return null;
-  // Child source reads can outlast a clearance/role change. Recheck query metadata last.
-  const [stillVisible] = await getDb()
-    .select({ id: analyticsQueries.id })
-    .from(analyticsQueries)
-    .where(
-      and(
-        eq(analyticsQueries.id, id),
-        liveHistoryOwnerCondition(user.id),
-        analyticsHistoryVisibilityFilter(user.id),
-      ),
-    )
-    .limit(1);
-  if (!stillVisible) return null;
-  const unavailableCitation = resolved.some((source) => !source.available);
-  return {
-    id: row.id,
-    query: row.query,
-    filters: filters.data,
-    status: unavailableCitation ? "incomplete" : row.status,
-    answer: unavailableCitation ? az.analytics.sourceUnavailable : (row.answer ?? ""),
-    sources: resolved,
-    model: row.model,
-    durationMs: row.durationMs,
-    createdAt: row.createdAt.toISOString(),
-    ...(user.role === "admin" ? { author: row.author } : {}),
-  };
+      });
+    }
+    const filters = analyticsFiltersSchema.safeParse(row.filters);
+    if (!filters.success) return null;
+    // Child source reads can outlast a clearance/role change. Recheck query metadata last.
+    const [stillVisible] = await db
+      .select({ id: analyticsQueries.id })
+      .from(analyticsQueries)
+      .where(
+        and(
+          eq(analyticsQueries.id, id),
+          liveHistoryOwnerCondition(user.id),
+          analyticsHistoryVisibilityFilter(user.id),
+        ),
+      )
+      .limit(1);
+    if (!stillVisible) return null;
+    const unavailableCitation = resolved.some((source) => !source.available);
+    return {
+      id: row.id,
+      query: row.query,
+      filters: filters.data,
+      status: unavailableCitation ? "incomplete" : row.status,
+      answer: unavailableCitation ? az.analytics.sourceUnavailable : (row.answer ?? ""),
+      sources: resolved,
+      model: row.model,
+      durationMs: row.durationMs,
+      createdAt: row.createdAt.toISOString(),
+      ...(user.role === "admin" ? { author: row.author } : {}),
+    };
+  });
 }
 
 export async function pruneAnalyticsHistory(now = new Date()): Promise<number> {

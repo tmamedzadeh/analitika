@@ -74,7 +74,7 @@ try {
                 }
               : {}),
           });
-          validation = validateCitations(generated.text, available, prompt.lowReliabilityWarning);
+          validation = validateCitations(generated.text, available);
           completedModel = generated.model ?? provider.model;
           // Open sources only. Raw answers/excerpts stay ignored for manual review.
           diagnosticAnswers.push({

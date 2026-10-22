@@ -1,3 +1,5 @@
+> Historical release/session evidence from 2026-10-22 and earlier, preserved without changing its original claims. Its open-only policy, fallback and validation descriptions predate later code changes and are not current runtime guarantees. For the current implementation and test-data authorization, read [Executive Analytics V1](analytics-v1.md) and the [release runbook](release/RELEASE_RUNBOOK.md).
+
 # ZIRVƏ / ANALİTİKA V1 — итоговый production report
 
 Дата: **22 октября 2026, Asia/Baku**. **CODE READY: YES; GITHUB MAIN UPDATED: YES; PRODUCTION VERIFIED: NO / NO-GO.** Подтверждённых незакрытых обязательных code-level P0/P1 после заключительного review не найдено. Это scoped readiness, не гарантия отсутствия неизвестных defects.

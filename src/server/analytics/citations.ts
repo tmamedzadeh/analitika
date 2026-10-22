@@ -64,7 +64,6 @@ export function canPublishAnalyticsAnswer(
 export function validateCitations(
   answer: string,
   sources: readonly CitationSource[],
-  lowReliabilityWarning: string,
 ): ValidatedAnswer {
   const available = new Map(sources.map((source) => [source.n, source]));
   const referenced = new Set<number>();
@@ -108,20 +107,11 @@ export function validateCitations(
 
   const usedLowReliability = [...referenced].some((n) => {
     const source = available.get(n)!;
-    return source.sourceReliability && source.infoCredibility
-      ? isLowReliability(source.sourceReliability, source.infoCredibility)
-      : false;
+    return isLowReliability(source.sourceReliability, source.infoCredibility);
   });
-  const warning = lowReliabilityWarning.trim();
-  const answerWithWarning =
-    usedLowReliability &&
-    warning &&
-    !cleaned.toLocaleLowerCase().includes(warning.toLocaleLowerCase())
-      ? cleaned.trimEnd() + "\n\n" + warning + "."
-      : cleaned;
 
   return {
-    answer: answerWithWarning.replace(/ +([.,;!?])/gu, "$1").trim(),
+    answer: cleaned.replace(/ +([.,;!?])/gu, "$1").trim(),
     incomplete: failureReasons.size > 0,
     usedLowReliability,
     failureReasons: [...failureReasons],

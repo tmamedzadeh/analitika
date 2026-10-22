@@ -6,5 +6,8 @@ export type ModelFallback = {
 };
 
 export function modelDisplayName(model: string): string {
-  return model.replace(/^gemini-/, "Gemini ").replace(/-flash-lite$/, " Flash-Lite").replace(/-flash$/, " Flash");
+  return model
+    .replace(/^gemini-/, "Gemini ")
+    .replace(/-flash-lite$/, " Flash-Lite")
+    .replace(/-flash$/, " Flash");
 }

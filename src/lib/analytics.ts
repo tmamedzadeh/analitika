@@ -3,6 +3,14 @@ import { z } from "zod";
 import type { InfoCredibility, SourceReliability } from "./reliability";
 import { directionIdSchema, directionIds } from "./directions";
 
+// Leave time for the server's terminal SSE event within Vercel's 120s function limit.
+export const ANALYTICS_SERVER_DEADLINE_MS = 105_000;
+export const ANALYTICS_CLIENT_DEADLINE_MS = 115_000;
+
+export function citedSourceNumbers(answer: string): Set<number> {
+  return new Set([...answer.matchAll(/\[(\d+)\]/gu)].map((match) => Number(match[1])));
+}
+
 export const analyticsFiltersSchema = z.object({
   period: z.enum(["7d", "30d", "90d", "12m", "all"]),
   directionIds: z

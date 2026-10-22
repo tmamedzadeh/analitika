@@ -1,13 +1,15 @@
 ﻿import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { ChevronDown, History, Square } from "lucide-react";
 
 import { AnalyticsAnswer } from "@/components/AnalyticsAnswer";
 import { DirectionMultiSelect } from "@/components/DirectionMultiSelect";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
 import type { AnalyticsFilters, AnalyticsSourcePreview } from "@/lib/analytics";
+import { ANALYTICS_CLIENT_DEADLINE_MS, citedSourceNumbers } from "@/lib/analytics";
 import { getAnalyticsQueryHistory, listRecentAnalyticsQueries } from "@/lib/analytics.functions";
 import { directionIds, directionLabel } from "@/lib/directions";
 import { briefRouteForSearchSource, briefSearchLabel } from "@/lib/briefs";
@@ -49,12 +51,9 @@ function sourceUrl(source: AnalyticsSourcePreview): string {
   return briefRouteForSearchSource(source) ?? "#";
 }
 
-function citedSourceNumbers(answer: string): Set<number> {
-  return new Set([...answer.matchAll(/\[(\d+)\]/g)].map((match) => Number(match[1])));
-}
-
 function ReliabilityBadges({ source }: { source: AnalyticsSourcePreview }) {
-  if (source.sourceReliability === null || source.infoCredibility === null) return null;
+  if (source.sourceReliability === null || source.infoCredibility === null)
+    return <span className="label-mono">{az.analytics.unrated}</span>;
   const defaultSourceRating = source.sourceReliability === "F";
   const defaultInfoRating = source.infoCredibility === 6;
   const sourceLabel = az.reliability.sourceBadge + " " + source.sourceReliability;
@@ -102,9 +101,19 @@ function Analytics() {
   const [elapsedMs, setElapsedMs] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [pageError, setPageError] = useState("");
-  const [errorReference, setErrorReference] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [sourceOnly, setSourceOnly] = useState(false);
+  const [answerContext, setAnswerContext] = useState<{
+    query: string;
+    filters: AnalyticsFilters;
+  } | null>(null);
+  const [historyExpanded, setHistoryExpanded] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+  const searchLock = useRef(false);
+  const historyLock = useRef(false);
+  const activeRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => activeRequest.current?.abort(), []);
   const [selectedHistory, setSelectedHistory] =
     useState<Awaited<ReturnType<typeof getAnalyticsQueryHistory>>>(null);
   const noDirections = filters.directionIds.length === 0;
@@ -113,9 +122,31 @@ function Analytics() {
     sourceOnly || usedSourceNumbers.size === 0
       ? sources
       : sources.filter((source) => usedSourceNumbers.has(source.n));
-  const visibleSourceCount = selectedHistory
+  const historySources = selectedHistory?.sources.filter(
+    (source) => usedSourceNumbers.size === 0 || usedSourceNumbers.has(source.n),
+  );
+  const retrievedSourceCount = selectedHistory
     ? selectedHistory.sources.filter((source) => source.available).length
+    : sources.length;
+  const citedSourceCount = selectedHistory
+    ? selectedHistory.sources.filter(
+        (source) => source.available && usedSourceNumbers.has(source.n),
+      ).length
+    : sources.filter((source) => usedSourceNumbers.has(source.n)).length;
+  const visibleSourceCount = selectedHistory
+    ? historySources!.filter((source) => source.available).length
     : visibleSources.length;
+  const sourceCountLabel = (
+    sourceOnly || !answer ? az.analytics.retrievedSourcesCount : az.analytics.citedSourcesCount
+  ).replace("{count}", String(sourceOnly || !answer ? retrievedSourceCount : citedSourceCount));
+  const sourceListCountLabel = (
+    sourceOnly || usedSourceNumbers.size === 0
+      ? az.analytics.retrievedSourcesCount
+      : az.analytics.citedSourcesCount
+  ).replace(
+    "{count}",
+    String(sourceOnly || usedSourceNumbers.size === 0 ? retrievedSourceCount : citedSourceCount),
+  );
 
   const historyQuery = useQuery({
     queryKey: ["analytics", "history"],
@@ -129,13 +160,26 @@ function Analytics() {
   ) {
     const normalizedQuestion = (override?.query ?? question).trim();
     const activeFilters = override?.filters ?? filters;
-    if (!normalizedQuestion || busy || noDirections) return;
+    if (
+      !normalizedQuestion ||
+      searchLock.current ||
+      historyLock.current ||
+      activeFilters.directionIds.length === 0
+    )
+      return;
+    searchLock.current = true;
+    // The displayed answer owns this immutable request, independent of subsequent form edits.
+    setAnswerContext({
+      query: normalizedQuestion,
+      filters: { ...activeFilters, directionIds: [...activeFilters.directionIds] },
+    });
     setBusy(true);
     setHasSearched(true);
     setSourceOnly(mode === "sources");
     setPageError("");
     setSelectedHistory(null);
-    setErrorReference("");
+    setActiveHistoryId(null);
+
     setAnswer("");
     setModel("");
     const notifyFallback = createFallbackNotifier();
@@ -144,8 +188,12 @@ function Analytics() {
     setElapsedMs(null);
 
     const abortController = new AbortController();
-    const timeoutId = window.setTimeout(() => abortController.abort(), 100_000);
-    let requestId = "";
+    activeRequest.current = abortController;
+    const timeoutId = window.setTimeout(
+      () => abortController.abort(new DOMException("Analytics deadline", "TimeoutError")),
+      ANALYTICS_CLIENT_DEADLINE_MS,
+    );
+    let receivedTerminalEvent = false;
     try {
       const response = await fetch("/api/analytics/search", {
         method: "POST",
@@ -153,13 +201,11 @@ function Analytics() {
         body: JSON.stringify({ query: normalizedQuestion, filters: activeFilters, mode }),
         signal: abortController.signal,
       });
-      requestId = response.headers.get("x-analytics-request-id") ?? "";
       if (!response.ok) {
         const data = (await response.json().catch(() => null)) as {
           message?: string;
           requestId?: string;
         } | null;
-        requestId = data?.requestId ?? requestId;
         throw new Error(data?.message || az.analytics.searchFailed);
       }
       if (!response.body) throw new Error(az.analytics.searchFailed);
@@ -167,8 +213,8 @@ function Analytics() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let receivedTerminalEvent = false;
       const readEvent = (frame: string) => {
+        if (receivedTerminalEvent) return;
         const data = frame
           .split(/\r?\n/)
           .filter((line) => line.startsWith("data:"))
@@ -204,7 +250,6 @@ function Analytics() {
           setIncomplete(false);
           setElapsedMs(null);
           setPageError(event.message || az.analytics.answerFailed);
-          setErrorReference(event.requestId || requestId);
         }
       };
 
@@ -226,45 +271,59 @@ function Analytics() {
         setIncomplete(false);
         setElapsedMs(null);
         setPageError(az.analytics.answerFailed);
-        setErrorReference(requestId);
       }
     } catch (error) {
+      if (receivedTerminalEvent) return;
       setAnswer("");
       setSources([]);
       setIncomplete(false);
       setElapsedMs(null);
       setPageError(
         abortController.signal.aborted
-          ? az.analytics.timeout
+          ? abortController.signal.reason?.name === "TimeoutError"
+            ? az.analytics.timeout
+            : az.analytics.cancelled
           : error instanceof Error
             ? error.message
             : az.analytics.searchFailed,
       );
-      setErrorReference(requestId);
     } finally {
       window.clearTimeout(timeoutId);
+      activeRequest.current = null;
+      searchLock.current = false;
       setBusy(false);
       void queryClient.invalidateQueries({ queryKey: ["analytics", "history"] });
     }
   }
 
   async function openHistory(id: string) {
+    if (searchLock.current || historyLock.current) return;
+    historyLock.current = true;
+    setHistoryLoading(true);
     try {
       const record = await getAnalyticsQueryHistory({ data: { id } });
       if (!record) throw new Error(az.analytics.historyOpenFailed);
       setSelectedHistory(record);
+      setActiveHistoryId(record.id);
+      setAnswerContext({
+        query: record.query,
+        filters: { ...record.filters, directionIds: [...record.filters.directionIds] },
+      });
       setQuestion(record.query);
       setFilters(record.filters);
       setSources([]);
       setAnswer(record.answer);
       setIncomplete(record.status === "incomplete");
       setElapsedMs(record.durationMs);
+      setModel(record.model ?? "");
       setHasSearched(true);
       setSourceOnly(false);
       setPageError("");
-      setErrorReference("");
     } catch {
       setPageError(az.analytics.historyOpenFailed);
+    } finally {
+      historyLock.current = false;
+      setHistoryLoading(false);
     }
   }
 
@@ -287,7 +346,7 @@ function Analytics() {
         />
         <button
           className="glow rounded-xl bg-primary px-7 py-3 font-semibold text-primary-foreground disabled:opacity-60"
-          disabled={busy || noDirections || question.trim().length === 0}
+          disabled={busy || historyLoading || noDirections || question.trim().length === 0}
           type="submit"
         >
           {busy ? az.analytics.searching : az.analytics.searchButton}
@@ -369,71 +428,102 @@ function Analytics() {
       {pageError && (
         <div role="alert" className="mt-4 rounded-xl border border-destructive/40 p-4 text-sm">
           {pageError}
-          {errorReference && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              {az.analytics.errorReference} {errorReference}
-            </p>
-          )}
         </div>
       )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_352px]">
+      <div className="mt-6 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
-          <section className="panel h-fit p-6">
-            <div className="flex flex-wrap justify-between gap-2">
-              <span className="label-mono text-primary!">{az.analytics.synthesis}</span>
-              <span className="label-mono">
-                {busy ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <ZirveLoader variant="inline" label="" />
-                    {az.analytics.generating}
-                  </span>
-                ) : elapsedMs === null ? (
-                  hasSearched ? (
-                    az.analytics.sourcesCount.replace("{count}", String(visibleSourceCount))
+          <section className="panel panel-glow h-fit px-4 py-5 sm:p-7" aria-busy={busy}>
+            <div className="mx-auto max-w-[920px]">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="label-mono text-primary!">{az.analytics.synthesis}</span>
+                <span className="label-mono">
+                  {busy ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <ZirveLoader variant="inline" label="" />
+                      {az.analytics.generating}
+                    </span>
+                  ) : elapsedMs === null ? (
+                    hasSearched ? (
+                      sourceCountLabel
+                    ) : (
+                      az.analytics.waiting
+                    )
                   ) : (
-                    az.analytics.waiting
-                  )
-                ) : (
-                  az.analytics.timing
-                    .replace("{seconds}", (elapsedMs / 1000).toFixed(1))
-                    .replace("{count}", String(visibleSourceCount))
-                )}
-              </span>
-            </div>
-            {incomplete && (
-              <p className="mt-4 rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-amber-700">
-                {az.analytics.incompleteAnswer}
-              </p>
-            )}
-            <div aria-live="polite" className="mt-4">
-              {answer ? (
-                <AnalyticsAnswer answer={answer} sources={selectedHistory?.sources ?? sources} model={sourceOnly ? undefined : selectedHistory?.model ?? model} />
-              ) : busy ? (
-                <p className="text-muted-foreground">{az.analytics.generating}</p>
-              ) : (sourceOnly || selectedHistory) && visibleSourceCount > 0 ? (
-                <p className="text-muted-foreground">{az.analytics.fragmentsOnly}</p>
-              ) : hasSearched ? (
-                <p className="text-muted-foreground">{az.analytics.noSources}</p>
-              ) : (
-                <p className="text-muted-foreground">{az.analytics.emptyState}</p>
+                    az.analytics.timing.replace("{seconds}", (elapsedMs / 1000).toFixed(1))
+                  )}
+                </span>
+              </div>
+              {answerContext && (
+                <h2 className="mt-4 text-xl leading-snug font-semibold tracking-tight break-words sm:text-2xl">
+                  {answerContext.query}
+                </h2>
               )}
+              {hasSearched && !busy && answer && (
+                <p className="mt-2 text-xs text-muted-foreground">{sourceCountLabel}</p>
+              )}
+              {busy && (
+                <button
+                  type="button"
+                  className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground hover:bg-secondary"
+                  onClick={() => activeRequest.current?.abort()}
+                >
+                  <Square size={13} aria-hidden="true" />
+                  {az.analytics.cancel}
+                </button>
+              )}
+              {incomplete && (
+                <p className="mt-4 rounded-lg border border-amber-500/40 px-3 py-2 text-sm text-amber-700">
+                  {az.analytics.incompleteAnswer}
+                </p>
+              )}
+              <div aria-live="polite" className="mt-4">
+                {answer ? (
+                  <AnalyticsAnswer
+                    answer={answer}
+                    sources={
+                      selectedHistory?.sources ??
+                      sources.map((source) => ({ ...source, preview: source }))
+                    }
+                    model={sourceOnly ? undefined : model}
+                    busy={busy || historyLoading}
+                    onRegenerate={
+                      answerContext ? () => void runSearch("answer", answerContext) : undefined
+                    }
+                  />
+                ) : busy ? (
+                  <p className="text-muted-foreground">{az.analytics.generating}</p>
+                ) : (sourceOnly || selectedHistory) && visibleSourceCount > 0 ? (
+                  <p className="text-muted-foreground">{az.analytics.fragmentsOnly}</p>
+                ) : hasSearched ? (
+                  <p className="text-muted-foreground">{az.analytics.noSources}</p>
+                ) : (
+                  <p className="text-muted-foreground">{az.analytics.emptyState}</p>
+                )}
+              </div>
             </div>
-
           </section>
 
           <section className="min-w-0">
             <div className="mb-3 flex items-center justify-between gap-2">
               <p className="label-mono">{az.analytics.sources}</p>
               {hasSearched && (!busy || sourceOnly) ? (
-                <span className="label-mono">
-                  {az.analytics.sourcesCount.replace("{count}", String(visibleSourceCount))}
-                </span>
+                <span className="label-mono">{sourceListCountLabel}</span>
               ) : null}
             </div>
+            {citedSourceCount > 0 && (
+              <p className="mb-3 text-xs text-muted-foreground">
+                {az.analytics.citationNumbering}{" "}
+                {az.analytics.retrievedSourcesCount.replace(
+                  "{count}",
+                  String(retrievedSourceCount),
+                )}
+                .
+              </p>
+            )}
             <div className="space-y-3">
               {selectedHistory
-                ? selectedHistory.sources.map((source) => (
+                ? historySources!.map((source) => (
                     <article
                       key={`${source.n}-${source.title}`}
                       id={`source-${source.n}`}
@@ -445,6 +535,15 @@ function Analytics() {
                         {source.title}
                       </h3>
                       {source.caption && <p className="label-mono mt-2">{source.caption}</p>}
+                      {source.preview && (
+                        <>
+                          <p className="label-mono mt-2">
+                            {source.preview.docDate ?? source.preview.briefDate}
+                          </p>
+                          <ReliabilityBadges source={source.preview} />
+                          <p className="mt-2 text-sm">«{source.preview.quote}»</p>
+                        </>
+                      )}
                       <p className="label-mono mt-2">
                         {source.available
                           ? source.usedInAnswer
@@ -475,7 +574,7 @@ function Analytics() {
                       className="panel scroll-mt-6 p-5"
                       tabIndex={-1}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
                         <h3 className="break-words font-semibold [overflow-wrap:anywhere]">
                           <span className="cite ml-0! mr-1">{source.n}</span>
                           {source.title}
@@ -532,36 +631,63 @@ function Analytics() {
         </div>
 
         <aside>
-          <section className="panel p-4">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="label-mono">{az.analytics.historyTitle}</h2>
+          <section className="panel p-3 xl:sticky xl:top-6">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  className="label-mono flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left hover:bg-secondary"
+                  aria-expanded={historyExpanded}
+                  aria-controls="analytics-history"
+                  onClick={() => setHistoryExpanded((current) => !current)}
+                >
+                  <History size={15} aria-hidden="true" />
+                  {az.analytics.historyTitle}
+                  <ChevronDown
+                    size={15}
+                    aria-hidden="true"
+                    className={
+                      "ml-auto transition-transform " + (historyExpanded ? "" : "-rotate-90")
+                    }
+                  />
+                </button>
+              </h2>
               {historyQuery.isFetching && <ZirveLoader variant="inline" label="" />}
             </div>
-            {historyQuery.isError ? (
-              <p role="alert" className="text-sm text-destructive">
-                {az.analytics.historyFailed}
-              </p>
-            ) : historyQuery.data?.length ? (
-              <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
-                {historyQuery.data.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="w-full rounded-lg border border-border p-3 text-left hover:border-primary/40"
-                    onClick={() => void openHistory(item.id)}
-                  >
-                    <span className="block line-clamp-2 text-sm font-medium">{item.query}</span>
-                    <span className="label-mono mt-1 block">
-                      {historyStatusLabel(item.status)}
-                      {item.author ? ` · ${item.author}` : ""}
-                      {` · ${new Date(item.createdAt).toLocaleString("az-AZ")}`}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">{az.analytics.historyEmpty}</p>
-            )}
+            <div id="analytics-history" hidden={!historyExpanded} className="mt-2">
+              {historyQuery.isError ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {az.analytics.historyFailed}
+                </p>
+              ) : historyQuery.data?.length ? (
+                <div className="analytics-history max-h-72 space-y-1 overflow-y-auto pr-1 xl:max-h-[65vh]">
+                  {historyQuery.data.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={
+                        "w-full rounded-lg border p-2.5 text-left transition-colors hover:border-primary/40 disabled:opacity-60 " +
+                        (activeHistoryId === item.id
+                          ? "border-primary/30 bg-accent"
+                          : "border-transparent hover:bg-secondary")
+                      }
+                      aria-current={activeHistoryId === item.id ? "true" : undefined}
+                      disabled={busy || historyLoading}
+                      onClick={() => void openHistory(item.id)}
+                    >
+                      <span className="block line-clamp-2 text-sm font-medium">{item.query}</span>
+                      <span className="label-mono mt-1 block">
+                        {historyStatusLabel(item.status)}
+                        {item.author ? ` · ${item.author}` : ""}
+                        {` · ${new Date(item.createdAt).toLocaleString("az-AZ")}`}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{az.analytics.historyEmpty}</p>
+              )}
+            </div>
           </section>
         </aside>
       </div>

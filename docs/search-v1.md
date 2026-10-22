@@ -61,7 +61,8 @@ Targeted tests cover daily/RPM quotas, Retry-After, cooldown recovery, all-model
 outage, terminal billing/auth/request failures, no-backup configuration, partial
 streams, actual-model history/SSE and deduplicated Azerbaijani toasts.
 
-If absent, the owner can add `AI_BACKUP_MODEL=gemini-3.1-flash-lite` to Vercel
-Production and apply it to a new deployment. The stable ID is documented at
-https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite . No environment
-variables or deployments were changed by this work.
+Model IDs come from env; this change preserves them and makes no hosting env changes.
+See [Executive Analytics V1](analytics-v1.md) for answer structure, citation previews,
+ratings, original-filter regeneration, history access and the 115/105/120-second
+client/server/function budgets. External-AI classification env gates are not
+implemented in the current runtime; owner approval covers the current test data.

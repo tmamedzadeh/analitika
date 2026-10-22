@@ -52,7 +52,7 @@ try {
       maxAttempts: 2,
       timeoutMs: 60_000,
     });
-    validation = validateCitations(result.text, [source], prompt.lowReliabilityWarning);
+    validation = validateCitations(result.text, [source]);
     const publishable = canPublishAnalyticsAnswer(result.text, result.finishReason, validation);
     attempts.push({
       attempt: attempt + 1,
