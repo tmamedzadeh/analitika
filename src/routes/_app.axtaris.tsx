@@ -434,9 +434,14 @@ function Analytics() {
       <div className="mt-6 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
           <section className="panel panel-glow h-fit px-4 py-5 sm:p-7" aria-busy={busy}>
-            <div className="mx-auto max-w-[920px]">
+            <div className="mx-auto">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="label-mono text-primary!">{az.analytics.synthesis}</span>
+              {answerContext && (
+                <h2 className="text-xl leading-snug font-semibold tracking-tight break-words sm:text-2xl">
+                  {answerContext.query}
+                </h2>
+              )}
+
                 <span className="label-mono">
                   {busy ? (
                     <span className="inline-flex items-center gap-1.5">
@@ -454,11 +459,6 @@ function Analytics() {
                   )}
                 </span>
               </div>
-              {answerContext && (
-                <h2 className="mt-4 text-xl leading-snug font-semibold tracking-tight break-words sm:text-2xl">
-                  {answerContext.query}
-                </h2>
-              )}
               {hasSearched && !busy && answer && (
                 <p className="mt-2 text-xs text-muted-foreground">{sourceCountLabel}</p>
               )}
