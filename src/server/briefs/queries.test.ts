@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 
 import { withCurrentUser, type SessionUser } from "@/server/auth";
 import { buildBriefListConditions, buildBriefSearchQuery, normalizeBriefSearch } from "./queries";
+import { rankLexicalMatches, tokenGroupQuery, buildSearchVariants } from "@/server/search/lexical";
 
 const user: SessionUser = {
   id: "brief-search-user",
@@ -26,9 +27,11 @@ function compile(filters: Filters) {
 
 describe("Xülasələr lexical search", () => {
   it("builds an AND tsquery from words without phrase ordering", () => {
-    expect(buildBriefSearchQuery("enerji təhlükəsizliyi")).toBe("'enerji' & 'təhlükəsizliyi'");
-    expect(buildBriefSearchQuery("təhlükəsizliyi enerji")).toBe("'təhlükəsizliyi' & 'enerji'");
-    expect(buildBriefSearchQuery("enerji")).toBe("'enerji'");
+    expect(buildBriefSearchQuery("enerji təhlükəsizliyi").split(" & ")).toHaveLength(2);
+    expect(
+      rankLexicalMatches("təhlükəsizliyi enerji", { title: "Enerji təhlükəsizliyi", body: "" }),
+    ).toBeGreaterThan(0);
+    expect(rankLexicalMatches("enerji təhlükəsizliyi", { title: "Enerji", body: "" })).toBe(0);
   });
 
   it("normalizes Unicode, case, and whitespace consistently using Azerbaijani casing", () => {
@@ -56,7 +59,8 @@ describe("Xülasələr lexical search", () => {
     const params = conditions.flatMap((query) => query.params);
     expect(sql).toContain("to_tsvector('simple'::regconfig, lower(translate(normalize(");
     expect(sql).toContain("to_tsquery('simple'::regconfig");
-    expect(params).toContain("'enerji' & 'təhlükəsizliyi'");
+    for (const group of buildSearchVariants("enerji təhlükəsizliyi"))
+      expect(params).toContain(tokenGroupQuery(group));
     expect(sql).toContain('"daily_briefs"."brief_date" >=');
     expect(sql).toContain('"daily_briefs"."brief_date" <=');
     expect(sql).toContain('"daily_briefs"."brief_date" <');
@@ -66,7 +70,8 @@ describe("Xülasələr lexical search", () => {
 
   it("retains newest-first date ordering and page-size limit in the list query", () => {
     const source = readFileSync(resolve(process.cwd(), "src/server/briefs/queries.ts"), "utf8");
-    expect(source).toMatch(/\.orderBy\(desc\(dailyBriefs\.briefDate\), desc\(dailyBriefs\.id\)\)/u);
+    expect(source).toContain("desc(sql`search_score`)");
+    expect(source).toContain("desc(dailyBriefs.briefDate), desc(dailyBriefs.id)");
     expect(source).toMatch(/\.limit\(BRIEF_PAGE_SIZE \+ 1\)/u);
   });
 });

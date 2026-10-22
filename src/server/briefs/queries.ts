@@ -1,4 +1,9 @@
-import { and, asc, desc, eq, gte, inArray, lte, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
+import { lexicalSearchSql, afterSearchScore } from "@/server/search/sql";
+export {
+  normalizeSearchText as normalizeBriefSearch,
+  buildLexicalQuery as buildBriefSearchQuery,
+} from "@/server/search/lexical";
 
 import {
   briefExcerpt,
@@ -21,7 +26,6 @@ export type BriefListFilters = {
   period: "all" | "week" | "month";
   month: string;
   cursor: BriefCursor | null;
-  llm?: boolean;
 };
 
 export function briefWindow(filters: Pick<BriefListFilters, "period" | "month">, now = new Date()) {
@@ -38,23 +42,6 @@ export function briefWindow(filters: Pick<BriefListFilters, "period" | "month">,
   return null;
 }
 
-export function normalizeBriefSearch(value: string): string {
-  return value
-    .normalize("NFC")
-    .replace(/\s+/gu, " ")
-    .trim()
-    .toLocaleLowerCase("az-Latn-AZ")
-    .normalize("NFC");
-}
-
-export function buildBriefSearchQuery(value: string): string {
-  return normalizeBriefSearch(value)
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean)
-    .map((term) => `'${term.replaceAll("'", "''")}'`)
-    .join(" & ");
-}
-
 export function buildBriefListConditions(filters: BriefListFilters) {
   const conditions = [accessFilter()];
   const window = briefWindow(filters);
@@ -62,29 +49,34 @@ export function buildBriefListConditions(filters: BriefListFilters) {
     conditions.push(gte(dailyBriefs.briefDate, window.from));
     conditions.push(lte(dailyBriefs.briefDate, window.through));
   }
-  if (filters.cursor) conditions.push(afterBriefPosition(filters.cursor));
-  const query = buildBriefSearchQuery(filters.query);
-  if (query) {
+  const search = lexicalSearchSql(filters.query, {
+    title: dailyBriefs.title,
+    body: dailyBriefs.body,
+  });
+  if (search.active) conditions.push(search.match);
+  if (filters.cursor)
     conditions.push(
-      sql`to_tsvector('simple'::regconfig, lower(translate(normalize(${dailyBriefs.title} || ' || ' || ${dailyBriefs.body}, NFC), 'ƏİIŞÇĞÖÜ', 'əiışçğöü'))) @@ to_tsquery('simple'::regconfig, ${query})`,
+      search.active
+        ? afterSearchScore(
+            search.score,
+            filters.cursor.score ?? 0,
+            afterBriefPosition(filters.cursor),
+          )
+        : afterBriefPosition(filters.cursor),
     );
-  }
   return conditions;
 }
 
-export async function listBriefsPage(filters: BriefListFilters, intelligent?: { match: SQL; score: SQL<number> }): Promise<{
+export async function listBriefsPage(filters: BriefListFilters): Promise<{
   items: BriefListItem[];
   nextCursor: BriefCursor | null;
 }> {
   const db = getDb();
-  const conditions = intelligent ? buildBriefListConditions({ ...filters, query: "", cursor: null }) : buildBriefListConditions(filters);
-  if (intelligent) {
-    conditions.push(intelligent.match);
-    if (filters.cursor) {
-      const score = filters.cursor.score ?? 0;
-      conditions.push(sql`(${intelligent.score} < ${score} or (${intelligent.score} = ${score} and ${afterBriefPosition(filters.cursor)}))`);
-    }
-  }
+  const conditions = buildBriefListConditions(filters);
+  const search = lexicalSearchSql(filters.query, {
+    title: dailyBriefs.title,
+    body: dailyBriefs.body,
+  });
   const rows = await db
     .select({
       id: dailyBriefs.id,
@@ -95,11 +87,15 @@ export async function listBriefsPage(filters: BriefListFilters, intelligent?: { 
       indexStatus: dailyBriefs.indexStatus,
       indexProgress: dailyBriefs.indexProgress,
       publishedAt: dailyBriefs.publishedAt,
-      score: intelligent?.score ?? sql<number>`0`,
+      score: search.score.as("search_score"),
     })
     .from(dailyBriefs)
     .where(and(...conditions))
-    .orderBy(...(intelligent ? [desc(intelligent.score)] : []), desc(dailyBriefs.briefDate), desc(dailyBriefs.id))
+    .orderBy(
+      ...(search.active ? [desc(sql`search_score`)] : []),
+      desc(dailyBriefs.briefDate),
+      desc(dailyBriefs.id),
+    )
     .limit(BRIEF_PAGE_SIZE + 1);
 
   const hasMore = rows.length > BRIEF_PAGE_SIZE;
@@ -142,7 +138,13 @@ export async function listBriefsPage(filters: BriefListFilters, intelligent?: { 
     nextCursor: hasMore
       ? (() => {
           const last = pageRows.at(-1);
-          return last ? { date: last.date, id: last.id, ...(intelligent ? { score: Number(last.score) } : {}) } : null;
+          return last
+            ? {
+                date: last.date,
+                id: last.id,
+                ...(search.active ? { score: Number(last.score) } : {}),
+              }
+            : null;
         })()
       : null,
   };

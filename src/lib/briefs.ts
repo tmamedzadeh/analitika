@@ -31,7 +31,7 @@ export type BriefListItem = Omit<Brief, "body" | "photos" | "publishedAt" | "hig
   photoCount: number;
   coverUrl?: string | null;
 };
-export type BriefCursor = { date: string; id: string; score?: number | undefined; searchMode?: "lexical" | undefined };
+export type BriefCursor = { date: string; id: string; score?: number | undefined };
 
 export const briefIdSchema = z.string().uuid();
 

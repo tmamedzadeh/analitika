@@ -5,9 +5,6 @@ export const az = {
     quota: "AI modelinin limiti dolub. Sorğunuz {model} ilə emal olunur.",
     unavailable: "AI modeli müvəqqəti əlçatan deyil. Sorğunuz {model} ilə emal olunur.",
     generatedBy: "{model} tərəfindən yaradılıb",
-    llm: "LLM",
-    semanticSearch: "Mənaca axtarış",
-    lexicalFallback: "Mənaca axtarış müvəqqəti əlçatan deyil. Adi axtarış nəticələri göstərilir.",
   },
   documentLibrary: {
     description: "Əlçatan sənədləri axtarın və nəzərdən keçirin.",

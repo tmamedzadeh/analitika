@@ -18,6 +18,8 @@ export function beforeBriefPosition(position: BriefCursor) {
 }
 
 export function compareBriefPositions(first: BriefCursor, second: BriefCursor): number {
+  if (first.score !== undefined && second.score !== undefined && first.score !== second.score)
+    return first.score > second.score ? -1 : 1;
   if (first.date !== second.date) return first.date > second.date ? -1 : 1;
   if (first.id === second.id) return 0;
   return first.id > second.id ? -1 : 1;
@@ -38,7 +40,14 @@ export function paginateBriefPositions<T extends BriefCursor>(
   const last = page.at(-1);
   return {
     items: page,
-    nextCursor: remaining.length > pageSize && last ? { date: last.date, id: last.id } : null,
+    nextCursor:
+      remaining.length > pageSize && last
+        ? {
+            date: last.date,
+            id: last.id,
+            ...(last.score === undefined ? {} : { score: last.score }),
+          }
+        : null,
   };
 }
 

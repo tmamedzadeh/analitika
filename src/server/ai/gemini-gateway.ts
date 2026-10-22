@@ -1,6 +1,7 @@
 import { logAiDiagnostic, type AiErrorCategory } from "./diagnostics";
 
-export type GeminiQuotaKey = "AI_CHAT_MODEL" | "AI_LIGHT_MODEL" | "AI_BACKUP_MODEL" | "GEMINI_EMBED_MODEL";
+export type GeminiQuotaKey =
+  "AI_CHAT_MODEL" | "AI_LIGHT_MODEL" | "AI_BACKUP_MODEL" | "GEMINI_EMBED_MODEL";
 
 // Best effort per warm serverless instance; bounded in size and duration.
 const quotaCooldowns = new Map<string, number>();
@@ -254,7 +255,12 @@ export function isGeminiQuotaError(error: unknown): boolean {
 export function isTerminalQuotaError(error: unknown): boolean {
   if (error instanceof GeminiQuotaExceededError) return error.terminal;
   const details = `${apiErrorBody(error) ?? ""} ${apiErrorMessage(error)}`;
-  return getStatusCode(error) === 402 || /AllocationQuota\.FreeTierOnly|free.?tier.?only|billing.{0,60}(?:disabled|inactive|not.enabled)|(?:credit|balance).{0,60}(?:exhausted|depleted|insufficient)|insufficient.{0,60}(?:credits?|balance)/i.test(details);
+  return (
+    getStatusCode(error) === 402 ||
+    /AllocationQuota\.FreeTierOnly|free.?tier.?only|billing.{0,60}(?:disabled|inactive|not.enabled)|(?:credit|balance).{0,60}(?:exhausted|depleted|insufficient)|insufficient.{0,60}(?:credits?|balance)/i.test(
+      details,
+    )
+  );
 }
 
 export function canFallbackGemini(error: unknown): boolean {
@@ -310,12 +316,15 @@ export async function withGeminiRequest<T>(
   model?: string,
   deadlineAt?: number,
 ): Promise<T> {
-  if (model && isGeminiModelCoolingDown(model)) throw new GeminiQuotaExceededError(quotaKey, "per-day");
+  if (model && isGeminiModelCoolingDown(model))
+    throw new GeminiQuotaExceededError(quotaKey, "per-day");
   let limitKind: GeminiLimitKind = "unknown";
   let statusCode = 429;
   let quotaIds: string[] = [];
   let quotaMetrics: string[] = [];
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    if (deadlineAt !== undefined && Date.now() >= deadlineAt)
+      throw new DOMException("AI deadline exceeded.", "TimeoutError");
     const release = await acquireRequestSlot(signal);
     let failure: unknown;
     try {
@@ -380,7 +389,11 @@ export async function withGeminiRequest<T>(
       throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
     }
     const delay = retryDelay(failure, attempt);
-    if (attempt >= maxAttempts || delay > MAX_RETRY_DELAY_MS || (deadlineAt !== undefined && Date.now() + delay + 100 >= deadlineAt)) {
+    if (
+      attempt >= maxAttempts ||
+      delay > MAX_RETRY_DELAY_MS ||
+      (deadlineAt !== undefined && Date.now() + delay + 100 >= deadlineAt)
+    ) {
       throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
     }
     logAiDiagnostic({
@@ -404,12 +417,15 @@ export async function* withGeminiStream<T>(
   model?: string,
   deadlineAt?: number,
 ): AsyncGenerator<T> {
-  if (model && isGeminiModelCoolingDown(model)) throw new GeminiQuotaExceededError(quotaKey, "per-day");
+  if (model && isGeminiModelCoolingDown(model))
+    throw new GeminiQuotaExceededError(quotaKey, "per-day");
   let limitKind: GeminiLimitKind = "unknown";
   let statusCode = 429;
   let quotaIds: string[] = [];
   let quotaMetrics: string[] = [];
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    if (deadlineAt !== undefined && Date.now() >= deadlineAt)
+      throw new DOMException("AI deadline exceeded.", "TimeoutError");
     const release = await acquireRequestSlot(signal);
     let emitted = false;
     let failure: unknown;
@@ -463,7 +479,12 @@ export async function* withGeminiStream<T>(
       throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
     }
     const delay = retryDelay(failure, attempt);
-    if (emitted || attempt >= maxAttempts || delay > MAX_RETRY_DELAY_MS || (deadlineAt !== undefined && Date.now() + delay + 100 >= deadlineAt)) {
+    if (
+      emitted ||
+      attempt >= maxAttempts ||
+      delay > MAX_RETRY_DELAY_MS ||
+      (deadlineAt !== undefined && Date.now() + delay + 100 >= deadlineAt)
+    ) {
       throw new GeminiQuotaExceededError(quotaKey, limitKind, statusCode, quotaIds, quotaMetrics);
     }
     await pause(delay, signal);

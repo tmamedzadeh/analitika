@@ -1,3 +1,5 @@
+import { buildLexicalQuery, matchesNamedEntities } from "@/server/search/lexical";
+import { lexicalSearchSql } from "@/server/search/sql";
 import {
   and,
   asc,
@@ -36,38 +38,8 @@ const CANDIDATE_LIMIT = 50;
 const RESULT_LIMIT = 10;
 const RERANK_CANDIDATE_LIMIT = 30;
 const MAX_VECTOR_DISTANCE = 0.4;
-const AZERBAIJANI_STOP_WORDS = new Set([
-  "amma",
-  "barədə",
-  "belə",
-  "bir",
-  "bu",
-  "da",
-  "də",
-  "ilə",
-  "kimi",
-  "nə",
-  "olan",
-  "olaraq",
-  "üçün",
-  "və",
-  "ya",
-  "yaxud",
-  "tərəfindən",
-]);
-
 export function buildFullTextQuery(query: string): string {
-  const tokens = [
-    ...new Set(
-      query
-        .normalize("NFKC")
-        .toLocaleLowerCase("az")
-        .match(/[\p{L}\p{N}]+/gu) ?? [],
-    ),
-  ]
-    .filter((token) => token.length >= 3 && !AZERBAIJANI_STOP_WORDS.has(token))
-    .slice(0, 12);
-  return tokens.map((token) => (token.length > 5 ? `${token}:*` : token)).join(" | ");
+  return buildLexicalQuery(query, "any", true);
 }
 
 export type SearchDocumentChunksOptions = {
@@ -169,18 +141,19 @@ export async function searchDocumentChunks(
         sql.raw("::vector"),
       ]) as SQL<number>)
     : undefined;
-  const fullTextQuery = buildFullTextQuery(query);
-  const tsQuery = sql`to_tsquery('simple'::regconfig, ${fullTextQuery})`;
-  const textScore = sql`ts_rank_cd(${chunks.tsv}, ${tsQuery})` as SQL<number>;
-  const similarity = sql.join([
-    sql.raw("similarity("),
-    chunks.text,
-    sql.raw(", "),
-    sql.param(query),
-    sql.raw(")"),
-  ]) as SQL<number>;
-  const textMatch = fullTextQuery ? sql`${chunks.tsv} @@ ${tsQuery}` : sql`false`;
-  const trigramMatch = sql.join([chunks.text, sql.raw(" % "), sql.param(query)]);
+  const lexical = lexicalSearchSql(
+    query,
+    {
+      title: sql`coalesce(${documents.title}, ${dailyBriefs.title})`,
+      body: chunks.text,
+      vector: chunks.tsv,
+      rawVector: true,
+    },
+    "any",
+  );
+  const textScore = lexical.score;
+  const textMatch = lexical.match;
+  const trigramMatch = lexical.typoMatch;
   const sourceCondition = searchSourceConditions(filters);
   const modelCondition = eq(chunks.embeddingModel, embeddingModel);
 
@@ -209,8 +182,9 @@ export async function searchDocumentChunks(
     if (kind === "vector") {
       return vectorDistance ? selected.orderBy(asc(vectorDistance)).limit(CANDIDATE_LIMIT) : null;
     }
-    if (kind === "text") return selected.orderBy(desc(textScore)).limit(CANDIDATE_LIMIT);
-    return selected.orderBy(desc(similarity)).limit(CANDIDATE_LIMIT);
+    if (kind === "text")
+      return selected.orderBy(desc(textScore), asc(chunks.id)).limit(CANDIDATE_LIMIT);
+    return selected.orderBy(desc(textScore), asc(chunks.id)).limit(CANDIDATE_LIMIT);
   };
 
   const branchSpecs = [
@@ -240,7 +214,9 @@ export async function searchDocumentChunks(
     console.warn("[analytics-search] branch failures", JSON.stringify(failedBranches));
   }
 
-  const candidates = reciprocalRankFusion(successfulLists, 60).slice(0, RERANK_CANDIDATE_LIMIT);
+  const candidates = reciprocalRankFusion(successfulLists, 60)
+    .filter(({ item }) => matchesNamedEntities(query, { title: item.title, body: item.text }))
+    .slice(0, RERANK_CANDIDATE_LIMIT);
   if (candidates.length === 0) return [];
 
   const rerankProvider =

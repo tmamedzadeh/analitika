@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { BriefCard } from "@/components/BriefCard";
 import { Shell } from "@/components/Shell";
@@ -11,8 +11,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { listBriefs } from "@/lib/briefs.functions";
 import { getBakuDate, briefHead, type BriefCursor } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
-import { createFallbackNotifier } from "@/lib/ai-notifications";
-import { Switch } from "@/components/ui/switch";
 
 const shortMonthsAz = [
   "Yan",
@@ -39,7 +37,6 @@ function DailyBriefs() {
   const [debouncedQuery, setDebouncedQuery] = useState(query);
   const [period, setPeriod] = useState<"all" | "week" | "month">("all");
   const [month, setMonth] = useState("");
-  const [llm, setLlm] = useState(false);
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const today = getBakuDate();
   const todayYear = Number(today.slice(0, 4));
@@ -51,23 +48,20 @@ function DailyBriefs() {
   const selectedMonthIndex = month ? Number(month.slice(5, 7)) - 1 : -1;
   const selectedMonthYear = month ? Number(month.slice(0, 4)) : undefined;
   const briefsQuery = useInfiniteQuery({
-    queryKey: ["daily-briefs", debouncedQuery, period, month, llm],
+    queryKey: ["daily-briefs", debouncedQuery, period, month],
     staleTime: 60_000,
     retry: false,
     initialPageParam: null as BriefCursor | null,
     queryFn: ({ pageParam, signal }) =>
-      listBriefs({ data: { query: debouncedQuery, period, month, llm, cursor: pageParam }, signal }),
+      listBriefs({ data: { query: debouncedQuery, period, month, cursor: pageParam }, signal }),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
-  const notifyFallback = useMemo(() => createFallbackNotifier(), [debouncedQuery, period, month, llm]);
-  useEffect(() => {
-    briefsQuery.data?.pages.forEach((page) => page.fallbacks?.forEach(notifyFallback));
-  }, [briefsQuery.data, notifyFallback]);
   const briefs = briefsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const todayBrief = briefs.find((brief) => brief.date === today);
-  const orderedBriefs = todayBrief && !(llm && debouncedQuery)
-    ? [todayBrief, ...briefs.filter((brief) => brief.id !== todayBrief.id)]
-    : briefs;
+  const orderedBriefs =
+    todayBrief && !debouncedQuery.trim()
+      ? [todayBrief, ...briefs.filter((brief) => brief.id !== todayBrief.id)]
+      : briefs;
 
   return (
     <Shell
@@ -96,10 +90,6 @@ function DailyBriefs() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
-        </label>
-        <label className="flex shrink-0 items-center gap-2 text-sm font-medium" title={az.ai.semanticSearch}>
-          <Switch checked={llm} onCheckedChange={(checked) => { setDebouncedQuery(query); setLlm(checked); }} aria-label={az.ai.semanticSearch} />
-          {az.ai.llm}
         </label>
         <div className="flex flex-wrap gap-2" role="group" aria-label={az.briefs.periodFilters}>
           {(
@@ -198,8 +188,9 @@ function DailyBriefs() {
         </div>
       </div>
 
-      {briefsQuery.isFetching && !briefsQuery.isFetchingNextPage && <ZirveLoader variant="compact" label={az.briefs.loading} />}
-      {briefsQuery.data?.pages.some((page) => page.lexicalFallback) && <p role="status" className="mb-4 text-sm text-muted-foreground">{az.ai.lexicalFallback}</p>}
+      {briefsQuery.isFetching && !briefsQuery.isFetchingNextPage && (
+        <ZirveLoader variant="compact" label={az.briefs.loading} />
+      )}
       {briefsQuery.isError && (
         <p role="alert" className="py-8 text-center text-destructive">
           {az.briefs.listFailed}

@@ -94,6 +94,25 @@ function request(signal?: AbortSignal) {
 }
 
 describe("analytics stream access and cancellation", () => {
+  it("sends backend fallback events and persists the actual completing model", async () => {
+    mocks.generate.mockImplementation(async (input) => {
+      input.onFallback({
+        fromModel: "gemini-3.8-flash",
+        toModel: "gemini-3.1-flash-lite",
+        reason: "quota",
+        backup: true,
+      });
+      return { text: "answer [1]", finishReason: "stop", model: "gemini-3.1-flash-lite" };
+    });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = await response.text();
+    expect(output).toContain('"type":"model-fallback"');
+    expect(output).toContain('"model":"gemini-3.1-flash-lite"');
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ model: "gemini-3.1-flash-lite", status: "done" }),
+    );
+  });
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();

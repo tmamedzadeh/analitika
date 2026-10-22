@@ -7,7 +7,7 @@ import { routeTree } from "@/routeTree.gen";
 import {
   getDocumentDetails,
   getDocumentFormContext,
-  listRecentDocuments,
+  listDocuments,
 } from "@/lib/documents.functions";
 import { az } from "@/lib/i18n/az";
 import { directionLabel } from "@/lib/directions";
@@ -18,7 +18,7 @@ vi.mock("@/lib/documents.functions", async (importOriginal) => {
     ...actual,
     getDocumentFormContext: vi.fn(),
     getDocumentDetails: vi.fn(),
-    listRecentDocuments: vi.fn(),
+    listDocuments: vi.fn(),
   };
 });
 
@@ -59,8 +59,11 @@ const recentDocument = {
   docDate: "2026-10-18",
   direction: null,
   createdAt: "2026-10-18T10:00:00.000Z",
-  chunkCount: 1,
-} as Awaited<ReturnType<typeof listRecentDocuments>>[number];
+  preview: detail.body,
+  classification: "open",
+  hasAttachments: false,
+  canManage: false,
+} as Awaited<ReturnType<typeof listDocuments>>["items"][number];
 
 async function makeRouter(path: string) {
   const queryClient = new QueryClient({
@@ -81,17 +84,18 @@ describe("document detail route", () => {
     vi.mocked(getDocumentFormContext).mockResolvedValue({
       classifications: ["open", "secret", "top_secret", "special"],
     });
-    vi.mocked(listRecentDocuments).mockResolvedValue([recentDocument]);
+    vi.mocked(listDocuments).mockResolvedValue({ items: [recentDocument], nextCursor: null });
     vi.mocked(getDocumentDetails).mockResolvedValue(
       detail as Awaited<ReturnType<typeof getDocumentDetails>>,
     );
   });
 
-  it("opens the exact recent document and loads its UUID from the route", async () => {
+  it("opens the exact catalog document and loads its UUID from the route", async () => {
     const router = await makeRouter("/senedler");
     render(<RouterProvider router={router} />);
 
     fireEvent.click(await screen.findByRole("link", { name: documentTitle }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/senedler/${documentId}`));
 
     expect(await screen.findByRole("heading", { name: documentTitle })).toBeInTheDocument();
     expect(

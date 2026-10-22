@@ -17,6 +17,23 @@ const briefs = [
 ];
 
 describe("brief pagination with duplicate dates", () => {
+  it("pages relevance ties across dates and IDs without gaps or duplicates", () => {
+    const ranked = briefs.map((brief, index) => ({ ...brief, score: index < 2 ? 100 : 200 }));
+    const first = paginateBriefPositions(ranked, null, 2);
+    const second = paginateBriefPositions(ranked, first.nextCursor, 2);
+    const third = paginateBriefPositions(ranked, second.nextCursor, 2);
+    const seen = [...first.items, ...second.items, ...third.items];
+    expect(seen.map(({ id }) => id)).toEqual([
+      briefs[2]!.id,
+      briefs[3]!.id,
+      briefs[4]!.id,
+      briefs[0]!.id,
+      briefs[1]!.id,
+    ]);
+    expect(new Set(seen.map(({ id }) => id)).size).toBe(ranked.length);
+    expect(first.nextCursor?.score).toBe(200);
+    expect(third.nextCursor).toBeNull();
+  });
   it("uses both the date and ID in the list and neighbor keyset predicates", () => {
     const position = {
       date: "2026-10-18",

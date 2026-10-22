@@ -4,6 +4,22 @@ import { AnalyticsAnswer } from "./AnalyticsAnswer";
 import { az } from "@/lib/i18n/az";
 
 describe("analytics citation links", () => {
+  it("attributes the actual model and omits attribution for non-generated answers", () => {
+    const { rerender } = render(
+      <AnalyticsAnswer answer="Nəticə [1]" sources={[{ n: 1 }]} model="gemini-3.1-flash-lite" />,
+    );
+    expect(screen.getByText("Gemini 3.1 Flash-Lite tərəfindən yaradılıb")).toBeInTheDocument();
+    rerender(
+      <AnalyticsAnswer
+        answer={az.analytics.noSources}
+        sources={[]}
+        model="gemini-3.1-flash-lite"
+      />,
+    );
+    expect(screen.queryByText(/tərəfindən yaradılıb/)).toBeNull();
+    rerender(<AnalyticsAnswer answer="" sources={[]} />);
+    expect(screen.queryByText(/tərəfindən yaradılıb/)).toBeNull();
+  });
   it("links numbered citations to source cards supplied by the server", () => {
     render(
       <AnalyticsAnswer
