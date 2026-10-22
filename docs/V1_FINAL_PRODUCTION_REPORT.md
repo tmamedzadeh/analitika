@@ -1,6 +1,6 @@
 # ZIRVƏ / ANALİTİKA V1 — итоговый production report
 
-Дата: **22 октября 2026, Asia/Baku**. **CODE READY: YES; GITHUB MAIN UPDATED: PENDING; PRODUCTION VERIFIED: NO / NO-GO.** Подтверждённых незакрытых обязательных code-level P0/P1 после заключительного review не найдено. Это scoped readiness, не гарантия отсутствия неизвестных defects.
+Дата: **22 октября 2026, Asia/Baku**. **CODE READY: YES; GITHUB MAIN UPDATED: YES; PRODUCTION VERIFIED: NO / NO-GO.** Подтверждённых незакрытых обязательных code-level P0/P1 после заключительного review не найдено. Это scoped readiness, не гарантия отсутствия неизвестных defects.
 
 Последнее [задание владельца](release/FINAL_CODE_MERGE_REQUEST.md) разрешает final commit/push, Ready и merge PR #1 после code gates. Владелец самостоятельно проверит Vercel/config/logs/runtime/Inngest/rollback. Это заменяет прежнее требование держать merge до внешней production acceptance. Merge может запустить Vercel auto-deployment; возможность отключить его через management не проверялась. Реальной угрозы данным/безопасности в reviewed diff не выявлено; protections/failed checks не обходятся. Production GO не объявляется. [Checklist владельца](PRODUCTION_MANUAL_CHECKLIST.md).
 
@@ -8,7 +8,7 @@
 
 ZIRVƏ V1 — закрытая рабочая среда аналитика: учётные записи и clearance, база документов, ежедневные бюллетени Xülasələr, поиск по внутренним источникам и ответы Analitika с цитатами, история и администрирование. Текущий код прошёл локальные production checks, live проверки той же Supabase DB и private storage. Corpus сохранён; отдельной test/dev/evaluation DB нет. SQL 0000–0023 повторно не применялся и не редактировался.
 
-Главный оставшийся барьер находится в опубликованном окружении. Inngest всё ещё привязан к deployment от 20 октября с устаревшим набором функций. GitHub показывает blocked Vercel deployment у текущего main. Успешная локальная сборка и GET /login не устанавливают production revision, hosting env или cloud delivery. Поэтому завершение V1 Production не объявляется.
+Главный оставшийся барьер находится в опубликованном окружении. При последней runtime/cloud проверке Inngest был привязан к deployment от 20 октября с устаревшим набором функций. Старый main a45706e имел blocked deployment; после разрешённого merge GitHub подтвердил новый автоматический Vercel deployment (на момент receipt pending), что не является runtime acceptance. Успешная локальная сборка и GET /login не устанавливают production revision, hosting env или cloud delivery. Поэтому завершение V1 Production не объявляется.
 
 ## B. Реализованные функции V1
 
@@ -89,7 +89,7 @@ Uploads: до 10 MiB на image, JPG/PNG/WebP, user-bound staging keys, signed P
 
 ## H. GitHub delivery и external runtime evidence
 
-Заключительный review выполнен на HEAD `5ce04f38afc83d9ec6843d6e08b45743ecae6d35`. После fresh fetch main = `a45706e8c0979df1babd20851639e0c9d6a99982`, PR #1 open/draft/mergeable clean; Vercel status и Preview Comments success, branch protections/rules отсутствуют. Текущая работа добавляет документацию и evidence; source/config/lock/scripts совпадают с проверенным code commit `dd76d2e624ec43444cda974e5929a6124b4d6696`. Code digest `2e6a0fbeff0f76749adbdd02cffac0ef0ad2014902985e2d19337218fd263cf9`. Длительные проверки не повторялись без изменения кода: используются timestamped [FINAL_CHECKS.json](release/FINAL_CHECKS.json) и [CODE_MERGE_REVIEW.json](release/CODE_MERGE_REVIEW.json). Applied SQL не меняется. Merge receipt будет записан после операции; нельзя подменять receipt предположением об успехе.
+Заключительный review выполнен на HEAD `5ce04f38afc83d9ec6843d6e08b45743ecae6d35`. После fresh fetch main = `a45706e8c0979df1babd20851639e0c9d6a99982`, PR #1 open/draft/mergeable clean; Vercel status и Preview Comments success, branch protections/rules отсутствуют. Текущая работа добавляет документацию и evidence; source/config/lock/scripts совпадают с проверенным code commit `dd76d2e624ec43444cda974e5929a6124b4d6696`. Code digest `2e6a0fbeff0f76749adbdd02cffac0ef0ad2014902985e2d19337218fd263cf9`. Длительные проверки не повторялись без изменения кода: используются timestamped [FINAL_CHECKS.json](release/FINAL_CHECKS.json) и [CODE_MERGE_REVIEW.json](release/CODE_MERGE_REVIEW.json). Applied SQL не меняется. **PR #1 переведён Ready и merged 2026-10-22T04:48:50Z**, обычный merge commit `e8a642e9bb9e7ba0dd9b1b5b3c54211429c87524`. Local main fast-forwarded; remote main, PR merged state и 93 manifest blobs сверены. Vercel auto-deployment фактически запущен (на момент receipt pending). [MAIN_MERGE_DELIVERY.json](release/MAIN_MERGE_DELIVERY.json). Последующий docs receipt commit не меняет source; его HEAD сверяется отдельно.
 
 Vercel project `tm-d91f/analitika`, owner target https://analitika-one.vercel.app. На момент probes 22 октября production всё ещё отдавал восемь Inngest functions; preview — шесть. Signed GET200/unsigned401 не является доказательством production source SHA или cloud registration. GitHub preview deployment success также не доказывает работающую Gemini generation.
 
@@ -109,7 +109,7 @@ Inngest app `analitika`: последний наблюдавшийся sync 20 �
 | P1        | Scheduled document recovery и реальный cold restart                                       | NOT VERIFIED; local DB pool reconnect не является process/cloud restart                                                                                                                                      |
 | P0        | Authenticated production smoke всего V1 на release SHA                                    | NOT VERIFIED; public login/401 не заменяют проверку                                                                                                                                                          |
 | P1        | Подтверждённый рабочий rollback target и доступ к rollback                                | NOT VERIFIED; найден только historical successful deployment candidate                                                                                                                                       |
-| Code gate | Merge PR #1 после passing code gates                                                      | Явно разрешён последним заданием; production acceptance ведётся отдельно владельцем                                                                                                                          |
+| Code gate | Merge PR #1 после passing code gates                                                      | PASS: PR #1 merged, main verified; production acceptance отдельно владельцем                                                                                                                                 |
 
 **A — Code-level blockers:** подтверждённых незакрытых обязательных P0/P1 не найдено; final source review и evidence reuse описаны в CODE_MERGE_REVIEW.json. **B — External production verification:** перечисленные hosting/cloud/runtime/rollback gates сохраняют FAIL/NOT VERIFIED и переданы владельцу по последнему заданию. Они не перенесены в V2 и не объявлены PASS.
 
@@ -149,7 +149,7 @@ Qwen/backup model, глобальный distributed quota scheduler, расши�
 | Tests/types/lint/build/dependencies        | PASS                                   | Final checks evidence; warnings 6                                                   |
 | Migration/integrity/corpus                 | PASS                                   | 24 migrations, zero drift/integrity, before/after digests                           |
 | Current cloud functions/recovery           | FAIL / NOT VERIFIED                    | Stale registration; новые document/brief/restart runs не проверены                  |
-| GitHub PR/main                             | PENDING authorized merge               | PR #1; source completeness/CI/secrets проверяются до merge, receipt после операции  |
+| GitHub PR/main                             | PASS                                   | PR #1 Ready → merged, normal merge commit; MAIN_MERGE_DELIVERY.json                 |
 | Vercel preview                             | PASS deployment; FAIL generation smoke | GitHub success привязан к dd76d2e; login/clearance/storage PASS, actual answer FAIL |
 | Vercel production READY / live release SHA | NOT VERIFIED                           | Management gate пропущен; production endpoint всё ещё8functions                     |
 | Real production smoke                      | NOT VERIFIED                           | Public GET only                                                                     |
@@ -158,4 +158,4 @@ Qwen/backup model, глобальный distributed quota scheduler, расши�
 
 ## M. Final Decision
 
-**CODE READY: YES. GITHUB MAIN UPDATED: PENDING. PRODUCTION VERIFIED: NO / NO-GO.** Code gates пройдены на неизменённом source; merge разрешён отдельно от external production acceptance. Actual preview generation FAIL, hosting revision/env, cloud delivery/recovery и usable rollback остаются владельцу. Production GO допустим только после успешной реальной проверки по [manual checklist](PRODUCTION_MANUAL_CHECKLIST.md).
+**CODE READY: YES. GITHUB MAIN UPDATED: YES. PRODUCTION VERIFIED: NO / NO-GO.** Code gates пройдены на неизменённом source; merge разрешён отдельно от external production acceptance. Actual preview generation FAIL, hosting revision/env, cloud delivery/recovery и usable rollback остаются владельцу. Production GO допустим только после успешной реальной проверки по [manual checklist](PRODUCTION_MANUAL_CHECKLIST.md).

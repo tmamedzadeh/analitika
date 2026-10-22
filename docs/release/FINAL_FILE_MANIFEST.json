@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-22T04:46:23.388Z",
+  "checkedAt": "2026-10-22T04:51:24.504Z",
   "base": "a45706e8c0979df1babd20851639e0c9d6a99982",
   "initialStagedFiles": 55,
   "backup": ".release-backup.local/pre-final-staged.patch (ignored local backup)",
@@ -32,26 +32,26 @@
     },
     {
       "path": "docs/PRODUCTION_MANUAL_CHECKLIST.md",
-      "sha256": "cc9b2b7bb9aa91949d16d82353fa7361b9a667504d7f16f457d096e4703f3dce",
-      "gitBlob": "a7a3edc586e81687234dcb3bf4f4ab7be6f79467",
+      "sha256": "ff99ed5c8df4eb5c588a830d8d321e0bfa2f36e15dd42b23db7c5d1f70e57392",
+      "gitBlob": "47e67dfe9571975f3b9996a80ef9e6de8cd03412",
       "purpose": "Release documentation/evidence; code and production readiness separated"
     },
     {
       "path": "docs/V1_FINAL_PRODUCTION_REPORT.md",
-      "sha256": "c5a4b0e0917770464ca69e9f4dc4c5aca260fd6f704aad02a22e11487a4803c2",
-      "gitBlob": "a007ebe6180db238d704852be1f0310e17f9c9f5",
+      "sha256": "d5282c6e40998774b2e37093e72d5416a9e3d487083bb4b2c3a3298af51a700d",
+      "gitBlob": "a26f5b7e4b10d8daf5d3bab0d306837f1b2de0e4",
       "purpose": "Release documentation/evidence; code and production readiness separated"
     },
     {
       "path": "docs/V1_PROD_HARDENING_AUDIT.md",
-      "sha256": "0566c12461d54e82d3d3cf903e2664b5b0ff4b4f7ab98040be5d3f99af1bb582",
-      "gitBlob": "dcc57a33b5a86b6c975531c0eb3d029cec53f5d9",
+      "sha256": "d443dbe9ba58d61006fc993e744b19ae077862b784a89c02627ab174111e494d",
+      "gitBlob": "d6560e6aa0e89438173ab480ad391b70a2d2525e",
       "purpose": "Release documentation/evidence; code and production readiness separated"
     },
     {
       "path": "docs/WORK_SESSION_HANDOFF.md",
-      "sha256": "9d019bf1ed00cb0d5d98ed123b0658cec888ad3a9184fc6a11d0b7172a53685d",
-      "gitBlob": "05322a971fd8b55ac0b0486ab86059c07241c49c",
+      "sha256": "52b651949c2f94f289713141213fc069e51529b99d4a722e994183cd4573f91e",
+      "gitBlob": "c41dc82a69acd732fb38286e2759e6989e1df522",
       "purpose": "Release documentation/evidence; code and production readiness separated"
     },
     {
@@ -86,8 +86,8 @@
     },
     {
       "path": "docs/release/CODE_MERGE_SECRET_SCAN.json",
-      "sha256": "d46c11137ec68fa951d4be5d829524a0e50ab5303fe124918b5e28fb033adb86",
-      "gitBlob": "a612cb4a79718483751f709eacf1e6212e5c0c74",
+      "sha256": "5e49c7f973bafdd0d7fdd8c2c7a7a6eea5909817ffb4246a0bd12f9a7ada8963",
+      "gitBlob": "a7ac114f4cf3d45197f9d0b34aab4bca239589b5",
       "purpose": "Release documentation/evidence; code and production readiness separated"
     },
     {
@@ -128,7 +128,7 @@
     },
     {
       "path": "docs/release/FINAL_CODE_MERGE_REQUEST.md",
-      "sha256": "87d8012d4e83b1bf738d60d658e7d88df26302830a78ba4a4b89b0e1786dad34",
+      "sha256": "69884221d3900b5aa6c4602fd64790a36db585956a6454c268e0b465ab8e1f95",
       "gitBlob": "53d79be67952fa4ef656b7918c7f09459fc817e5",
       "purpose": "Release documentation/evidence; code and production readiness separated"
     },
@@ -233,6 +233,12 @@
       "purpose": "Release documentation/evidence; code and production readiness separated"
     },
     {
+      "path": "docs/release/MAIN_MERGE_DELIVERY.json",
+      "sha256": "ab52cfb99e01d850d36258a324d591bb27f52410ca4245e24e26d07fa96f2d3e",
+      "gitBlob": "8436a377c37802c8d03d1b931702f79a6657274a",
+      "purpose": "Release documentation/evidence; code and production readiness separated"
+    },
+    {
       "path": "docs/release/PREVIEW_MODEL_CONFIG.json",
       "sha256": "7c2f997965eaef892dc11f668808aeb976d52756800d30fc12fab2a7bac1f117",
       "gitBlob": "7284debbe377cac2e9866237377fd73db97c8b1f",
@@ -258,7 +264,7 @@
     },
     {
       "path": "docs/release/PRODUCTION_RELEASE_REQUEST.md",
-      "sha256": "47406652fccac1d380f4b9b80f2570fcab1bb4423d624fc96350372f85595bae",
+      "sha256": "f59ea8b4f25109b3a167b2775f7472b842e28d6f903b5d9ebacda272c4250409",
       "gitBlob": "0e3ac93881f47630e9bad377869397f1b917a32a",
       "purpose": "Release documentation/evidence; code and production readiness separated"
     },
@@ -552,13 +558,13 @@
     },
     {
       "path": "src/server/storage/s3.ts",
-      "sha256": "4c433e12e175239e718fdf78d314beca80c81561018f268361795e7186017855",
+      "sha256": "7da766b2d1acc972c522b7d871cfa84db67aeafd4c117c5d65d1906d3dda561c",
       "gitBlob": "7bdbeb349e9d05adc69ad6aaed20582065553541",
       "purpose": "Verified V1 implementation/configuration and regression coverage"
     },
     {
       "path": "src/server/storage/types.ts",
-      "sha256": "fc483bd2b29e677a87170598442b3c3bd031ae87c4430f5ca33c0310c4e411a2",
+      "sha256": "0b76449100f6458bf0eb62ac0d40ebeba0c84d576d084b48ec79a50af32d992a",
       "gitBlob": "7066214b93618591086271cc33c0ba4f41488f9c",
       "purpose": "Verified V1 implementation/configuration and regression coverage"
     },

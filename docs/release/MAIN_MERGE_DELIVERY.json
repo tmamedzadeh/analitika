@@ -1,0 +1,70 @@
+{
+  "capturedAt": "2026-10-22T04:48:51.634Z",
+  "pr": "https://github.com/tmamedzadeh/analitika/pull/1",
+  "headSha": "ae08e944eb5b088ecdfba2c2fd32e89d64d4fd87",
+  "previousMain": "a45706e8c0979df1babd20851639e0c9d6a99982",
+  "mergeSha": "e8a642e9bb9e7ba0dd9b1b5b3c54211429c87524",
+  "mergeMethod": "merge",
+  "merged": true,
+  "ci": {
+    "combined": "success",
+    "statuses": [
+      {
+        "context": "Vercel",
+        "state": "success"
+      }
+    ],
+    "checks": [
+      {
+        "name": "Vercel Preview Comments",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "protectionBypassed": false,
+  "productionVerified": false,
+  "postMerge": {
+    "capturedAt": "2026-10-22T04:49:11.403Z",
+    "pr": {
+      "url": "https://github.com/tmamedzadeh/analitika/pull/1",
+      "state": "closed",
+      "draft": false,
+      "merged": true,
+      "mergedAt": "2026-10-22T04:48:50Z",
+      "headSha": "ae08e944eb5b088ecdfba2c2fd32e89d64d4fd87",
+      "mergeSha": "e8a642e9bb9e7ba0dd9b1b5b3c54211429c87524"
+    },
+    "main": {
+      "sha": "e8a642e9bb9e7ba0dd9b1b5b3c54211429c87524",
+      "protected": false
+    },
+    "ci": {
+      "combined": "pending",
+      "statuses": [
+        {
+          "context": "Vercel",
+          "state": "pending",
+          "description": "Vercel is deploying your app",
+          "url": "https://vercel.com/tm-d91f/analitika/CqrLXvf7Lz4vxLnc12bzPgh5x9Vm"
+        }
+      ]
+    },
+    "productionVerified": false
+  },
+  "local": {
+    "branch": "main",
+    "verifiedMergeHead": "e8a642e9bb9e7ba0dd9b1b5b3c54211429c87524",
+    "worktreeAndIndexCleanBeforeReceipt": true,
+    "remoteMainMatched": true,
+    "manifestFilesMatched": 93,
+    "prHeadAncestorOfMain": true
+  },
+  "documentationFollowup": "This receipt and final status corrections are committed after the merge; their own commit SHA cannot be embedded in itself. Resolve final HEAD via git ls-remote origin refs/heads/main.",
+  "codeCommit": "dd76d2e624ec43444cda974e5929a6124b4d6696",
+  "codeDigest": "2e6a0fbeff0f76749adbdd02cffac0ef0ad2014902985e2d19337218fd263cf9",
+  "sourceUnchangedSinceTests": true,
+  "dbOperationsThisMergeSession": "None",
+  "ownerChecklist": "docs/PRODUCTION_MANUAL_CHECKLIST.md",
+  "postMergeVerificationAt": "2026-10-22T04:51:07.947Z"
+}

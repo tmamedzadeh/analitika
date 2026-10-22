@@ -1,6 +1,6 @@
 # ZIRVƏ V1 — production checklist владельца
 
-Обновлено 22 октября 2026. **PRODUCTION VERIFIED: NO; Production NO-GO.** Код проверен отдельно от hosting/runtime. Merge в main разрешён [последним заданием](release/FINAL_CODE_MERGE_REQUEST.md) и может автоматически запустить Vercel deployment. Выполнение этого списка и production acceptance — ответственность владельца. Сохраняйте evidence с UTC временем, deployment ID и SHA; секреты не прикладывайте.
+Обновлено 22 октября 2026. **PRODUCTION VERIFIED: NO; Production NO-GO.** Код проверен отдельно от hosting/runtime. PR #1 merged обычным merge commit `e8a642e9bb9e7ba0dd9b1b5b3c54211429c87524` по [последнему заданию](release/FINAL_CODE_MERGE_REQUEST.md). Vercel автоматически начал deployment; это не runtime acceptance. [Receipt](release/MAIN_MERGE_DELIVERY.json). Выполнение этого списка и production acceptance — ответственность владельца. Сохраняйте evidence с UTC временем, deployment ID и SHA; секреты не прикладывайте.
 
 1. **Откройте Vercel project `analitika`, team `tm-d91f`.** Проверьте Git repository `tmamedzadeh/analitika`, Production Branch `main`, связь с доменом `https://analitika-one.vercel.app` и настройки Git auto-deployment. Branch preview `analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app` не подтверждает production. Доступ к management в этой сессии не проверялся.
 

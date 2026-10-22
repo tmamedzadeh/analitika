@@ -1,10 +1,10 @@
 # Актуальная передача — final code merge, 22 октября 2026
 
-**CODE READY: YES; GITHUB MAIN UPDATED: PENDING; PRODUCTION VERIFIED: NO / NO-GO.** Последнее [задание владельца](release/FINAL_CODE_MERGE_REQUEST.md) разрешает Ready/merge PR #1 после passing code gates. Владелец самостоятельно выполняет Vercel/env/logs/runtime, cloud Inngest и rollback проверки; больше не запрашивать management access. Прежние запреты merge в архиве ниже заменены этим заданием. Merge может запустить Vercel auto-deployment; production GO не присваивать.
+**CODE READY: YES; GITHUB MAIN UPDATED: YES; PRODUCTION VERIFIED: NO / NO-GO.** Последнее [задание владельца](release/FINAL_CODE_MERGE_REQUEST.md) разрешает Ready/merge PR #1 после passing code gates. Владелец самостоятельно выполняет Vercel/env/logs/runtime, cloud Inngest и rollback проверки; больше не запрашивать management access. Прежние запреты merge в архиве ниже заменены этим заданием. Merge может запустить Vercel auto-deployment; production GO не присваивать.
 
 Final review не изменил source/config/scripts/lock относительно проверенного dd76d2e; 45 files/197 tests, обе tsc, lint/build/audit/frozen, 19 integration, browser9/HTTP9, storage/lexical/retrieval/index lifecycle и DB evidence переиспользованы с исходными timestamps. Подтверждённых незакрытых обязательных code-level P0/P1 не найдено. Actual preview generation FAIL (sources→error без final) остаётся открытым, причина ещё не установлена; он может потребовать code fix после external diagnostics.
 
-Точный operational handoff: [PRODUCTION_MANUAL_CHECKLIST.md](PRODUCTION_MANUAL_CHECKLIST.md). Актуальные acceptance/readiness: [audit](V1_PROD_HARDENING_AUDIT.md), [final report](V1_FINAL_PRODUCTION_REPORT.md). DB/corpus/applied SQL не менялись в final merge session. GitHub outcome следует записать после операции, не предполагать успешный merge заранее.
+Точный operational handoff: [PRODUCTION_MANUAL_CHECKLIST.md](PRODUCTION_MANUAL_CHECKLIST.md). Актуальные acceptance/readiness: [audit](V1_PROD_HARDENING_AUDIT.md), [final report](V1_FINAL_PRODUCTION_REPORT.md). DB/corpus/applied SQL не менялись в final merge session. GitHub outcome: [PR #1](https://github.com/tmamedzadeh/analitika/pull/1) Ready → merged, normal merge commit `e8a642e9bb9e7ba0dd9b1b5b3c54211429c87524`; local/remote main и source completeness verified. Vercel auto-deployment запущен (receipt pending), не runtime PASS. [MAIN_MERGE_DELIVERY.json](release/MAIN_MERGE_DELIVERY.json); docs receipt следует отдельным normal commit в main.
 
 ---
 
