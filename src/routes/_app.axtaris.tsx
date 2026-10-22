@@ -113,6 +113,9 @@ function Analytics() {
   const visibleSources = sourceOnly
     ? sources
     : sources.filter((source) => usedSourceNumbers.has(source.n));
+  const visibleSourceCount = selectedHistory
+    ? selectedHistory.sources.filter((source) => source.available).length
+    : visibleSources.length;
 
   const historyQuery = useQuery({
     queryKey: ["analytics", "history"],
@@ -381,14 +384,14 @@ function Analytics() {
                   </span>
                 ) : elapsedMs === null ? (
                   hasSearched ? (
-                    az.analytics.sourcesCount.replace("{count}", String(visibleSources.length))
+                    az.analytics.sourcesCount.replace("{count}", String(visibleSourceCount))
                   ) : (
                     az.analytics.waiting
                   )
                 ) : (
                   az.analytics.timing
                     .replace("{seconds}", (elapsedMs / 1000).toFixed(1))
-                    .replace("{count}", String(visibleSources.length))
+                    .replace("{count}", String(visibleSourceCount))
                 )}
               </span>
             </div>
@@ -420,7 +423,7 @@ function Analytics() {
                 />
               ) : busy ? (
                 <p className="text-muted-foreground">{az.analytics.generating}</p>
-              ) : sourceOnly && sources.length > 0 ? (
+              ) : (sourceOnly || selectedHistory) && visibleSourceCount > 0 ? (
                 <p className="text-muted-foreground">{az.analytics.fragmentsOnly}</p>
               ) : hasSearched ? (
                 <p className="text-muted-foreground">{az.analytics.noSources}</p>
@@ -468,7 +471,7 @@ function Analytics() {
               <p className="label-mono">{az.analytics.sources}</p>
               {hasSearched && (!busy || sourceOnly) ? (
                 <span className="label-mono">
-                  {az.analytics.sourcesCount.replace("{count}", String(visibleSources.length))}
+                  {az.analytics.sourcesCount.replace("{count}", String(visibleSourceCount))}
                 </span>
               ) : null}
             </div>
@@ -488,6 +491,20 @@ function Analytics() {
                             : az.analytics.sourceNotUsedInAnswer
                           : az.analytics.sourceUnavailable}
                       </p>
+                      {source.available && (source.documentId || source.briefId) && (
+                        <a
+                          className="pill mt-3 inline-flex"
+                          href={
+                            source.documentId
+                              ? `/senedler/${encodeURIComponent(source.documentId)}`
+                              : `/brifler/${encodeURIComponent(source.briefId!)}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {source.documentId ? az.analytics.openDocument : az.analytics.openBrief}
+                        </a>
+                      )}
                     </article>
                   ))
                 : visibleSources.map((source) => (
@@ -539,7 +556,7 @@ function Analytics() {
                       </a>
                     </article>
                   ))}
-              {hasSearched && visibleSources.length === 0 && !busy && !pageError && (
+              {hasSearched && visibleSourceCount === 0 && !busy && !pageError && (
                 <div className="panel p-5 text-sm text-muted-foreground">
                   {az.analytics.noSources}
                 </div>

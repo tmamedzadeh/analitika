@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, sql } from "drizzle-orm";
+import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { analyticsFiltersSchema } from "@/lib/analytics";
@@ -127,12 +127,7 @@ export async function listAnalyticsHistory(): Promise<
     })
     .from(analyticsQueries)
     .innerJoin(appUsers, eq(analyticsQueries.createdBy, appUsers.id))
-    .where(
-      and(
-        user.role === "admin" ? undefined : eq(analyticsQueries.createdBy, user.id),
-        analyticsHistoryVisibilityFilter(user.id),
-      ),
-    )
+    .where(and(liveHistoryOwnerCondition(user.id), analyticsHistoryVisibilityFilter(user.id)))
     .orderBy(desc(analyticsQueries.createdAt))
     .limit(20);
   return rows.map(({ createdAt, author, ...row }) => ({
@@ -164,7 +159,7 @@ export async function getAnalyticsHistoryRecord(id: string) {
     .where(
       and(
         eq(analyticsQueries.id, id),
-        user.role === "admin" ? undefined : eq(analyticsQueries.createdBy, user.id),
+        liveHistoryOwnerCondition(user.id),
         analyticsHistoryVisibilityFilter(user.id),
       ),
     )
@@ -207,6 +202,19 @@ export async function getAnalyticsHistoryRecord(id: string) {
   );
   const filters = analyticsFiltersSchema.safeParse(row.filters);
   if (!filters.success) return null;
+  // Child source reads can outlast a clearance/role change. Recheck query metadata last.
+  const [stillVisible] = await getDb()
+    .select({ id: analyticsQueries.id })
+    .from(analyticsQueries)
+    .where(
+      and(
+        eq(analyticsQueries.id, id),
+        liveHistoryOwnerCondition(user.id),
+        analyticsHistoryVisibilityFilter(user.id),
+      ),
+    )
+    .limit(1);
+  if (!stillVisible) return null;
   const unavailableCitation = resolved.some((source) => !source.available);
   return {
     id: row.id,
@@ -233,6 +241,13 @@ export async function pruneAnalyticsHistory(now = new Date()): Promise<number> {
 
 export function analyticsHistoryOwnerCondition(userId: string, isAdmin: boolean) {
   return isAdmin ? undefined : eq(analyticsQueries.createdBy, userId);
+}
+
+function liveHistoryOwnerCondition(userId: string) {
+  return or(
+    eq(analyticsQueries.createdBy, userId),
+    sql`exists (select 1 from ${appUsers} where ${appUsers.id} = ${userId} and ${appUsers.active} = true and ${appUsers.role} = 'admin')`,
+  );
 }
 
 /** History query text and authors are metadata subject to the same live clearance boundary. */

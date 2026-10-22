@@ -1,10 +1,11 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { routeTree } from "@/routeTree.gen";
-import { listRecentAnalyticsQueries } from "@/lib/analytics.functions";
+import { getAnalyticsQueryHistory, listRecentAnalyticsQueries } from "@/lib/analytics.functions";
+import { directionIds } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
 
 vi.mock("@/lib/analytics.functions", async (importOriginal) => {
@@ -12,10 +13,87 @@ vi.mock("@/lib/analytics.functions", async (importOriginal) => {
   return {
     ...actual,
     listRecentAnalyticsQueries: vi.fn(),
+    getAnalyticsQueryHistory: vi.fn(),
   };
 });
 
 describe("analytics search layout", () => {
+  it("opens available history sources by exact UUID and counts them without an empty state", async () => {
+    const documentId = "00000000-0000-4000-8000-000000000001";
+    const briefId = "00000000-0000-4000-8000-000000000002";
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([
+      {
+        id: "history",
+        query: "Saved question",
+        status: "done",
+        createdAt: new Date().toISOString(),
+        durationMs: 12,
+      },
+    ]);
+    const snapshot = {
+      title: "Available document",
+      caption: "Section",
+      usedInAnswer: false,
+      maxClassification: "open",
+      model: "test",
+      durationMs: 12,
+      createdAt: new Date().toISOString(),
+      available: true,
+    };
+    vi.mocked(getAnalyticsQueryHistory).mockResolvedValue({
+      id: "history",
+      query: "Saved question",
+      status: "done",
+      answer: "",
+      model: "test",
+      durationMs: 12,
+      createdAt: new Date().toISOString(),
+      filters: {
+        period: "all",
+        directionIds: [...directionIds],
+        minSourceReliability: "all",
+        minInfoCredibility: "all",
+      },
+      sources: [
+        { ...snapshot, n: 1, documentId, briefId: null },
+        { ...snapshot, n: 2, title: "Available brief", documentId: null, briefId },
+        {
+          ...snapshot,
+          n: 3,
+          title: "Unavailable",
+          documentId: null,
+          briefId: null,
+          available: false,
+        },
+      ],
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+    const router = createRouter({
+      routeTree,
+      context: { queryClient },
+      history: createMemoryHistory({ initialEntries: ["/axtaris"] }),
+    });
+    await router.load();
+    render(<RouterProvider router={router} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Saved question/ }));
+    expect(await screen.findByRole("link", { name: az.analytics.openDocument })).toHaveAttribute(
+      "href",
+      `/senedler/${documentId}`,
+    );
+    expect(screen.getByRole("link", { name: az.analytics.openBrief })).toHaveAttribute(
+      "href",
+      `/brifler/${briefId}`,
+    );
+    expect(screen.getByText(az.analytics.sourcesCount.replace("{count}", "2"))).toBeInTheDocument();
+    expect(screen.queryByText(az.analytics.noSources)).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole("link", {
+        name: new RegExp(`${az.analytics.openDocument}|${az.analytics.openBrief}`),
+      }),
+    ).toHaveLength(2);
+  });
   it("places recent queries on the right and sources below the synthesis", async () => {
     vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
     const queryClient = new QueryClient({

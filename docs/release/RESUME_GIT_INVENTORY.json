@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-10-21T18:17:09.498Z",
+  "initialObservedAt": "Start of resume session 2026-10-21 Asia/Baku; exact initial capture timestamp not retained",
+  "record": "Reconstructed from the first read-only commands of this resume session, before any edits",
+  "initialBranch": "main",
+  "initialHead": "a45706e8c0979df1babd20851639e0c9d6a99982",
+  "initialOriginMain": "a45706e8c0979df1babd20851639e0c9d6a99982",
+  "remoteFreshCheck": "git ls-remote confirmed same SHA",
+  "staged": 0,
+  "unstaged": 0,
+  "untracked": 0,
+  "conflicts": 0,
+  "currentBranch": "codex/zirve-v1-rc-resume",
+  "historyRewritten": false,
+  "pushMergeDeploymentPerformed": false
+}

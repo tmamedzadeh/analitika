@@ -14,6 +14,7 @@ import { getCurrentUser } from "../src/server/auth";
 import { directionIds } from "../src/lib/directions";
 import { createGeminiProviders } from "../src/server/ai/gemini";
 import { assertExternalAiClassification } from "../src/server/ai/processing-policy";
+import { getGeminiFailureInfo } from "../src/server/ai/gemini-gateway";
 import { validateCitations, canPublishAnalyticsAnswer } from "../src/server/analytics/citations";
 import { buildAnalyticsPrompt } from "../src/server/prompts/analytics";
 import { az } from "../src/lib/i18n/az";
@@ -43,6 +44,7 @@ const cases = [
   },
 ];
 const results: Record<string, unknown>[] = [];
+const diagnosticAnswers: unknown[] = [];
 try {
   for (const item of cases) {
     const started = Date.now();
@@ -60,11 +62,12 @@ try {
         let attempts = 0;
         let validation: ReturnType<typeof validateCitations> | undefined;
         let finishReason = "";
+        let completedModel = provider.model;
         for (; attempts < 2; attempts++) {
           const generated = await provider.generateTextWithMetadata({
             ...prompt,
             timeoutMs: 45_000,
-            maxAttempts: 1,
+            maxAttempts: 2,
             ...(attempts
               ? {
                   system:
@@ -74,6 +77,15 @@ try {
               : {}),
           });
           validation = validateCitations(generated.text, available, prompt.lowReliabilityWarning);
+          completedModel = generated.model ?? provider.model;
+          // Open sources only. Raw answers/excerpts stay ignored for manual review.
+          diagnosticAnswers.push({
+            id: item.id,
+            attempt: attempts + 1,
+            answer: generated.text,
+            validation,
+            sources: available.map((source) => ({ n: source.n, text: source.text })),
+          });
           finishReason = generated.finishReason;
           if (canPublishAnalyticsAnswer(generated.text, finishReason, validation)) {
             attempts++;
@@ -86,6 +98,7 @@ try {
           : false;
         return {
           id: item.id,
+          model: completedModel,
           expectedNoAnswer: item.noAnswer,
           actualNoAnswer: noAnswer,
           sourceCount: available.length,
@@ -101,9 +114,17 @@ try {
     console.log(JSON.stringify(result.value));
   }
 } catch (error) {
-  results.push({ status: "FAIL", errorType: error instanceof Error ? error.name : "unknown" });
+  results.push({
+    status: "FAIL",
+    errorType: error instanceof Error ? error.name : "unknown",
+    ...getGeminiFailureInfo(error),
+  });
   process.exitCode = 1;
 } finally {
+  await writeFile(
+    ".release-backup.local/generation-final-review.json",
+    JSON.stringify(diagnosticAnswers, null, 2),
+  );
   if (results.some((row) => row["status"] !== "PASS")) process.exitCode = 1;
   await writeFile(
     "docs/release/GENERATION_INTEGRATION.json",

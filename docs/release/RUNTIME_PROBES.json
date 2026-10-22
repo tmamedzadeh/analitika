@@ -1,6 +1,6 @@
 {
-  "checkedAt": "2026-10-21T14:22:57.583Z",
-  "targetSource": "candidate URLs from existing project scripts; target not independently confirmed",
+  "checkedAt": "2026-10-21T18:10:28.882Z",
+  "targetSource": "explicit CLI",
   "method": "public GET only",
   "results": [
     {
@@ -10,17 +10,6 @@
       "rootStatus": 401,
       "rootRedirectsToLogin": false,
       "workerStatus": 401,
-      "worker": {},
-      "currentRevisionVerified": false,
-      "cloudEventDeliveryVerified": false
-    },
-    {
-      "origin": "https://analitika.vercel.app",
-      "loginStatus": 404,
-      "appBrandMatched": false,
-      "rootStatus": 200,
-      "rootRedirectsToLogin": false,
-      "workerStatus": 404,
       "worker": {},
       "currentRevisionVerified": false,
       "cloudEventDeliveryVerified": false

@@ -1,0 +1,524 @@
+{
+  "checkedAt": "2026-10-22T03:53:35.960Z",
+  "base": "a45706e8c0979df1babd20851639e0c9d6a99982",
+  "initialStagedFiles": 55,
+  "backup": ".release-backup.local/pre-final-staged.patch (ignored local backup)",
+  "review": "Critical source diff, auth/mutation/clearance/storage/provider/citation/worker routes reviewed; checkpoint 227 dispositions preserved; no applied SQL changed",
+  "codeDigest": "2e6a0fbeff0f76749adbdd02cffac0ef0ad2014902985e2d19337218fd263cf9",
+  "paths": [
+    {
+      "path": "bun.lock",
+      "sha256": "341adc5a7de07e6bfe649286de1474fd6db3c6afefc6b489fa11a522a9bdc12e",
+      "gitBlob": "07cf228e06d6462304ff5efc71a48367cf359655",
+      "purpose": "Dependency/config documentation"
+    },
+    {
+      "path": "docs/AUTHENTICATION.md",
+      "sha256": "0020c627dd76badda1e63fe29b46d5be5a0f6b5d3b9a41ffbc1a85c10a396791",
+      "gitBlob": "863ced4e21c8e0c9a7ff9202f71a43df878db375",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/DECISIONS.md",
+      "sha256": "161958562d52d01eff99535f275b4d51d1f43995db96288beafbd42bd622d7fe",
+      "gitBlob": "891200139fadcb68d73d30ddcc1aeb5c3b6ebc84",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/BROWSER_E2E.json",
+      "sha256": "5bdd003c227b1822d8876eedf4192e42376ffb9d561a8ff6ce143cb00c4f4d18",
+      "gitBlob": "92f25de1116dc417ca04c6890438c016d6e29c4c",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/BROWSER_MOBILE.png",
+      "sha256": "d57af5cd800387f3fd46a92c89354b13d43d0dc781d0254c97b0357916f7fff0",
+      "gitBlob": "f20b84064347f67e3c462f24ea66d7fd7a20ce27",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/CLOUD_DISCOVERY_FINAL.json",
+      "sha256": "2d46b3a78a02daa7455dd8535d782260100408d8b74838a4c16bb1e0e13b5231",
+      "gitBlob": "dc860011ceb8116629d7beaaf47bb85d40ea6fe5",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/CLOUD_WORKER_DISCOVERY.json",
+      "sha256": "cbcd5314c3607a9f7b45ee8c22f625881b12c932d8d1a262a18603289c52208d",
+      "gitBlob": "b323b11510e27866cada04028c2d60fb38b8bc7e",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/CORPUS_DIGEST_FINAL_AFTER.json",
+      "sha256": "a9752c0b814a1c8e3ee2babe6e393a73d1e8f5859546300f38aa36cc87764f13",
+      "gitBlob": "b121ddaa8ff143073502fac2b8826df47e5f6beb",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/CORPUS_DIGEST_FINAL_BEFORE.json",
+      "sha256": "6519b7d9e0e8e7284d923984fd572f6911f982c9d7c62f2dadc4a8ed904a9150",
+      "gitBlob": "d73551b2652e1943df799f125b37e2441a53b00c",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/CORPUS_PRESERVATION_RC.json",
+      "sha256": "bb141142c063dc2a4a1d7fce2431252004deb6d707ce51aafb4a068f033a6acb",
+      "gitBlob": "ce816687c340292ef6298480688200ca42181975",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/FILE_REVIEW_RC.json",
+      "sha256": "2294b51aad984e91b7742bf8bb94f66e2414f1158dc1a6ee0b1d6de05f53cd70",
+      "gitBlob": "750e3df86abebd8332e75986906d49e2ba58d228",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/FINAL_ACCESS_DISCOVERY.json",
+      "sha256": "c425a075ecd1f5a95cdad962fb8c85c4233a9fb8fc5141e06da143f1cfb9986d",
+      "gitBlob": "42f4e9f7e974a9afdfb57a3743f4df3969ec1342",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/FINAL_CHECKS.json",
+      "sha256": "29f0186e6ee9194b1a1344555de1f60e6ce2254ca0ce5d5d38ded2c0de6b7dc5",
+      "gitBlob": "37d8228c0fc8da93deb82773e11aa7f42fce0f58",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/FINAL_DATA_PRESERVATION.json",
+      "sha256": "f500095676e6d9c0677bedf726b8718f9d763dc52d36ded9bbfff67cb104f08b",
+      "gitBlob": "594d70108887c432adee2eedad9f2714cda3cdac",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/FINAL_FILE_MANIFEST.json",
+      "purpose": "Final manifest; self-hash omitted"
+    },
+    {
+      "path": "docs/release/FINAL_SECRET_SCAN.json",
+      "sha256": "6cf5f553edc60463246db686f7ea4217781e225d4b11cb44a86b3d8d8f8ba9db",
+      "gitBlob": "2aafdac45906e3eb3ee8bd87e3f8aab19b6fb7a7",
+      "purpose": "Final known-secret scan evidence"
+    },
+    {
+      "path": "docs/release/GEMINI_DIAGNOSTIC_FINAL.json",
+      "sha256": "b512d9cdb369d6f70f723894d6f8663b9ce4fdf2bf09ba4d358c0113ff089c73",
+      "gitBlob": "deb6cdbd8b9941faec914ab0211c6c5b5d723b25",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/GENERATION_BASELINE_ARCHIVE.json",
+      "sha256": "502f41ced11bea155f869e90b6a885213ae8f2a214c0734093675af10babef36",
+      "gitBlob": "f25b6579c928bed41ecd576c16332a81ed08ea2a",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/GENERATION_INTEGRATION.json",
+      "sha256": "4e074941d304af9e3f62cc41a65bf139563d4e9eed6687b314abfe5e9f3ddd90",
+      "gitBlob": "62d670b31baab56cf06ef7c0b36eeb5881700e1e",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/GITHUB_RELEASE_DISCOVERY.json",
+      "sha256": "50259b1b06879bb1da7e8bf1653987b777af13b30b5dccabdb7b089b14756b69",
+      "gitBlob": "7835c1c22e56faee50792385c28c91f45932b353",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/INDEX_LIFECYCLE_EDGES.json",
+      "sha256": "ca0347743faf3aa2fa8b475e138b6126fdcdd5957d86d1f630bfa3ad5d5ffe99",
+      "gitBlob": "2413a5baab1685bf2920a63c83be1b9880ba0680",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/INDEXING_INTEGRATION_RC.json",
+      "sha256": "d053f698cf8b7728b869103dc57c1ec3d1184a94ecfcc55e38ec5309e9572548",
+      "gitBlob": "0d5f1ac97783ca8ff220a60dad52e202504ebf5e",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/INDEXING_INTEGRATION.json",
+      "sha256": "f3b555216ec251f193a3e995f2faa9323f64d822664a3690d498c016e25fcf0a",
+      "gitBlob": "9b0f0f1b6c02a18feec627b2443a119e20d34b37",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/LEXICAL_INTEGRATION.json",
+      "sha256": "cbce04457dd6d626dd5d1821c10177630549995df67204f1e9c1db2a219034b6",
+      "gitBlob": "30b5ef304af366a434b716b56cbb256283165d72",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/LIVE_DB_FINAL_AFTER.json",
+      "sha256": "51eee5f13337b6c22e66731f8d1b99136ad4765db18f7f3484f90bdd7edc569a",
+      "gitBlob": "af3047e3670449ed63c4ecebca917339e3cf88e7",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/LIVE_DB_FINAL_BEFORE.json",
+      "sha256": "e4726819a2c8f4d7ecc90f0524bee98c0bfdb8d1c4f4c7ad5ed9bd8eaf4c5893",
+      "gitBlob": "494485f4571caa0b98d66f8811c60a8b7ad41a1c",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/LIVE_DB_RC.json",
+      "sha256": "5d9b16c20bf9d0a2e404a33d33903f16f4621fef1e9dc511e2fab90c6e6a75e0",
+      "gitBlob": "d643923c761c83203a2301d1dc0e3e35e8bcc182",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/LIVE_DB_RESUME.json",
+      "sha256": "99267dfa69a97302d30259eb78e652a8f7842ab919c3e59566993a1831bae8a3",
+      "gitBlob": "e7bc795442176cf5cc3c412963306de5c4342345",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/LIVE_SCHEMA_DRIFT.json",
+      "sha256": "6a74deb65ab0eec5450696a3c3dbf923cec15f5a55ad78b221849221f87f55ca",
+      "gitBlob": "887297da632fa1ada667e3533c5599e0d4a2b091",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/PRODUCTION_PUBLIC_FINAL.json",
+      "sha256": "26d4c59a3a1955b746493e468b7a8d67c28c58e73f9fdc5c439c80038324f327",
+      "gitBlob": "127ee1c135f59fdeaf820dd19041a20bab7275c4",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/PRODUCTION_RELEASE_REQUEST.md",
+      "sha256": "47406652fccac1d380f4b9b80f2570fcab1bb4423d624fc96350372f85595bae",
+      "gitBlob": "0e3ac93881f47630e9bad377869397f1b917a32a",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RC_CHECKS.json",
+      "sha256": "d71aa78772951f0f18bf715763cd8edea6d5c43309283da4c5bda4d4faef28a6",
+      "gitBlob": "d7d7a30988a8d44ae27bba1dab02f2f116b7e136",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RELEASE_RUNBOOK.md",
+      "sha256": "ce1ece85dc33edaf5e55c72b4d5374bd07890e85f20d1bb4c09ca71f81278f80",
+      "gitBlob": "1a1f71ab286b2c9fcf8fd0afc5ab3717f5274ec4",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RESUME_FILE_MANIFEST.json",
+      "sha256": "76e549649f82ee610d154230494fab091ecbaf198a497063dcb3bdb8e505879a",
+      "gitBlob": "48481886ba4d7f5cee6167288cb4439d311a705d",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RESUME_GIT_INVENTORY.json",
+      "sha256": "0f608a346807c550de19629ebcb0e448759a47c714a5f8ba829040aa5a300923",
+      "gitBlob": "e2e1dad05bf0134ca80bc330f6757f02f6ccd96c",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RESUME_RUNTIME_DISCOVERY.json",
+      "sha256": "352ea5ea2f90dc0591a2bc59e435eb642b38ff950ea1b5c3feb6f808dadd130d",
+      "gitBlob": "7cb272ea827ea7cfca8929831b7cc055a13e2617",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RETIRED_CLOUD_JOBS_PAUSED.json",
+      "sha256": "7e7bbdf7debb4ba419a0581efd704489146444e650ef562c51f80cef26b6fc8c",
+      "gitBlob": "59a30356bab778b2c918cd85fa44514e76c4b55f",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RETRIEVAL_EDGES.json",
+      "sha256": "ae6bdeef1e513cb1258cba53b7677f147fc28ee367a74ef54f6337c91f3c5ee7",
+      "gitBlob": "5be106f70f4609ec9a2c59754fb530cf93b39307",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RETRIEVAL_FINAL_COMPARISON.json",
+      "sha256": "0131a6a25b03d1db354679d6df150728970cd89b1b884d69559480e95d226c86",
+      "gitBlob": "b34c65198762cb6bbeb59fe8a943384517cd66a1",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RETRIEVAL_FINAL_EXECUTION.json",
+      "sha256": "1d92b4fdfefa58d0942d1b67b7743801c8f81d9821dc7a1746d009c02164680e",
+      "gitBlob": "22a6ae1227d3e9ed5cd7eb88ea196ca264077a1d",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RETRIEVAL_FINAL.json",
+      "sha256": "7b656d64a5f7b1a5089c9f63d34b1d7c80ce4f942b98cb4e4a4cc83f194d53fb",
+      "gitBlob": "caa7324800c290ee3475cb117a03beb40dd28c95",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RUNTIME_EDGES.json",
+      "sha256": "2a81ca28312f190f371f9e563748c5aee913238b1c5e6e4eaecc990097988767",
+      "gitBlob": "7effce1f0dc7dd7e431edf7afb423eb51f2796ee",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/RUNTIME_PROBES.json",
+      "sha256": "41a8d5dbbbd3e821241ca64bcfff5f51478a07654ffedbb448b9255869ed614f",
+      "gitBlob": "0a695cc4c84b8009e2a4d02c193046496145180d",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/SECRET_SCAN_RC.json",
+      "sha256": "0fbb5d7508d91877848ca4b49c5d814d5f461b62f30796c48f4c2bc2c72a341b",
+      "gitBlob": "ae1de83715f7eca539693718e90a777edbe14608",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/SEMANTIC_SAMPLE.json",
+      "sha256": "d6e8b01fcdcc3d6336e14102dc9457c72621315b4c0b8addf5333b62f8cd26d3",
+      "gitBlob": "d7b5a6438e51e576373fa665272ad7baa8d3a95f",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/STORAGE_INTEGRATION.json",
+      "sha256": "a7210b6f8758df45bd37b47ae41b1a73ac25de77feddc1bf1bce34db062dae08",
+      "gitBlob": "8f60166dac179942d4dd2789ffe140c0cdc8f17f",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/V1_FINAL_PRODUCTION_REPORT.md",
+      "sha256": "f160e3f92c64f50a33fd24d782039e5ad9c12a7e05557d5ba6dc979750cb1bd3",
+      "gitBlob": "1107c166c325d1e45eacc6e774820a41523bd7ea",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/V1_PROD_HARDENING_AUDIT.md",
+      "sha256": "e5d0e5915890a1df0caab88ce70873640dc3143f9a4b93d9946be3fe6519a89f",
+      "gitBlob": "afcb9ad372bb3f7545ec2ed0320c7a005b5a34ce",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/WORK_SESSION_HANDOFF.md",
+      "sha256": "896595939b6065d47d2e2f2ea282b4f058e6886a9df6cb8dd6fda3b01df0e4c9",
+      "gitBlob": "df9b76df652dd52a6b89f6078569cca18703c656",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "package.json",
+      "sha256": "e5e0b8891d1cab268fdc86306cedf16ec362f07092b4a6a3010d6f7fc842a66f",
+      "gitBlob": "fcc21689368d8b7aabe470360682442971f62c3c",
+      "purpose": "Dependency/config documentation"
+    },
+    {
+      "path": "README.md",
+      "sha256": "5d00abcfeba21b2e634140970cb0e7c1adae186048e82c51a7d9f3eec13f3696",
+      "gitBlob": "edecbddaa9ddc4dc2863654fa55a8b3a93d87788",
+      "purpose": "Dependency/config documentation"
+    },
+    {
+      "path": "scripts/controlled-ai-preload.ts",
+      "sha256": "f86c2be59807ef6737a88fd8fa9a644c31f9990c79b3bd00026ee91db2ba6331",
+      "gitBlob": "0b22e16f31338a68371ae5534df9cee6d647166d",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "scripts/reindex.ts",
+      "sha256": "1846f95cfefd1ae8c4dae6bd8dfc322174e50abe90bb3859c065d4799cb0d93f",
+      "gitBlob": "c9d942bd357129783c89d69afae90836d85841d1",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "scripts/verify-briefs-live.ts",
+      "sha256": "df6fb57c48a737f4356bccf18840aa3f50257f757b1975b269c5a547bf6b1907",
+      "gitBlob": "c4a07b1902428a36c8fc14b2bdaeb17c2bc32ec9",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "scripts/verify-browser.ts",
+      "sha256": "fa213576ca485a7f0e7a92a4a1306b663e58f02d0bdce1950d80b8a43b56840e",
+      "gitBlob": "ca89480acc7bfdd976185b3a1e364fa9119c3ffb",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "scripts/verify-generation.ts",
+      "sha256": "02b3d23ab7acfaf1bfa4f5040fe85b965f10ce0477ecd619b67d171fd8380717",
+      "gitBlob": "e5478295e46ab741fae3889bec2c420196e67937",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "scripts/verify-index-edges.ts",
+      "sha256": "cab653a3acb297b48f88332c5c5fd7a88ed49fd1a60aa1ace700173cd65291ab",
+      "gitBlob": "b5c37fe023e08523b1dddfeae31c16988c44c985",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "scripts/verify-release-integration.ts",
+      "sha256": "22bc2946e20c5ccbed677a71a1db3843e40582a252c5fe12926c8702252e33b8",
+      "gitBlob": "ffe5c907e0ef66c769ceeb113baf5437dd23517c",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "scripts/verify-retrieval-edges.ts",
+      "sha256": "90e41be5a95905c508a07a4fb8b9be1d4b9721ee4b5f0b495f7b7d527559440d",
+      "gitBlob": "99ed6213f728d0179414a1d5d0c5c06e24390c3d",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "scripts/verify-runtime-edges.ts",
+      "sha256": "132a8b6de0a11dfd2bf7e1198423adcff0ec26d4876d87fc975d3c5fed3d4cce",
+      "gitBlob": "d6b3d92b69f82399f5fde70d6e1e21df0645a9da",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "scripts/verify-semantic-sample.ts",
+      "sha256": "134ae5a8839dd9cfb71a02f972f05f305ce7b10739d0209febfafb582150bc0f",
+      "gitBlob": "d3abc80467085859a7111683ed490148659ae5c2",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "scripts/verify-stage-1.ts",
+      "sha256": "baeb1a74bd150e84cb2fc6a2226a9720930b0f1d09006e992a7cc04568e0af4e",
+      "gitBlob": "359a82e28322f692d528d073f0057f598d9e8120",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "scripts/verify-storage.ts",
+      "sha256": "c96943ed0ce52c3e929221cdae0d09e73370b08df7f563cc072d7b7338fa79c6",
+      "gitBlob": "10d34e98e55df5dc13b6571c784390fe7b4fe8df",
+      "purpose": "Scoped verification and exact cleanup"
+    },
+    {
+      "path": "src/components/Shell.tsx",
+      "sha256": "64918662f9e9d6a1403f28a7b1b4f4a7dfde1fb0f9ac930c1ca66baa436fe543",
+      "gitBlob": "85a77c24fd016645ef076aa7b4876b15347012fe",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/lib/documents.functions.ts",
+      "sha256": "25f4ee47d52931ff7df4c2b066cceac96f5b29dc69ea2d815ebfd147c70afdb9",
+      "gitBlob": "69a7c37821b99b18b2b8506de4e0689d590d42a3",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/routes/_app.axtaris.tsx",
+      "sha256": "c78149233c3dcb80261edb375742c6851062d0b2964464ba3a5e3b7465ba6919",
+      "gitBlob": "1d0e49b5648fb07dac4ce873d9c3bbdf811dabe3",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/routes/_app.senedler.tsx",
+      "sha256": "dc23949f19454e77b6693fe2b9d62db9aa58fa0544b533229d528d7d5b07b485",
+      "gitBlob": "3b50de6557b85c9a09f9f68c9a91afb8863dea81",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/ai/gemini-gateway.test.ts",
+      "sha256": "c546a3d440c20443412c83df5338b66faadeb501785af1366cea8b8f0880745e",
+      "gitBlob": "a846be61a882d351f29fbe2513f8fb8da2229f98",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/ai/gemini-gateway.ts",
+      "sha256": "021811b89a2f6f78cb5fe4a022c2d414e00552be1cbd821841146358347becb2",
+      "gitBlob": "54c26b07aeb948acd8adebdf3fcef3181b3839e1",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/ai/gemini.test.ts",
+      "sha256": "8693907ef69b93cdba503cd424292a7efce0203555ae86cd47f376a8d61d8e1f",
+      "gitBlob": "5e57d9967f192bccd903e9ab94d295abdb49f8c1",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/ai/gemini.ts",
+      "sha256": "344bf69d365f666bfb48ad0340afbe3269711684d36f8ec7fc906e157b030441",
+      "gitBlob": "0e98b776cf8beb3f456fb19906db24736c189ab2",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/analytics/endpoint.test.ts",
+      "sha256": "203d920ad4720481d74e33e8c437b91b74b576a218778ad9425f2bbf8c765d61",
+      "gitBlob": "82aeb5204f02ec62118a4d23489e7aa528bbfe1f",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/analytics/endpoint.ts",
+      "sha256": "ac60eed8d30fb1e64f55c9255d7e2ef01fce136355174fdec0c28a4200420ec8",
+      "gitBlob": "f229aec4632d0431859abd2912e3955038bfe0ac",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/analytics/history.ts",
+      "sha256": "96ffcf25416e7e4e7cb8fdda746e31430d334a32bc0d664eae866cd91abfab5d",
+      "gitBlob": "e97487420da2b9dfab042c900f59341e74c78a9a",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/analytics/ranking.test.ts",
+      "sha256": "32f9595a9097982f27ad2bb7c822f29bc22e12eb20e57e7af8602ab42ed98be9",
+      "gitBlob": "017e0da5f04eeb4108bb473de805f47db77d2d89",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/analytics/search.ts",
+      "sha256": "4f7071a583092d68ade6356f1a938bca3a7dfe03db8828ddcd55f9e28f574e08",
+      "gitBlob": "c13d9070c2a2ccf5c1e43e45a2e64b830edb44a6",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/analytics/source-access.ts",
+      "sha256": "9d77fc27847a91ae3b97edb5a6e02e608503d867b8669043f81a8e364643c533",
+      "gitBlob": "495e3e48614c92d9616203a07cc5ed5921141eb0",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/briefs/mutations.ts",
+      "sha256": "1cf1323122c222b161a6fc753a66aa7bebfd08d3f55fc9c1f781b98fdeb34a27",
+      "gitBlob": "26921149c9f59f731369224eee9f897780f20243",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/db/access.test.ts",
+      "sha256": "6d2fc665b52c0143fa6ff7ebef50e234015092b46dfb4bf0d65c25b92fcd7817",
+      "gitBlob": "65412e2c2edc68314e411e42106b58c264c6d489",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/db/access.ts",
+      "sha256": "8b871d5bc24f7d5fbf65753ebb1c2a55b1426ed5c9847afe84f2b4cc66390fb2",
+      "gitBlob": "ec22453ca54dd8a0e6e6050cf49a42b21a8e6d8b",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/prompts/analytics.ts",
+      "sha256": "feed53d36233e52b045e7f83db80fb62695b53f272882f3ac5cd79abd7ef5e73",
+      "gitBlob": "9533cb0aa5ffb84a42659067ebfdbf221b0e3eff",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/storage/image-uploads.test.ts",
+      "sha256": "4a9a3d2df9bcb9755bca97938c9a08a289f11616ef2e1ed29241efc256d9e631",
+      "gitBlob": "f09eb74efceb9a886263ca75b75d3d7f3d2cb994",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/storage/image-uploads.ts",
+      "sha256": "882e2dd16d5906def591c28cf1d34dc017606086af2d3d50b23f965243ce6bdd",
+      "gitBlob": "5e18f65084e31e40392f359744615358413b2680",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/storage/s3.ts",
+      "sha256": "4c433e12e175239e718fdf78d314beca80c81561018f268361795e7186017855",
+      "gitBlob": "7bdbeb349e9d05adc69ad6aaed20582065553541",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/server/storage/types.ts",
+      "sha256": "fc483bd2b29e677a87170598442b3c3bd031ae87c4430f5ca33c0310c4e411a2",
+      "gitBlob": "7066214b93618591086271cc33c0ba4f41488f9c",
+      "purpose": "V1 implementation/regression hardening"
+    },
+    {
+      "path": "src/test/analytics-layout.test.tsx",
+      "sha256": "13cccf35fc57ab5e2dbc484b498a94e3bbc7d7067a0d9e28f6f7329664a2c0a2",
+      "gitBlob": "ae28db851e24a7755bf7f2ac4f1263a89faa352c",
+      "purpose": "V1 implementation/regression hardening"
+    }
+  ]
+}

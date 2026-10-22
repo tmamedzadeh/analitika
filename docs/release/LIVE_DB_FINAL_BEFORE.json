@@ -1,0 +1,2280 @@
+{
+  "capturedAt": "2026-10-22T03:13:42.280Z",
+  "migrations": [
+    {
+      "tag": "0000_stage_0",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0001_stage_1_document_progress",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "line-endings-only"
+    },
+    {
+      "tag": "0002_idare_departments",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "line-endings-only"
+    },
+    {
+      "tag": "0003_exa_osint_pins",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "line-endings-only"
+    },
+    {
+      "tag": "0004_daily_briefs",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "line-endings-only"
+    },
+    {
+      "tag": "0005_allow_duplicate_brief_dates",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0006_published_briefs",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0007_rate_limits_and_osint_dedupe",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0008_osint_heartbeats",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0009_document_counts_and_request_fk",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0010_osint_quality",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0011_document_directions",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0012_backfill_document_directions",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0013_auth_users_sessions",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0014_clever_kid_colt",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0015_osint_domain_classifications",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0016_osint_source_language",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0017_remove_osint_web",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0018_remove_retired_features_and_tags",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0019_brief_lexical_search",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0020_brief_lexical_search_snapshot",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0021_reconcile_brief_search_index",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0022_secure_server_tables",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    },
+    {
+      "tag": "0023_reconcile_legacy_constraint_names",
+      "applied": true,
+      "hashMatches": true,
+      "hashFormat": "exact"
+    }
+  ],
+  "appliedMigrationCount": 24,
+  "database": [
+    {
+      "version": "PostgreSQL 17.11 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+      "timezone": "Asia/Baku",
+      "date": "2026-10-22",
+      "time": "2026-10-22 07:13:42.637004+04"
+    }
+  ],
+  "serverAccessAfterRls": [
+    {
+      "bypasses_rls_on_all_app_tables": true
+    }
+  ],
+  "counts": [
+    {
+      "documents": 13,
+      "briefs": 10,
+      "chunks": 107,
+      "embeddings": 107,
+      "history": 0
+    }
+  ],
+  "documents": [
+    {
+      "id": "1562835b-201c-4f7b-acfb-b4238505d1ed",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 1,
+      "created_at": "2026-10-21 16:25:05.311801+04",
+      "updated_at": "2026-10-21 17:03:43.907+04",
+      "body_chars": 1727,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 1,
+        "completedChunks": 1
+      },
+      "actual_chunks": 1,
+      "embeddings": 1
+    },
+    {
+      "id": "b9fe94b6-48b2-4461-9c4f-298fdd872da2",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 1,
+      "created_at": "2026-10-21 16:17:20.157417+04",
+      "updated_at": "2026-10-21 17:03:36.003+04",
+      "body_chars": 1713,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 1,
+        "completedChunks": 1
+      },
+      "actual_chunks": 1,
+      "embeddings": 1
+    },
+    {
+      "id": "2db71e65-9725-489d-99ff-63aae9262271",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 1,
+      "created_at": "2026-10-21 16:16:31.117836+04",
+      "updated_at": "2026-10-21 17:03:27.963+04",
+      "body_chars": 1474,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 1,
+        "completedChunks": 1
+      },
+      "actual_chunks": 1,
+      "embeddings": 1
+    },
+    {
+      "id": "49d21c23-2cec-4a63-83e5-ce9389410a91",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 5,
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 17:08:25.817+04",
+      "body_chars": 2157,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "actual_chunks": 5,
+      "embeddings": 5
+    },
+    {
+      "id": "67d09949-502c-4bde-8157-304b521608fb",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 6,
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 17:08:25.817+04",
+      "body_chars": 2450,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 6,
+        "completedChunks": 6
+      },
+      "actual_chunks": 6,
+      "embeddings": 6
+    },
+    {
+      "id": "2c227f83-a225-4b68-9492-979cd1d59f13",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 6,
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 17:08:25.817+04",
+      "body_chars": 2551,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 6,
+        "completedChunks": 6
+      },
+      "actual_chunks": 6,
+      "embeddings": 6
+    },
+    {
+      "id": "65b1f68f-fd81-4186-b8ca-ad9c9f006784",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 5,
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 17:08:25.817+04",
+      "body_chars": 2049,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "actual_chunks": 5,
+      "embeddings": 5
+    },
+    {
+      "id": "16fe1b2a-6976-4971-a307-84e1d835f3c4",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 5,
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 17:08:25.817+04",
+      "body_chars": 2154,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "actual_chunks": 5,
+      "embeddings": 5
+    },
+    {
+      "id": "ab0c6c65-a85c-4faf-8a38-22a893c6b4ff",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 6,
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 17:08:25.817+04",
+      "body_chars": 1924,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 6,
+        "completedChunks": 6
+      },
+      "actual_chunks": 6,
+      "embeddings": 6
+    },
+    {
+      "id": "b161f88a-dbca-42a6-8565-378e81b6fc4b",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 6,
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 17:08:25.817+04",
+      "body_chars": 2130,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 6,
+        "completedChunks": 6
+      },
+      "actual_chunks": 6,
+      "embeddings": 6
+    },
+    {
+      "id": "4d6a8886-2423-4af7-bcc3-63601da31082",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 5,
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 17:08:25.817+04",
+      "body_chars": 2124,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "actual_chunks": 5,
+      "embeddings": 5
+    },
+    {
+      "id": "7f44844c-f9fa-4a99-8e80-3ca4cc8ea8e7",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 6,
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 17:08:25.817+04",
+      "body_chars": 2359,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 6,
+        "completedChunks": 6
+      },
+      "actual_chunks": 6,
+      "embeddings": 6
+    },
+    {
+      "id": "71097396-56e0-477a-b674-3aa4886e5cc7",
+      "classification": "open",
+      "status": "ready",
+      "step": "ready",
+      "chunk_count": 5,
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 17:08:25.817+04",
+      "body_chars": 2018,
+      "has_error": false,
+      "progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "actual_chunks": 5,
+      "embeddings": 5
+    }
+  ],
+  "briefs": [
+    {
+      "id": "3c6cbadb-6942-4aa5-9609-f7171115b34f",
+      "status": "published",
+      "index_status": "ready",
+      "index_progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 22:01:56.43106+04",
+      "chunks": 5,
+      "embeddings": 5
+    },
+    {
+      "id": "8f3f9e1f-34b8-49d5-ba83-8e461743ecd5",
+      "status": "published",
+      "index_status": "ready",
+      "index_progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 22:01:56.43106+04",
+      "chunks": 5,
+      "embeddings": 5
+    },
+    {
+      "id": "17f84012-ff53-474f-b6ac-e94f0a518cf6",
+      "status": "published",
+      "index_status": "ready",
+      "index_progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 22:01:56.43106+04",
+      "chunks": 5,
+      "embeddings": 5
+    },
+    {
+      "id": "b228dd18-2a0a-4c95-8f29-cf2ae0237263",
+      "status": "published",
+      "index_status": "ready",
+      "index_progress": {
+        "percent": 100,
+        "totalChunks": 4,
+        "completedChunks": 4
+      },
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 22:01:56.43106+04",
+      "chunks": 4,
+      "embeddings": 4
+    },
+    {
+      "id": "f61a27d0-54e3-4300-a80a-6ef94f6e60a6",
+      "status": "published",
+      "index_status": "ready",
+      "index_progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 22:01:56.43106+04",
+      "chunks": 5,
+      "embeddings": 5
+    },
+    {
+      "id": "0209cf21-f5b7-4971-933c-8c97312a745e",
+      "status": "published",
+      "index_status": "ready",
+      "index_progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 22:01:56.43106+04",
+      "chunks": 5,
+      "embeddings": 5
+    },
+    {
+      "id": "2bdf424f-0c22-477a-80bc-18162090d8e7",
+      "status": "published",
+      "index_status": "ready",
+      "index_progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 22:01:56.43106+04",
+      "chunks": 5,
+      "embeddings": 5
+    },
+    {
+      "id": "adb233c1-651a-4fd7-9604-af40debe79d3",
+      "status": "published",
+      "index_status": "ready",
+      "index_progress": {
+        "percent": 100,
+        "totalChunks": 5,
+        "completedChunks": 5
+      },
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 22:01:56.43106+04",
+      "chunks": 5,
+      "embeddings": 5
+    },
+    {
+      "id": "4dfa0c8f-e28e-4d1f-84fe-f2493bb8e839",
+      "status": "published",
+      "index_status": "ready",
+      "index_progress": {
+        "percent": 100,
+        "totalChunks": 6,
+        "completedChunks": 6
+      },
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 22:01:56.43106+04",
+      "chunks": 6,
+      "embeddings": 6
+    },
+    {
+      "id": "dd86a086-7e41-4035-8dc9-1acccf4af8ed",
+      "status": "published",
+      "index_status": "ready",
+      "index_progress": {
+        "percent": 100,
+        "totalChunks": 4,
+        "completedChunks": 4
+      },
+      "created_at": "2026-10-18 17:08:27.127101+04",
+      "updated_at": "2026-10-18 22:01:56.43106+04",
+      "chunks": 4,
+      "embeddings": 4
+    }
+  ],
+  "integrity": [
+    {
+      "invalid_parent": 0,
+      "missing_embeddings": 0,
+      "invalid_dimensions": 0,
+      "invalid_offsets": 0,
+      "duplicate_ordinals": 0,
+      "orphans": 0
+    }
+  ],
+  "embeddings": [
+    {
+      "embedding_model": "gemini-embedding-2",
+      "dimensions": 768,
+      "count": 107
+    }
+  ],
+  "extensions": [
+    {
+      "extname": "pg_stat_statements",
+      "extversion": "1.11"
+    },
+    {
+      "extname": "pg_trgm",
+      "extversion": "1.6"
+    },
+    {
+      "extname": "pgcrypto",
+      "extversion": "1.3"
+    },
+    {
+      "extname": "plpgsql",
+      "extversion": "1.0"
+    },
+    {
+      "extname": "supabase_vault",
+      "extversion": "0.3.1"
+    },
+    {
+      "extname": "uuid-ossp",
+      "extversion": "1.1"
+    },
+    {
+      "extname": "vector",
+      "extversion": "0.8.2"
+    }
+  ],
+  "tables": [
+    {
+      "tablename": "analytics_queries",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "app_sessions",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "app_users",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "attachments",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "auth_login_attempts",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "brief_attachments",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "chunks",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "daily_briefs",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "documents",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "eval_questions",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "eval_results",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "eval_runs",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "eval_sets",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "query_logs",
+      "rowsecurity": true
+    },
+    {
+      "tablename": "rate_limits",
+      "rowsecurity": true
+    }
+  ],
+  "clientPrivileges": [
+    {
+      "role": "anon",
+      "table_name": "analytics_queries",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "app_sessions",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "app_users",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "attachments",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "auth_login_attempts",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "brief_attachments",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "chunks",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "daily_briefs",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "documents",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "eval_questions",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "eval_results",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "eval_runs",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "eval_sets",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "query_logs",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "anon",
+      "table_name": "rate_limits",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "analytics_queries",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "app_sessions",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "app_users",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "attachments",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "auth_login_attempts",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "brief_attachments",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "chunks",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "daily_briefs",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "documents",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "eval_questions",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "eval_results",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "eval_runs",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "eval_sets",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "query_logs",
+      "can_read": false,
+      "can_write": false
+    },
+    {
+      "role": "authenticated",
+      "table_name": "rate_limits",
+      "can_read": false,
+      "can_write": false
+    }
+  ],
+  "columns": [
+    {
+      "table_name": "analytics_queries",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "analytics_queries",
+      "column_name": "created_by",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "analytics_queries",
+      "column_name": "query",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "analytics_queries",
+      "column_name": "filters",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "analytics_queries",
+      "column_name": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "analytics_query_status",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "analytics_queries",
+      "column_name": "answer",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "analytics_queries",
+      "column_name": "sources",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "analytics_queries",
+      "column_name": "max_classification",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "analytics_queries",
+      "column_name": "model",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "analytics_queries",
+      "column_name": "duration_ms",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "analytics_queries",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "analytics_queries",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_sessions",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_sessions",
+      "column_name": "user_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_sessions",
+      "column_name": "token_hash",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_sessions",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_sessions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_users",
+      "column_name": "id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_users",
+      "column_name": "username",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_users",
+      "column_name": "password_hash",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_users",
+      "column_name": "role",
+      "data_type": "USER-DEFINED",
+      "udt_name": "user_role",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_users",
+      "column_name": "clearance",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_users",
+      "column_name": "active",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_users",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "app_users",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "attachments",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "attachments",
+      "column_name": "document_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "attachments",
+      "column_name": "storage_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "attachments",
+      "column_name": "mime",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "attachments",
+      "column_name": "size",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "attachments",
+      "column_name": "caption",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "auth_login_attempts",
+      "column_name": "key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "auth_login_attempts",
+      "column_name": "window_start",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "auth_login_attempts",
+      "column_name": "attempts",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "brief_attachments",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "brief_attachments",
+      "column_name": "brief_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "brief_attachments",
+      "column_name": "storage_key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "brief_attachments",
+      "column_name": "name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "brief_attachments",
+      "column_name": "mime",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "brief_attachments",
+      "column_name": "size",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "brief_attachments",
+      "column_name": "ord",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "document_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "ord",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "section_title",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "text",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "char_start",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "char_end",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "is_table",
+      "data_type": "boolean",
+      "udt_name": "bool",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "tsv",
+      "data_type": "tsvector",
+      "udt_name": "tsvector",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "embedding",
+      "data_type": "USER-DEFINED",
+      "udt_name": "vector",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "embedding_model",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "chunks",
+      "column_name": "brief_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "brief_date",
+      "data_type": "date",
+      "udt_name": "date",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "title",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "body",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "author_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "index_status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "index_progress",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "published_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "daily_briefs",
+      "column_name": "updated_by",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "title",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "body",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "doc_date",
+      "data_type": "date",
+      "udt_name": "date",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "language",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "classification",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "source_reliability",
+      "data_type": "character",
+      "udt_name": "bpchar",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "info_credibility",
+      "data_type": "smallint",
+      "udt_name": "int2",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "owner_id",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "document_status",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "error",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "step",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "progress",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "department",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "chunk_count",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "documents",
+      "column_name": "direction",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "eval_questions",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_questions",
+      "column_name": "eval_set_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_questions",
+      "column_name": "question",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_questions",
+      "column_name": "expected_answer",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "eval_questions",
+      "column_name": "expected_chunk_ids",
+      "data_type": "ARRAY",
+      "udt_name": "_uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_results",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_results",
+      "column_name": "run_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_results",
+      "column_name": "question_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_results",
+      "column_name": "answer",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "eval_results",
+      "column_name": "score",
+      "data_type": "real",
+      "udt_name": "float4",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "eval_results",
+      "column_name": "details",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_runs",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_runs",
+      "column_name": "eval_set_id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_runs",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_runs",
+      "column_name": "model",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "eval_runs",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_runs",
+      "column_name": "finished_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "eval_sets",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_sets",
+      "column_name": "name",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "eval_sets",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "eval_sets",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "query_logs",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "query_logs",
+      "column_name": "module",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "query_logs",
+      "column_name": "query",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "query_logs",
+      "column_name": "filters",
+      "data_type": "jsonb",
+      "udt_name": "jsonb",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "query_logs",
+      "column_name": "chunk_ids",
+      "data_type": "ARRAY",
+      "udt_name": "_uuid",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "query_logs",
+      "column_name": "answer",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "query_logs",
+      "column_name": "model",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "query_logs",
+      "column_name": "tokens_in",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "query_logs",
+      "column_name": "tokens_out",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "query_logs",
+      "column_name": "latency_ms",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "YES"
+    },
+    {
+      "table_name": "query_logs",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rate_limits",
+      "column_name": "key",
+      "data_type": "text",
+      "udt_name": "text",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rate_limits",
+      "column_name": "window_start",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO"
+    },
+    {
+      "table_name": "rate_limits",
+      "column_name": "count",
+      "data_type": "integer",
+      "udt_name": "int4",
+      "is_nullable": "NO"
+    }
+  ],
+  "indexes": [
+    {
+      "tablename": "analytics_queries",
+      "indexname": "analytics_queries_created_at_idx",
+      "indexdef": "CREATE INDEX analytics_queries_created_at_idx ON public.analytics_queries USING btree (created_at)"
+    },
+    {
+      "tablename": "analytics_queries",
+      "indexname": "analytics_queries_created_user_idx",
+      "indexdef": "CREATE INDEX analytics_queries_created_user_idx ON public.analytics_queries USING btree (created_by, created_at DESC NULLS LAST)"
+    },
+    {
+      "tablename": "analytics_queries",
+      "indexname": "analytics_queries_pkey",
+      "indexdef": "CREATE UNIQUE INDEX analytics_queries_pkey ON public.analytics_queries USING btree (id)"
+    },
+    {
+      "tablename": "app_sessions",
+      "indexname": "app_sessions_pkey",
+      "indexdef": "CREATE UNIQUE INDEX app_sessions_pkey ON public.app_sessions USING btree (id)"
+    },
+    {
+      "tablename": "app_sessions",
+      "indexname": "app_sessions_token_hash_unique_idx",
+      "indexdef": "CREATE UNIQUE INDEX app_sessions_token_hash_unique_idx ON public.app_sessions USING btree (token_hash)"
+    },
+    {
+      "tablename": "app_sessions",
+      "indexname": "app_sessions_user_idx",
+      "indexdef": "CREATE INDEX app_sessions_user_idx ON public.app_sessions USING btree (user_id)"
+    },
+    {
+      "tablename": "app_users",
+      "indexname": "app_users_pkey",
+      "indexdef": "CREATE UNIQUE INDEX app_users_pkey ON public.app_users USING btree (id)"
+    },
+    {
+      "tablename": "app_users",
+      "indexname": "app_users_role_active_idx",
+      "indexdef": "CREATE INDEX app_users_role_active_idx ON public.app_users USING btree (role, active)"
+    },
+    {
+      "tablename": "app_users",
+      "indexname": "app_users_username_unique_idx",
+      "indexdef": "CREATE UNIQUE INDEX app_users_username_unique_idx ON public.app_users USING btree (username)"
+    },
+    {
+      "tablename": "attachments",
+      "indexname": "attachments_document_idx",
+      "indexdef": "CREATE INDEX attachments_document_idx ON public.attachments USING btree (document_id)"
+    },
+    {
+      "tablename": "attachments",
+      "indexname": "attachments_pkey",
+      "indexdef": "CREATE UNIQUE INDEX attachments_pkey ON public.attachments USING btree (id)"
+    },
+    {
+      "tablename": "attachments",
+      "indexname": "attachments_storage_key_unique",
+      "indexdef": "CREATE UNIQUE INDEX attachments_storage_key_unique ON public.attachments USING btree (storage_key)"
+    },
+    {
+      "tablename": "auth_login_attempts",
+      "indexname": "auth_login_attempts_pkey",
+      "indexdef": "CREATE UNIQUE INDEX auth_login_attempts_pkey ON public.auth_login_attempts USING btree (key)"
+    },
+    {
+      "tablename": "auth_login_attempts",
+      "indexname": "auth_login_attempts_window_idx",
+      "indexdef": "CREATE INDEX auth_login_attempts_window_idx ON public.auth_login_attempts USING btree (window_start)"
+    },
+    {
+      "tablename": "brief_attachments",
+      "indexname": "brief_attachments_brief_idx",
+      "indexdef": "CREATE INDEX brief_attachments_brief_idx ON public.brief_attachments USING btree (brief_id)"
+    },
+    {
+      "tablename": "brief_attachments",
+      "indexname": "brief_attachments_brief_ord_unique",
+      "indexdef": "CREATE UNIQUE INDEX brief_attachments_brief_ord_unique ON public.brief_attachments USING btree (brief_id, ord)"
+    },
+    {
+      "tablename": "brief_attachments",
+      "indexname": "brief_attachments_pkey",
+      "indexdef": "CREATE UNIQUE INDEX brief_attachments_pkey ON public.brief_attachments USING btree (id)"
+    },
+    {
+      "tablename": "brief_attachments",
+      "indexname": "brief_attachments_storage_key_unique",
+      "indexdef": "CREATE UNIQUE INDEX brief_attachments_storage_key_unique ON public.brief_attachments USING btree (storage_key)"
+    },
+    {
+      "tablename": "chunks",
+      "indexname": "chunks_brief_idx",
+      "indexdef": "CREATE INDEX chunks_brief_idx ON public.chunks USING btree (brief_id)"
+    },
+    {
+      "tablename": "chunks",
+      "indexname": "chunks_brief_ord_unique",
+      "indexdef": "CREATE UNIQUE INDEX chunks_brief_ord_unique ON public.chunks USING btree (brief_id, ord)"
+    },
+    {
+      "tablename": "chunks",
+      "indexname": "chunks_document_idx",
+      "indexdef": "CREATE INDEX chunks_document_idx ON public.chunks USING btree (document_id)"
+    },
+    {
+      "tablename": "chunks",
+      "indexname": "chunks_document_ord_unique",
+      "indexdef": "CREATE UNIQUE INDEX chunks_document_ord_unique ON public.chunks USING btree (document_id, ord)"
+    },
+    {
+      "tablename": "chunks",
+      "indexname": "chunks_embedding_hnsw_idx",
+      "indexdef": "CREATE INDEX chunks_embedding_hnsw_idx ON public.chunks USING hnsw (embedding vector_cosine_ops)"
+    },
+    {
+      "tablename": "chunks",
+      "indexname": "chunks_pkey",
+      "indexdef": "CREATE UNIQUE INDEX chunks_pkey ON public.chunks USING btree (id)"
+    },
+    {
+      "tablename": "chunks",
+      "indexname": "chunks_text_trgm_gin_idx",
+      "indexdef": "CREATE INDEX chunks_text_trgm_gin_idx ON public.chunks USING gin (text gin_trgm_ops)"
+    },
+    {
+      "tablename": "chunks",
+      "indexname": "chunks_tsv_gin_idx",
+      "indexdef": "CREATE INDEX chunks_tsv_gin_idx ON public.chunks USING gin (tsv)"
+    },
+    {
+      "tablename": "daily_briefs",
+      "indexname": "daily_briefs_body_trgm_idx",
+      "indexdef": "CREATE INDEX daily_briefs_body_trgm_idx ON public.daily_briefs USING gin (body gin_trgm_ops)"
+    },
+    {
+      "tablename": "daily_briefs",
+      "indexname": "daily_briefs_pkey",
+      "indexdef": "CREATE UNIQUE INDEX daily_briefs_pkey ON public.daily_briefs USING btree (id)"
+    },
+    {
+      "tablename": "daily_briefs",
+      "indexname": "daily_briefs_search_gin_idx",
+      "indexdef": "CREATE INDEX daily_briefs_search_gin_idx ON public.daily_briefs USING gin (to_tsvector('simple'::regconfig, lower(translate(NORMALIZE(((title || ' || '::text) || body), NFC), 'ƏİIŞÇĞÖÜ'::text, 'əiışçğöü'::text))))"
+    },
+    {
+      "tablename": "daily_briefs",
+      "indexname": "daily_briefs_status_date_idx",
+      "indexdef": "CREATE INDEX daily_briefs_status_date_idx ON public.daily_briefs USING btree (status, brief_date)"
+    },
+    {
+      "tablename": "daily_briefs",
+      "indexname": "daily_briefs_title_trgm_idx",
+      "indexdef": "CREATE INDEX daily_briefs_title_trgm_idx ON public.daily_briefs USING gin (title gin_trgm_ops)"
+    },
+    {
+      "tablename": "documents",
+      "indexname": "documents_department_idx",
+      "indexdef": "CREATE INDEX documents_department_idx ON public.documents USING btree (department)"
+    },
+    {
+      "tablename": "documents",
+      "indexname": "documents_direction_idx",
+      "indexdef": "CREATE INDEX documents_direction_idx ON public.documents USING btree (direction)"
+    },
+    {
+      "tablename": "documents",
+      "indexname": "documents_doc_date_idx",
+      "indexdef": "CREATE INDEX documents_doc_date_idx ON public.documents USING btree (doc_date)"
+    },
+    {
+      "tablename": "documents",
+      "indexname": "documents_pkey",
+      "indexdef": "CREATE UNIQUE INDEX documents_pkey ON public.documents USING btree (id)"
+    },
+    {
+      "tablename": "documents",
+      "indexname": "documents_status_created_idx",
+      "indexdef": "CREATE INDEX documents_status_created_idx ON public.documents USING btree (status, created_at)"
+    },
+    {
+      "tablename": "eval_questions",
+      "indexname": "eval_questions_pkey",
+      "indexdef": "CREATE UNIQUE INDEX eval_questions_pkey ON public.eval_questions USING btree (id)"
+    },
+    {
+      "tablename": "eval_questions",
+      "indexname": "eval_questions_set_idx",
+      "indexdef": "CREATE INDEX eval_questions_set_idx ON public.eval_questions USING btree (eval_set_id)"
+    },
+    {
+      "tablename": "eval_results",
+      "indexname": "eval_results_pkey",
+      "indexdef": "CREATE UNIQUE INDEX eval_results_pkey ON public.eval_results USING btree (id)"
+    },
+    {
+      "tablename": "eval_results",
+      "indexname": "eval_results_run_question_unique",
+      "indexdef": "CREATE UNIQUE INDEX eval_results_run_question_unique ON public.eval_results USING btree (run_id, question_id)"
+    },
+    {
+      "tablename": "eval_runs",
+      "indexname": "eval_runs_pkey",
+      "indexdef": "CREATE UNIQUE INDEX eval_runs_pkey ON public.eval_runs USING btree (id)"
+    },
+    {
+      "tablename": "eval_runs",
+      "indexname": "eval_runs_set_idx",
+      "indexdef": "CREATE INDEX eval_runs_set_idx ON public.eval_runs USING btree (eval_set_id)"
+    },
+    {
+      "tablename": "eval_sets",
+      "indexname": "eval_sets_pkey",
+      "indexdef": "CREATE UNIQUE INDEX eval_sets_pkey ON public.eval_sets USING btree (id)"
+    },
+    {
+      "tablename": "query_logs",
+      "indexname": "query_logs_pkey",
+      "indexdef": "CREATE UNIQUE INDEX query_logs_pkey ON public.query_logs USING btree (id)"
+    },
+    {
+      "tablename": "rate_limits",
+      "indexname": "rate_limits_pkey",
+      "indexdef": "CREATE UNIQUE INDEX rate_limits_pkey ON public.rate_limits USING btree (key)"
+    },
+    {
+      "tablename": "rate_limits",
+      "indexname": "rate_limits_window_start_idx",
+      "indexdef": "CREATE INDEX rate_limits_window_start_idx ON public.rate_limits USING btree (window_start)"
+    }
+  ],
+  "constraints": [
+    {
+      "table_name": "analytics_queries",
+      "conname": "analytics_queries_created_by_app_users_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (created_by) REFERENCES app_users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "analytics_queries",
+      "conname": "analytics_queries_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "app_sessions",
+      "conname": "app_sessions_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "app_sessions",
+      "conname": "app_sessions_user_id_app_users_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "app_users",
+      "conname": "app_users_clearance_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((clearance = ANY (ARRAY['open'::text, 'secret'::text, 'top_secret'::text, 'special'::text])))"
+    },
+    {
+      "table_name": "app_users",
+      "conname": "app_users_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "app_users",
+      "conname": "app_users_username_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK (((username = lower(btrim(username))) AND ((char_length(username) >= 1) AND (char_length(username) <= 50))))"
+    },
+    {
+      "table_name": "attachments",
+      "conname": "attachments_document_id_documents_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "attachments",
+      "conname": "attachments_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "attachments",
+      "conname": "attachments_size_nonnegative",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((size >= 0))"
+    },
+    {
+      "table_name": "attachments",
+      "conname": "attachments_storage_key_unique",
+      "contype": "u",
+      "convalidated": true,
+      "definition": "UNIQUE (storage_key)"
+    },
+    {
+      "table_name": "auth_login_attempts",
+      "conname": "auth_login_attempts_nonnegative_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((attempts >= 0))"
+    },
+    {
+      "table_name": "auth_login_attempts",
+      "conname": "auth_login_attempts_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (key)"
+    },
+    {
+      "table_name": "brief_attachments",
+      "conname": "brief_attachments_brief_id_daily_briefs_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (brief_id) REFERENCES daily_briefs(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "brief_attachments",
+      "conname": "brief_attachments_brief_ord_unique",
+      "contype": "u",
+      "convalidated": true,
+      "definition": "UNIQUE (brief_id, ord)"
+    },
+    {
+      "table_name": "brief_attachments",
+      "conname": "brief_attachments_mime_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((mime = ANY (ARRAY['image/jpeg'::text, 'image/png'::text, 'image/webp'::text])))"
+    },
+    {
+      "table_name": "brief_attachments",
+      "conname": "brief_attachments_ord_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK (((ord >= 0) AND (ord < 10)))"
+    },
+    {
+      "table_name": "brief_attachments",
+      "conname": "brief_attachments_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "brief_attachments",
+      "conname": "brief_attachments_size_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK (((size > 0) AND (size <= 10485760)))"
+    },
+    {
+      "table_name": "brief_attachments",
+      "conname": "brief_attachments_storage_key_unique",
+      "contype": "u",
+      "convalidated": true,
+      "definition": "UNIQUE (storage_key)"
+    },
+    {
+      "table_name": "chunks",
+      "conname": "chunks_brief_id_daily_briefs_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (brief_id) REFERENCES daily_briefs(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "chunks",
+      "conname": "chunks_brief_ord_unique",
+      "contype": "u",
+      "convalidated": true,
+      "definition": "UNIQUE (brief_id, ord)"
+    },
+    {
+      "table_name": "chunks",
+      "conname": "chunks_char_range_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((char_start <= char_end))"
+    },
+    {
+      "table_name": "chunks",
+      "conname": "chunks_document_id_documents_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "chunks",
+      "conname": "chunks_document_ord_unique",
+      "contype": "u",
+      "convalidated": true,
+      "definition": "UNIQUE (document_id, ord)"
+    },
+    {
+      "table_name": "chunks",
+      "conname": "chunks_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "chunks",
+      "conname": "chunks_source_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((((document_id IS NOT NULL) AND (brief_id IS NULL)) OR ((document_id IS NULL) AND (brief_id IS NOT NULL))))"
+    },
+    {
+      "table_name": "daily_briefs",
+      "conname": "daily_briefs_author_id_app_users_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (author_id) REFERENCES app_users(id) ON DELETE RESTRICT"
+    },
+    {
+      "table_name": "daily_briefs",
+      "conname": "daily_briefs_body_length_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((char_length(body) <= 200000))"
+    },
+    {
+      "table_name": "daily_briefs",
+      "conname": "daily_briefs_index_status_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((index_status = ANY (ARRAY['none'::text, 'queued'::text, 'processing'::text, 'ready'::text, 'failed'::text])))"
+    },
+    {
+      "table_name": "daily_briefs",
+      "conname": "daily_briefs_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "daily_briefs",
+      "conname": "daily_briefs_status_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((status = 'published'::text))"
+    },
+    {
+      "table_name": "daily_briefs",
+      "conname": "daily_briefs_updated_by_app_users_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (updated_by) REFERENCES app_users(id) ON DELETE SET NULL"
+    },
+    {
+      "table_name": "documents",
+      "conname": "documents_chunk_count_nonnegative",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((chunk_count >= 0))"
+    },
+    {
+      "table_name": "documents",
+      "conname": "documents_classification_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((classification = ANY (ARRAY['open'::text, 'secret'::text, 'top_secret'::text, 'special'::text])))"
+    },
+    {
+      "table_name": "documents",
+      "conname": "documents_department_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK (((department IS NULL) OR (department = ANY (ARRAY['d1'::text, 'd2'::text, 'd3'::text, 'd4'::text, 'd5'::text]))))"
+    },
+    {
+      "table_name": "documents",
+      "conname": "documents_direction_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK (((direction IS NULL) OR (direction = ANY (ARRAY['HUMINT'::text, 'OSINT'::text, 'IMINT'::text, 'SIGINT'::text, 'CYBINT'::text, 'GEOINT'::text, 'MASINT'::text, 'TECHINT'::text, 'FININT'::text, 'TACINT_CI'::text]))))"
+    },
+    {
+      "table_name": "documents",
+      "conname": "documents_info_credibility_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK (((info_credibility >= 1) AND (info_credibility <= 6)))"
+    },
+    {
+      "table_name": "documents",
+      "conname": "documents_owner_id_app_users_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (owner_id) REFERENCES app_users(id) ON DELETE RESTRICT"
+    },
+    {
+      "table_name": "documents",
+      "conname": "documents_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "documents",
+      "conname": "documents_source_reliability_check",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((source_reliability = ANY (ARRAY['A'::bpchar, 'B'::bpchar, 'C'::bpchar, 'D'::bpchar, 'E'::bpchar, 'F'::bpchar])))"
+    },
+    {
+      "table_name": "eval_questions",
+      "conname": "eval_questions_eval_set_id_eval_sets_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (eval_set_id) REFERENCES eval_sets(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "eval_questions",
+      "conname": "eval_questions_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "eval_results",
+      "conname": "eval_results_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "eval_results",
+      "conname": "eval_results_question_id_eval_questions_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (question_id) REFERENCES eval_questions(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "eval_results",
+      "conname": "eval_results_run_id_eval_runs_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (run_id) REFERENCES eval_runs(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "eval_results",
+      "conname": "eval_results_run_question_unique",
+      "contype": "u",
+      "convalidated": true,
+      "definition": "UNIQUE (run_id, question_id)"
+    },
+    {
+      "table_name": "eval_runs",
+      "conname": "eval_runs_eval_set_id_eval_sets_id_fk",
+      "contype": "f",
+      "convalidated": true,
+      "definition": "FOREIGN KEY (eval_set_id) REFERENCES eval_sets(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "eval_runs",
+      "conname": "eval_runs_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "eval_sets",
+      "conname": "eval_sets_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "query_logs",
+      "conname": "query_logs_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "rate_limits",
+      "conname": "rate_limits_count_nonnegative",
+      "contype": "c",
+      "convalidated": true,
+      "definition": "CHECK ((count >= 0))"
+    },
+    {
+      "table_name": "rate_limits",
+      "conname": "rate_limits_pkey",
+      "contype": "p",
+      "convalidated": true,
+      "definition": "PRIMARY KEY (key)"
+    }
+  ],
+  "triggers": [],
+  "legacyHistory": [
+    {
+      "rows": 0
+    }
+  ]
+}

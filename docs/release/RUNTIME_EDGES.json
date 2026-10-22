@@ -1,0 +1,47 @@
+{
+  "checkedAt": "2026-10-22T03:40:21.908Z",
+  "status": "PASS",
+  "failureCase": null,
+  "checks": [
+    {
+      "name": "attachment HTTP private/auth/UUID/clearance and brief access",
+      "status": "PASS"
+    },
+    {
+      "name": "active/session revalidation on real HTTP",
+      "status": "PASS"
+    },
+    {
+      "name": "classified question never dispatched; lexical sources remain available",
+      "status": "PASS"
+    },
+    {
+      "name": "embedding quota uses lexical fallback without leaking restricted sources",
+      "status": "PASS"
+    },
+    {
+      "name": "quota fallback records the actual light model in stream and durable history",
+      "status": "PASS"
+    },
+    {
+      "name": "malformed retry succeeds with validated no-answer; completed history survives late abort",
+      "status": "PASS"
+    },
+    {
+      "name": "malformed generation exhausts two validation attempts; no invalid answer published",
+      "status": "PASS"
+    },
+    {
+      "name": "real HTTP disconnect cancels provider and durable history",
+      "status": "PASS"
+    },
+    {
+      "name": "actual 105-second endpoint deadline fails history and closes HTTP stream",
+      "status": "PASS"
+    }
+  ],
+  "fixtureLeftovers": 0,
+  "storageCleanup": "exact two synthetic keys deleted and absence verified",
+  "provider": "actual SDK; synthetic fetch transport in local subprocess; no external AI calls",
+  "cloudWorkerDelivery": "NOT VERIFIED"
+}

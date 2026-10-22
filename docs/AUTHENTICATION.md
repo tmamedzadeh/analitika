@@ -3,7 +3,7 @@
 ## Deployment order
 
 1. Keep `DATABASE_URL_MIGRATE` and `DATABASE_URL` pointed at this project's configured PostgreSQL database.
-2. Run `bun run db:migrate`. This is forward-only migration `0013_auth_users_sessions`; it adds user, session, and login-rate-limit tables and does not modify existing document or brief rows.
+2. Inspect the migration journal and run `bun run db:check-drift` before changing an existing database. The configured live project already has migrations 0000–0023; do not reapply them. For a new installation, `bun run db:migrate` applies pending forward-only migrations; authentication tables were introduced in 0013.
 3. With `DATABASE_URL` still pointing at that target, run `bun run auth:create-admin` in an interactive terminal. The command asks for a username, one of the existing clearance values (`open`, `secret`, `top_secret`, `special`), and a password twice without echoing it. It refuses to bootstrap if an active administrator already exists.
 4. Deploy the new application version after the migration and administrator creation succeed. Remove `DEMO_BASIC_AUTH` from runtime configuration; the application no longer reads it. Keep independent Vercel Deployment Protection settings as configured.
 
@@ -21,4 +21,8 @@ Document and brief attachments are streamed through authenticated application ro
 
 ## Migration status
 
-Forward-only migrations through `0018_remove_retired_features_and_tags` have been applied to the configured PostgreSQL database. The Drizzle journal has 19 entries. Direct catalog verification confirmed that document request and document-user ACL tables are absent, `documents.tags` is absent, and the existing document, chunk, embedding, brief, and query-history tables remain. The current user's clearance continues to cap document access regardless of role or ownership.
+Forward-only migrations through `0023_reconcile_legacy_constraint_names` are applied to the configured project DB (24 entries). All 15 application tables have RLS enabled and client/PUBLIC grants revoked; the trusted server PostgreSQL connection enforces application authorization. Historical migrations remain immutable. See `release/LIVE_DB_RESUME.json` and the current hardening audit for timestamped evidence. Owner/admin never overrides content clearance.
+
+External AI defaults to open-only. V1 questions have no separate classification input, so external query embedding, reranking and generation conservatively use the active user's live clearance, as history already does. Higher-clearance users retain local lexical source search; external processing requires an approved classification policy. A nonempty policy reference is configuration, not proof of approval.
+
+New image uploads use user-scoped temporary keys. Save validates bounded bytes, MIME and signature and writes a new server-only committed object. Reusing the temporary signed PUT or discarding its key cannot change the committed attachment. Existing committed corpus keys are unchanged.

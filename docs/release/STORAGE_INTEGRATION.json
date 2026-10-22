@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-10-22T03:27:39.936Z",
+  "status": "PASS",
+  "checks": [
+    "Configured Supabase bucket exists and is private",
+    "Signed read returns only the new synthetic object; unsigned S3 and public-object paths deny access",
+    "Exact new object deleted and deletion verified",
+    "PUT signature binds declared size and MIME; mismatched size/type rejected by live S3",
+    "Signed PUT; owner/size/signature rejection; committed bytes survive staging overwrite/discard; committed key cannot be discarded"
+  ],
+  "corpusObjectsTouched": 0,
+  "fixtureCleanup": "all exact probe keys deleted; absence verified"
+}

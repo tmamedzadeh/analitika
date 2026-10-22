@@ -230,6 +230,11 @@ function retryDelay(error: unknown, attempt: number): number {
   return Math.max(exponential, getRetryAfterMs(error) ?? 0);
 }
 
+function isTransientProviderFailure(error: unknown): boolean {
+  const status = getStatusCode(error);
+  return status !== undefined && [408, 500, 502, 503, 504].includes(status);
+}
+
 function pause(milliseconds: number, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) return Promise.reject(signal.reason ?? new Error("Request was aborted."));
   return new Promise<void>((resolve, reject) => {
@@ -266,7 +271,17 @@ export async function withGeminiRequest<T>(
       release();
     }
 
-    if (!isGeminiQuotaError(failure)) throw failure;
+    if (!isGeminiQuotaError(failure)) {
+      const delay = retryDelay(failure, attempt);
+      if (
+        !isTransientProviderFailure(failure) ||
+        attempt >= maxAttempts ||
+        delay > MAX_RETRY_DELAY_MS
+      )
+        throw failure;
+      await pause(delay, signal);
+      continue;
+    }
     limitKind = classifyQuotaResponse(failure);
     statusCode = getStatusCode(failure) ?? 429;
     ({ ids: quotaIds, metrics: quotaMetrics } = quotaResponseMetadata(failure));
@@ -321,7 +336,18 @@ export async function* withGeminiStream<T>(
       release();
     }
 
-    if (!isGeminiQuotaError(failure)) throw failure;
+    if (!isGeminiQuotaError(failure)) {
+      const delay = retryDelay(failure, attempt);
+      if (
+        emitted ||
+        !isTransientProviderFailure(failure) ||
+        attempt >= maxAttempts ||
+        delay > MAX_RETRY_DELAY_MS
+      )
+        throw failure;
+      await pause(delay, signal);
+      continue;
+    }
     limitKind = classifyQuotaResponse(failure);
     statusCode = getStatusCode(failure) ?? 429;
     ({ ids: quotaIds, metrics: quotaMetrics } = quotaResponseMetadata(failure));

@@ -1,0 +1,587 @@
+{
+  "capturedAt": "2026-10-22T03:13:40.410Z",
+  "inngest": {
+    "app": {
+      "httpStatus": 200,
+      "keys": [
+        "data",
+        "metadata"
+      ],
+      "dataKeys": [
+        "createdAt",
+        "functionCount",
+        "id",
+        "latestSync",
+        "method",
+        "name"
+      ],
+      "data": {
+        "id": "analitika",
+        "name": "analitika",
+        "functionCount": 8,
+        "latestSync": {
+          "status": "success",
+          "syncedAt": "2026-10-20T14:07:30.419412Z",
+          "sdkVersion": "4.24.0",
+          "url": {
+            "origin": "https://analitika-hjzok789t-tm-d91f.vercel.app",
+            "path": "/api/inngest",
+            "queryParameterNames": [
+              "x-vercel-protection-bypass"
+            ]
+          }
+        }
+      }
+    },
+    "functions": {
+      "httpStatus": 200,
+      "keys": [
+        "data",
+        "metadata",
+        "page"
+      ],
+      "data": [
+        {
+          "id": "run-osint",
+          "name": "run-osint",
+          "slug": "run-osint",
+          "triggers": [
+            {}
+          ],
+          "keys": [
+            "app",
+            "configuration",
+            "id",
+            "name",
+            "slug",
+            "triggers"
+          ]
+        },
+        {
+          "id": "requeue-pending-briefs",
+          "name": "requeue-pending-briefs",
+          "slug": "requeue-pending-briefs",
+          "triggers": [
+            {}
+          ],
+          "keys": [
+            "app",
+            "configuration",
+            "id",
+            "name",
+            "slug",
+            "triggers"
+          ]
+        },
+        {
+          "id": "cleanup-orphaned-uploads",
+          "name": "cleanup-orphaned-uploads",
+          "slug": "cleanup-orphaned-uploads",
+          "triggers": [
+            {}
+          ],
+          "keys": [
+            "app",
+            "configuration",
+            "id",
+            "name",
+            "slug",
+            "triggers"
+          ]
+        },
+        {
+          "id": "cleanup-analytics-history",
+          "name": "cleanup-analytics-history",
+          "slug": "cleanup-analytics-history",
+          "triggers": [
+            {}
+          ],
+          "keys": [
+            "app",
+            "configuration",
+            "id",
+            "name",
+            "slug",
+            "triggers"
+          ]
+        },
+        {
+          "id": "close-stale-osint-runs",
+          "name": "close-stale-osint-runs",
+          "slug": "close-stale-osint-runs",
+          "triggers": [
+            {}
+          ],
+          "keys": [
+            "app",
+            "configuration",
+            "id",
+            "name",
+            "slug",
+            "triggers"
+          ]
+        },
+        {
+          "id": "process-document",
+          "name": "process-document",
+          "slug": "process-document",
+          "triggers": [
+            {}
+          ],
+          "keys": [
+            "app",
+            "configuration",
+            "id",
+            "name",
+            "slug",
+            "triggers"
+          ]
+        },
+        {
+          "id": "index-brief",
+          "name": "index-brief",
+          "slug": "index-brief",
+          "triggers": [
+            {}
+          ],
+          "keys": [
+            "app",
+            "configuration",
+            "id",
+            "name",
+            "slug",
+            "triggers"
+          ]
+        },
+        {
+          "id": "retry-osint-summary",
+          "name": "retry-osint-summary",
+          "slug": "retry-osint-summary",
+          "triggers": [
+            {}
+          ],
+          "keys": [
+            "app",
+            "configuration",
+            "id",
+            "name",
+            "slug",
+            "triggers"
+          ]
+        }
+      ]
+    },
+    "runs": {
+      "httpStatus": 200,
+      "keys": [
+        "data",
+        "metadata",
+        "page"
+      ],
+      "data": [
+        {
+          "id": "01M5GRT6W04C6N59BH7PCKBAFM",
+          "status": "FAILED",
+          "startedAt": "2026-10-22T03:00:17.168Z",
+          "endedAt": "2026-10-22T03:05:45.158Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GRT6W0SGR69Q8SNJV7DJWW",
+          "status": "COMPLETED",
+          "startedAt": "2026-10-22T03:00:17.168Z",
+          "endedAt": "2026-10-22T03:00:22.146Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GQYQZ0SGR69Q8SNJV7DJWW",
+          "status": "COMPLETED",
+          "startedAt": "2026-10-22T02:45:03.407Z",
+          "endedAt": "2026-10-22T02:45:06.423Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GQYQZ04C6N59BH7PCKBAFM",
+          "status": "FAILED",
+          "startedAt": "2026-10-22T02:45:03.410Z",
+          "endedAt": "2026-10-22T02:50:10.559Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GQ39204C6N59BH7PCKBAFM",
+          "status": "FAILED",
+          "startedAt": "2026-10-22T02:30:10.016Z",
+          "endedAt": "2026-10-22T02:35:14.599Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GQ3920SGR69Q8SNJV7DJWW",
+          "status": "COMPLETED",
+          "startedAt": "2026-10-22T02:30:07.510Z",
+          "endedAt": "2026-10-22T02:30:10.442Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GP7T50SGR69Q8SNJV7DJWW",
+          "status": "COMPLETED",
+          "startedAt": "2026-10-22T02:15:03.251Z",
+          "endedAt": "2026-10-22T02:15:06.122Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GP7T504C6N59BH7PCKBAFM",
+          "status": "FAILED",
+          "startedAt": "2026-10-22T02:15:02.033Z",
+          "endedAt": "2026-10-22T02:19:50.967Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GNCB80140WMXW14XW8QPZC",
+          "status": "COMPLETED",
+          "startedAt": "2026-10-22T02:00:05.817Z",
+          "endedAt": "2026-10-22T02:00:08.988Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GNCB80SGR69Q8SNJV7DJWW",
+          "status": "COMPLETED",
+          "startedAt": "2026-10-22T02:00:05.816Z",
+          "endedAt": "2026-10-22T02:00:08.967Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GNCB80EPRP5G7583N80YHH",
+          "status": "COMPLETED",
+          "startedAt": "2026-10-22T02:00:05.817Z",
+          "endedAt": "2026-10-22T02:00:09.961Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GNCB804C6N59BH7PCKBAFM",
+          "status": "FAILED",
+          "startedAt": "2026-10-22T02:00:05.817Z",
+          "endedAt": "2026-10-22T02:04:54.387Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GMGWB04C6N59BH7PCKBAFM",
+          "status": "FAILED",
+          "startedAt": "2026-10-22T01:45:03.979Z",
+          "endedAt": "2026-10-22T01:49:30.407Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GMGWB0SGR69Q8SNJV7DJWW",
+          "status": "COMPLETED",
+          "startedAt": "2026-10-22T01:45:00.002Z",
+          "endedAt": "2026-10-22T01:45:02.456Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GKNDE04C6N59BH7PCKBAFM",
+          "status": "FAILED",
+          "startedAt": "2026-10-22T01:30:07.808Z",
+          "endedAt": "2026-10-22T01:35:31.537Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GKNDE0SGR69Q8SNJV7DJWW",
+          "status": "COMPLETED",
+          "startedAt": "2026-10-22T01:30:07.809Z",
+          "endedAt": "2026-10-22T01:30:10.798Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GJSYH04C6N59BH7PCKBAFM",
+          "status": "FAILED",
+          "startedAt": "2026-10-22T01:15:08.910Z",
+          "endedAt": "2026-10-22T01:20:11.929Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GJSYH0SGR69Q8SNJV7DJWW",
+          "status": "COMPLETED",
+          "startedAt": "2026-10-22T01:15:06.957Z",
+          "endedAt": "2026-10-22T01:15:10.242Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GHYFM0SGR69Q8SNJV7DJWW",
+          "status": "COMPLETED",
+          "startedAt": "2026-10-22T01:00:20.151Z",
+          "endedAt": "2026-10-22T01:00:23.016Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        },
+        {
+          "id": "01M5GHYFM04C6N59BH7PCKBAFM",
+          "status": "FAILED",
+          "startedAt": "2026-10-22T01:00:21.974Z",
+          "endedAt": "2026-10-22T01:05:25.136Z",
+          "keys": [
+            "app",
+            "durationMs",
+            "endedAt",
+            "function",
+            "id",
+            "isDeferred",
+            "queuedAt",
+            "startedAt",
+            "status",
+            "trigger"
+          ]
+        }
+      ]
+    }
+  },
+  "github": {
+    "branch": {
+      "httpStatus": 200,
+      "branch": "main",
+      "sha": "a45706e8c0979df1babd20851639e0c9d6a99982",
+      "protected": false
+    },
+    "protection": {
+      "httpStatus": 404
+    },
+    "rules": {
+      "httpStatus": 200,
+      "items": []
+    },
+    "deployments": {
+      "httpStatus": 200,
+      "items": []
+    },
+    "checks": {
+      "httpStatus": 200,
+      "checks": []
+    },
+    "statuses": {
+      "httpStatus": 200,
+      "state": "failure",
+      "statuses": [
+        {
+          "context": "Vercel",
+          "state": "failure",
+          "url": {
+            "origin": "https://vercel.com",
+            "path": "/tm-d91f/analitika/8MKdrbUZxDEE7XRtMdCKzSHyczcD",
+            "queryParameterNames": []
+          }
+        }
+      ]
+    },
+    "pulls": {
+      "httpStatus": 200,
+      "items": []
+    }
+  }
+}

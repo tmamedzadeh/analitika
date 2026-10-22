@@ -11,13 +11,13 @@ import {
   documents,
 } from "../src/server/db/schema";
 import { withCurrentUser, type SessionUser } from "../src/server/auth";
-import { documentAccessFilter } from "../src/server/db/access";
+import { documentAccessFilter, documentManagementFilter } from "../src/server/db/access";
 import type { EmbeddingProvider } from "../src/server/ai/types";
 import { processDocumentJob } from "../src/server/jobs/process-document";
 import { indexBriefJob } from "../src/server/jobs/index-brief";
 import { recoverPendingBriefs, recoverPendingDocuments } from "../src/server/jobs/recover-indexes";
 import { buildBriefListConditions, buildBriefSearchQuery } from "../src/server/briefs/queries";
-import { saveBriefRecord } from "../src/server/briefs/mutations";
+import { removeBrief, saveBriefRecord } from "../src/server/briefs/mutations";
 import { hasCommittedBriefIndex } from "../src/server/briefs/index-state";
 import { recheckAnalyticsSourceAccess } from "../src/server/analytics/source-access";
 import { getAnalyticsHistoryRecord, listAnalyticsHistory } from "../src/server/analytics/history";
@@ -483,6 +483,62 @@ try {
   );
 
   await check(
+    "mutations: clearance and live role guard direction, retry and deletion predicates",
+    async () => {
+      for (const user of [owner, lowAdmin]) {
+        const changed = await db
+          .update(documents)
+          .set({ direction: "IMINT" })
+          .where(and(eq(documents.id, documentIds[1]!), documentManagementFilter(user)))
+          .returning({ id: documents.id });
+        assert.equal(changed.length, 0);
+        const deleted = await db
+          .delete(documents)
+          .where(and(eq(documents.id, documentIds[1]!), documentManagementFilter(user)))
+          .returning({ id: documents.id });
+        assert.equal(deleted.length, 0);
+      }
+      // A stale admin context cannot manage another user's open document.
+      await db.update(appUsers).set({ role: "user" }).where(eq(appUsers.id, lowAdmin.id));
+      try {
+        const changed = await db
+          .update(documents)
+          .set({ status: "queued" })
+          .where(and(eq(documents.id, documentIds[0]!), documentManagementFilter(lowAdmin)))
+          .returning({ id: documents.id });
+        assert.equal(changed.length, 0);
+        await assert.rejects(() => withCurrentUser(lowAdmin, () => removeBrief(briefId)));
+        await assert.rejects(() =>
+          withCurrentUser(lowAdmin, () =>
+            saveBriefRecord(
+              {
+                briefId,
+                isNew: false,
+                status: "published",
+                title: "Demoted actor must not change this",
+                body: "Synthetic",
+                date: getBakuDate(),
+                keepAttachmentIds: [],
+                uploads: [],
+              },
+              { sendIndexing: async () => undefined },
+            ),
+          ),
+        );
+      } finally {
+        await db.update(appUsers).set({ role: "admin" }).where(eq(appUsers.id, lowAdmin.id));
+      }
+      // Allowed ownership still works with the live DB predicate.
+      const changed = await db
+        .update(documents)
+        .set({ direction: "OSINT" })
+        .where(and(eq(documents.id, documentIds[0]!), documentManagementFilter(owner)))
+        .returning({ id: documents.id });
+      assert.equal(changed.length, 1);
+    },
+  );
+
+  await check(
     "citations: current chunk ownership, exact text and live clearance revalidation",
     async () => {
       await processDocumentJob(documentIds[1]!, { embeddings: provider() });
@@ -561,6 +617,26 @@ try {
         null,
       );
       assert.ok(await withCurrentUser(highUser, () => getAnalyticsHistoryRecord(historyId)));
+    },
+  );
+  await check(
+    "history: live administrator demotion rejects stale-session access to another author",
+    async () => {
+      await db
+        .update(analyticsQueries)
+        .set({ maxClassification: "open" })
+        .where(eq(analyticsQueries.id, historyId));
+      assert.ok(await withCurrentUser(lowAdmin, () => getAnalyticsHistoryRecord(historyId)));
+      await db.update(appUsers).set({ role: "user" }).where(eq(appUsers.id, lowAdmin.id));
+      assert.equal(
+        await withCurrentUser(lowAdmin, () => getAnalyticsHistoryRecord(historyId)),
+        null,
+      );
+      assert.equal(
+        (await withCurrentUser(lowAdmin, listAnalyticsHistory)).some((row) => row.id === historyId),
+        false,
+      );
+      await db.update(appUsers).set({ role: "admin" }).where(eq(appUsers.id, lowAdmin.id));
     },
   );
 } catch (error) {

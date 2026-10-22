@@ -1,0 +1,46 @@
+{
+  "capturedAt": "2026-10-22T03:21:21.750Z",
+  "authorization": "Final production release request: retire OSINT Web, no runtime jobs reintroduced",
+  "action": "Pause only the three obsolete OSINT functions in existing production app; no function sync, no events, no corpus changes",
+  "results": [
+    {
+      "functionId": "run-osint",
+      "pauseHttpStatus": 200,
+      "readbackHttpStatus": 200,
+      "dataKeys": [
+        "app",
+        "configuration",
+        "id",
+        "name",
+        "slug",
+        "triggers"
+      ]
+    },
+    {
+      "functionId": "close-stale-osint-runs",
+      "pauseHttpStatus": 200,
+      "readbackHttpStatus": 200,
+      "dataKeys": [
+        "app",
+        "configuration",
+        "id",
+        "name",
+        "slug",
+        "triggers"
+      ]
+    },
+    {
+      "functionId": "retry-osint-summary",
+      "pauseHttpStatus": 200,
+      "readbackHttpStatus": 200,
+      "dataKeys": [
+        "app",
+        "configuration",
+        "id",
+        "name",
+        "slug",
+        "triggers"
+      ]
+    }
+  ]
+}

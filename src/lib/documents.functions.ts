@@ -21,6 +21,7 @@ import { getStorage } from "../server/storage/s3";
 import { deleteObjectsBestEffort } from "../server/storage/delete-objects";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 import { mergeIndexProgress } from "@/server/jobs/index-state";
+import { commitImageUploads, newImageUploadKey } from "@/server/storage/image-uploads";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const documentDateSchema = z
@@ -163,14 +164,6 @@ export const listRecentDocuments = createServerFn({ method: "GET" }).handler(asy
   }));
 });
 
-function validDocumentUploadKey(
-  documentId: string,
-  key: string,
-  mime: keyof typeof imageTypes,
-): boolean {
-  return new RegExp(`^documents/${documentId}/[0-9a-f-]{36}\\.${imageTypes[mime]}$`, "i").test(key);
-}
-
 export function documentUploadMatches(input: {
   expectedMime: keyof typeof imageTypes;
   expectedSize: number;
@@ -203,7 +196,7 @@ export const prepareDocumentUploads = createServerFn({ method: "POST" })
       name: safeFileName(photo.name),
       mime: photo.mime,
       size: photo.size,
-      key: `documents/${documentId}/${crypto.randomUUID()}.${imageTypes[photo.mime]}`,
+      key: newImageUploadKey("documents", documentId, user.id, photo.mime),
     }));
 
     try {
@@ -215,7 +208,7 @@ export const prepareDocumentUploads = createServerFn({ method: "POST" })
           mime: photo.mime,
           size: photo.size,
           key: photo.key,
-          url: await storage.getSignedUploadUrl(photo.key, photo.mime),
+          url: await storage.getSignedUploadUrl(photo.key, photo.mime, photo.size),
         })),
       );
       return { documentId, uploads };
@@ -233,74 +226,64 @@ export const saveDocument = createServerFn({ method: "POST" })
     }
     const db = getDb();
     const storage = getStorage();
-    try {
-      for (const upload of data.uploads) {
-        if (!validDocumentUploadKey(data.documentId, upload.key, upload.mime)) {
-          throw new Error(az.documents.form.uploadMetadataMismatch);
-        }
-        const [metadata, signature] = await Promise.all([
-          storage.getMetadata(upload.key),
-          storage.getPrefix(upload.key, 12),
-        ]);
-        if (
-          !documentUploadMatches({
-            expectedMime: upload.mime,
-            expectedSize: upload.size,
-            actualSize: metadata.size,
-            actualContentType: metadata.contentType,
-            signature,
-          })
-        ) {
-          throw new Error(az.documents.form.uploadMetadataMismatch);
-        }
-      }
-    } catch {
+    const committedUploads = await commitImageUploads(
+      storage,
+      "documents",
+      data.documentId,
+      user.id,
+      data.uploads,
+    ).catch(() => {
       throw new Error(az.documents.form.uploadMetadataMismatch);
-    }
-
-    await db.transaction(async (transaction) => {
-      const [currentUser] = await transaction
-        .select({ clearance: appUsers.clearance, active: appUsers.active })
-        .from(appUsers)
-        .where(eq(appUsers.id, user.id))
-        .for("share")
-        .limit(1);
-      if (
-        !currentUser?.active ||
-        !canAccessClassification(
-          { clearance: currentUser.clearance as Clearance },
-          data.classification,
-        )
-      ) {
-        throw new Error("Your clearance does not allow this classification.");
-      }
-      await transaction.insert(documents).values({
-        id: data.documentId,
-        title: data.title,
-        body: data.body,
-        docDate: data.docDate || null,
-        direction: data.direction,
-        classification: data.classification,
-        ownerId: user.id,
-        sourceReliability: data.sourceReliability,
-        infoCredibility: data.infoCredibility,
-        status: "queued",
-        step: "queued",
-        progress: { percent: 0, totalChunks: 0, completedChunks: 0 },
-      });
-      if (data.uploads.length > 0) {
-        await transaction.insert(attachments).values(
-          data.uploads.map((upload) => ({
-            id: crypto.randomUUID(),
-            documentId: data.documentId,
-            storageKey: upload.key,
-            mime: upload.mime,
-            size: upload.size,
-            caption: safeFileName(upload.name),
-          })),
-        );
-      }
     });
+    try {
+      await db.transaction(async (transaction) => {
+        const [currentUser] = await transaction
+          .select({ clearance: appUsers.clearance, active: appUsers.active })
+          .from(appUsers)
+          .where(eq(appUsers.id, user.id))
+          .for("share")
+          .limit(1);
+        if (
+          !currentUser?.active ||
+          !canAccessClassification(
+            { clearance: currentUser.clearance as Clearance },
+            data.classification,
+          )
+        ) {
+          throw new Error("Your clearance does not allow this classification.");
+        }
+        await transaction.insert(documents).values({
+          id: data.documentId,
+          title: data.title,
+          body: data.body,
+          docDate: data.docDate || null,
+          direction: data.direction,
+          classification: data.classification,
+          ownerId: user.id,
+          sourceReliability: data.sourceReliability,
+          infoCredibility: data.infoCredibility,
+          status: "queued",
+          step: "queued",
+          progress: { percent: 0, totalChunks: 0, completedChunks: 0 },
+        });
+        if (data.uploads.length > 0) {
+          await transaction.insert(attachments).values(
+            committedUploads.map((upload) => ({
+              id: crypto.randomUUID(),
+              documentId: data.documentId,
+              storageKey: upload.key,
+              mime: upload.mime,
+              size: upload.size,
+              caption: safeFileName(upload.name),
+            })),
+          );
+        }
+      });
+    } catch (error) {
+      await Promise.allSettled(committedUploads.map(({ key }) => storage.delete(key)));
+      throw error;
+    }
+    await Promise.allSettled(data.uploads.map(({ key }) => storage.delete(key)));
 
     const queueFailed = await queueDocumentIndexing(data.documentId);
     return { documentId: data.documentId, queueFailed };

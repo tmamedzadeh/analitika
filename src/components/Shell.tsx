@@ -84,7 +84,7 @@ export function Shell({
               {crumb}
             </p>
           )}
-          <h1 className="text-[1.55rem] font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+          <h1 className="text-[1.55rem] font-semibold leading-tight tracking-tight text-foreground [overflow-wrap:anywhere] sm:text-3xl">
             {title}
           </h1>
         </div>

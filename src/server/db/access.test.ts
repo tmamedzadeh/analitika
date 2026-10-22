@@ -59,4 +59,14 @@ describe("document management permission", () => {
     expect(query.sql).toContain('"documents"."owner_id" =');
     expect(query.params).toContain(user.id);
   });
+
+  it("keeps live clearance, active state and admin role in every management query", () => {
+    for (const candidate of [user, { ...user, role: "admin" as const }]) {
+      const query = new PgDialect().sqlToQuery(documentManagementFilter(candidate)!);
+      expect(query.sql).toContain('case "documents"."classification"');
+      expect(query.sql).toContain('"app_users"."active" = true');
+      expect(query.sql).toContain('"app_users"."role" = \'admin\'');
+      expect(query.sql).toContain('"documents"."owner_id" =');
+    }
+  });
 });

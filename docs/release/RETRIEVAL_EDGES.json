@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-10-22T03:30:57.777Z",
+  "status": "PASS",
+  "failureCase": null,
+  "checks": [
+    "Owner/admin open clearance excludes secret content; future documents and unindexed briefs excluded",
+    "Real retrieval direction/period/reliability filters and document-only brief exclusion",
+    "Malformed query vector safely falls back to lexical; wrong model excluded from vector branch; lexical no-match evaluated separately",
+    "Higher-clearance local retrieval remains available; query classification prevents external rerank dispatch",
+    "Already-aborted retrieval rejects before DB/provider work",
+    "Configured 768-dimensional cosine HNSW index usable by matching model/order operator; normal and forced plans inspected"
+  ],
+  "normalHnsw": false,
+  "forcedHnsw": true,
+  "externalCalls": 0,
+  "fixtureLeftovers": 0,
+  "baseline": "Existing 17-query real-corpus benchmark preserved; scoped access/no-answer checks reported separately",
+  "limits": "Forced HNSW plan tests operator/index compatibility; it does not establish large-corpus latency or joined query planner choice"
+}

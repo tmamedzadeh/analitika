@@ -1,4 +1,4 @@
-import { eq, sql, type SQLWrapper } from "drizzle-orm";
+import { and, eq, or, sql, type SQLWrapper } from "drizzle-orm";
 
 import { getCurrentUser as getAuthenticatedUser, type SessionUser } from "@/server/auth";
 import { appUsers, documents } from "./schema";
@@ -53,8 +53,20 @@ export function canManageDocument(user: CurrentUser, ownerId: string) {
   return user.role === "admin" || ownerId === user.id;
 }
 
-export function documentManagementFilter(user: CurrentUser = getCurrentUser()) {
-  return user.role === "admin" ? sql.raw("true") : eq(documents.ownerId, user.id);
+export function adminAccessFilter(user: Pick<CurrentUser, "id"> = getCurrentUser()) {
+  return sql`exists (
+    select 1 from ${appUsers}
+    where ${appUsers.id} = ${user.id} and ${appUsers.active} = true and ${appUsers.role} = 'admin'
+  )`;
+}
+
+export function documentManagementFilter(user: Pick<CurrentUser, "id"> = getCurrentUser()) {
+  // Management never raises the clearance ceiling. Read the role from the DB,
+  // too: a demoted administrator's in-flight request must not retain that power.
+  return and(
+    documentAccessFilter(user),
+    or(eq(documents.ownerId, user.id), adminAccessFilter(user)),
+  )!;
 }
 
 // Trusted document indexing workers use this predicate; never use it in request handlers.

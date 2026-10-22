@@ -1,0 +1,2285 @@
+{
+  "checkedAt": "2026-10-21T18:17:09.133Z",
+  "baseHead": "a45706e8c0979df1babd20851639e0c9d6a99982",
+  "branch": "codex/zirve-v1-rc-resume",
+  "manifestPaths": 227,
+  "status": "PASS",
+  "method": "All checkpoint dispositions/presence checked. Active V1 critical paths plus unchanged auth/session/CSRF/storage/error paths reviewed; generated metadata tied to native DB evidence and immutable applied hashes. Regression/live checks provide behavioral evidence; this is not formal security or semantic verification.",
+  "dispositions": {
+    "stage-current-version": 133,
+    "cancel-temporary-addition": 16,
+    "preserve-intentional-deletion": 78
+  },
+  "paths": [
+    {
+      "path": ".env.example",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Build/dependency/configuration documentation and checkpoint tooling",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "92df5928d568c421e60644b353095217a28fad121d3391dc389820b784354f75",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": ".gate-backup/_gate-benchmark-lib.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": ".gate-backup/_gate-import-probe.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": ".gate-backup/eval-after-evaluser.json",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": ".gate-backup/test-baseline.txt",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": ".prettierignore",
+      "statusBeforeStaging": " M",
+      "disposition": "stage-current-version",
+      "purpose": "Build/dependency/configuration documentation and checkpoint tooling",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "da6978f63eccc3293be21503ebe9572536942f6b334d363b7c21d17cdd8ad25c",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "bun.lock",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Build/dependency/configuration documentation and checkpoint tooling",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "f50ad590cc481e6007638367101bab8f8bf0f165ddee6ebe1ce8e2fa8b421ea6",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "docs/AUTHENTICATION.md",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "0020c627dd76badda1e63fe29b46d5be5a0f6b5d3b9a41ffbc1a85c10a396791",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/DECISIONS.md",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "161958562d52d01eff99535f275b4d51d1f43995db96288beafbd42bd622d7fe",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/OSINT_EVAL_AFTER.md",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "61a539e3fcf91023fe016168c3adaa9482ddf16902254ede97af732cbaca32ce",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/OSINT_EVAL_BASELINE.md",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "9e78714f0e07dcc1dcd5c21abda5d2ea8a5c04686e2ef09dc5e09eeb0960e6f7",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/OSINT_EVAL_V1_HARDENING.md",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "25152e6ebac5a6cbd1343025d3d3b526ffdbb528c13415ffd276dd41c9011402",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/BROWSER_E2E.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "c69dbf8dae41878f7ea32554c1891109065bc68d1f6b9a2512adebd4bc98a9a6",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/CHECKPOINT_CHECKS.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "bc1ba0a8c24f2d5fc227d13e1bba9ad590d700f852e8bfd1a02b98c8c050a825",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/CHECKPOINT_FILE_MANIFEST.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Explicit reviewed staging manifest; includes itself without a recursive content hash",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "cd63c7f676e8073ab6b622ed8f573a501f01e556ca9816a6332327f6c0acf3b9",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/GENERATION_INTEGRATION.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "502f41ced11bea155f869e90b6a885213ae8f2a214c0734093675af10babef36",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/INDEXING_INTEGRATION.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "0374b46a6d99b4ade02b7b57531e6395b82db340dbf6cd2ce33efb708e9a6fa9",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/INITIAL_GIT_INVENTORY.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "dcee9a7bae8036f455a54be906f7c7dfc28f9c30ca6f3806d479a235e51b9dc0",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/LIVE_DB_AFTER_MIGRATIONS.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "38da94b057492d8133dd4fc5403607dd0f61e95436497912e86f61b0282ec78d",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/LIVE_DB_BEFORE.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "0ad2fd96b19ad0d15a4d51d1e796d3ce15930696f53c4cd702af2fac3a72e1c9",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/LIVE_DB_CHECKPOINT.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "37ab73c5e35c33ccfb7086913bcdf130c2cb473d7a6b079780031a7a08d3ccae",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/LIVE_SCHEMA_DRIFT.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "d47d386ca13472444aaffa0ce69e18806fdd514ccd379d2bbe9117afe9ce35cd",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/PRODUCTION_HARDENING_REQUEST.md",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "c55097bbd314db6c1be1ced76e6df820ed93398bd8d65a96aeb86228243c4c4f",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/RETRIEVAL_BASELINE.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "8a4fc741fe4eb099e953d7959e3db70b92b9b973b26d30e136c5d03400fdfd45",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/RUNTIME_PROBES.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "41a8d5dbbbd3e821241ca64bcfff5f51478a07654ffedbb448b9255869ed614f",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/release/SAFE_STOP_REQUEST.md",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "ab8b1c94dc7cb3e3eef6842ae19dfd76bbbdca7a6d96c6c6105f1f84b6a4b9e6",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/V1_BRIEF.md",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "086280fe5514402de21427a21b5ccbc7e86c314ad3de72f3d432e25fa7a5c5cb",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/V1_BRIEF_ADDENDUM.md",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "070c02a5b52f63dbc0ca401186f10f466b133c3a5b8620bb58785228c42d0792",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/V1_PROD_HARDENING_AUDIT.md",
+      "statusBeforeStaging": "AM",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "fd4ab4aefc969969ea0af015eda50ee62a8bdb91f54ae4b4c011391bb410bcc1",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "docs/WORK_SESSION_HANDOFF.md",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Product decisions, archived historical docs, safe evidence and handoff",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "5ff710d36bbc5b96c85fbc714c59103a5cd4998bb73b79f0cbf98af48e65ab79",
+      "evidence": "Timestamped evidence/archive/current-readiness purpose checked; older PASS is not current runtime proof"
+    },
+    {
+      "path": "drizzle/0017_remove_osint_web.sql",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "2e7f1f12c17e6ddd53f749cf350805a3d326afcf6a36f9dfda994b34e3c7c14f",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/0018_remove_retired_features_and_tags.sql",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "eb54e3513344df5f4b489d2159d83bd59afadffb708b2b73bf2023f74fab3dbf",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/0019_brief_lexical_search.sql",
+      "statusBeforeStaging": "AM",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "9848b1790f9a726403e8881e06d685f017054f378e281d75365ef20cc7389e56",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/0020_brief_lexical_search_snapshot.sql",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "46681ff04ebeecbc1d501daf0ab5738b92a969aa9acf670e0bd3eae0a4259c03",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/0021_reconcile_brief_search_index.sql",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "da3febb57446efba865a2a5dfbeba9a1a0cebeab52c003ca4852b9a6b6bd1041",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/0022_database_timezone_baku.sql",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "drizzle/0022_secure_server_tables.sql",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "87bdb1a2f915b8209e0f18d904014f61e4b8abe58296b80fb9e79ac40b0c91b2",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/0023_reconcile_legacy_constraint_names.sql",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "299eb24871e7beb14b6e8288344c6e44db8e743c4ee2af631bec6186a2c4840e",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/meta/_journal.json",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "6714ac423bf76e4b5f6fa6fe2491258d0e4d44bc51105ebf50c45a6d06c3dfae",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/meta/0017_snapshot.json",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "0c23545fe56318e21b51eeef78996d8cd6037483ce3d4ff28fb673ba2bdbdcc7",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/meta/0018_snapshot.json",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "e251a04417e14facb968a07c5babb7f1075892151c88e5b3fea05c9d87c3c1ee",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/meta/0019_snapshot.json",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "b1682fd98b012e83f46ac34f9069c5f160b7a1bcf37a303782d9cc56d12ac43a",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/meta/0020_snapshot.json",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "beedc811713f5c2c0b4ab22d5e4cc9304090baedfd75ad6f0662cc5ec1d3ed92",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/meta/0021_snapshot.json",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "1abb84e5397e0b184621865601c91ddacdf5597681229b9df442d7ab9cb756d7",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/meta/0022_snapshot.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "1383b384b2c05634af4ea28779122968e624d4bc9245cf1a2525fe40118f1d54",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "drizzle/meta/0023_snapshot.json",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Forward migrations, snapshots and live schema reconciliation; historical applied SQL preserved",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "3e7977c3f4ebca09001de3448cf588d52c7ec13529568ab68cd24bd49a9126f4",
+      "evidence": "Applied SQL/snapshot retained; latest live journal checksums and prior native drift PASS; no migration edited/applied in resume"
+    },
+    {
+      "path": "eslint.config.js",
+      "statusBeforeStaging": " M",
+      "disposition": "stage-current-version",
+      "purpose": "Build/dependency/configuration documentation and checkpoint tooling",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "3c3eef8aca276d4ac5b71d6cc77393e81888825cacf25a4ff3534a2a9e835a16",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "package.json",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Build/dependency/configuration documentation and checkpoint tooling",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "8838e11f1c9ee3fd36c06b89d647612c33febc532dca7042ff90ebe5342989e3",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "README.md",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Build/dependency/configuration documentation and checkpoint tooling",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "95850eaeb24be122f5b44c2368bc72d492aa7dd47e7185876469ce041117b1a9",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/_gate-access-diag.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/_gate-db-inspect.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/_gate-embed-probe.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/_gate-eval-timing.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/_gate-inngest-probe.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/_gate-lexical-probe.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/_gate-probe-incident.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/_gate-recover-documents.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/_gate-search-diag.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/_gate-set-db-timezone.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/_gate-verify-recovery.ts",
+      "statusBeforeStaging": "AD",
+      "disposition": "cancel-temporary-addition",
+      "purpose": "Cancel initial temporary addition; original preserved in ignored local backup",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/db-check-drift.ts",
+      "statusBeforeStaging": " M",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "749cc1c5b11e6e939892f287b265f005dd9fbd1baddec4020cea31f62b6d502b",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/eval-rerank.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "f3dd6335645b0df8f7fa647023729a9f0e67cb05acfc1cdd3da96e07849ec94c",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/eval-retrieval.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "1a964a1bf56766caaea9a2aee36d684447e74d7b87e869d97709335279a9d1af",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/live-schema.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "1b22ae1c1cffbd58b799e09d8bb601670a0f728888311133cf82cc9df7c763c2",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/migrate.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "74a1b79e711664ef35ee306fe288915e8e6d81674fee7700b89451888029bc74",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/osint-eval.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/osint-pin.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/osint-probe.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/preview.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "69a517a90cbae6a814cf768c655f8d271157ceed020a40aa76697eb7f0da01f7",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/reindex.ts",
+      "statusBeforeStaging": " M",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "1846f95cfefd1ae8c4dae6bd8dfc322174e50abe90bb3859c065d4799cb0d93f",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/report-osint-live.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/seed-demo.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "d938dea3c5c2dac69599c5b5acba832f5c2cda9b50bb3f2a8fc90e9b3fc5dc85",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/test.ts",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "ababfb188ec93844316a410780870d78c3f71933c65e13b6feb436959bf99d96",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-briefs-live.ts",
+      "statusBeforeStaging": " M",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "df6fb57c48a737f4356bccf18840aa3f50257f757b1975b269c5a547bf6b1907",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-briefs-migration.ts",
+      "statusBeforeStaging": " M",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "1139eab053665f21fe081a1914090a203d159304894e5ca9a61ed4a0da87b59e",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-browser.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "99bfbe2f1147069d414bb16b7c4b1b2f0a017994813df56e03c1b3ba99de0473",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-exa-schema.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/verify-generation.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "0c13e0e3fb8c41420376c5e5a35ddc7e4b3b19c9550874afeefc1db0aa3bce96",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-idare-migration.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "40beb98ea50f9dc8c222e4df75f5eb5a05d530d3900c5aff7de626b311a5c90c",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-lexical.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "01d9c498147262fe5e6406d1e0a808c12b0c53197b0f71989c3d923ceac42431",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-osint-live.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/verify-osint-registry.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/verify-release-db.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "dd36b51bf01839451e678014e4b673058002f8430954fe68ecaff3ed0d3465e3",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-release-integration.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "9857fdb254d29f7e2688a29bfc59b90c916929325a810007bbe1b44ff054b3f8",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-runtime.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "a176c6c6fd5ff6c66f323acc92ead0c064692dfa68c2b7b236b2bba52f231d06",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-stage-0.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "25b530338be5d856c931a2e930c0652534a5890d5b387affed0c39216049d81d",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-stage-1.ts",
+      "statusBeforeStaging": " M",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "baeb1a74bd150e84cb2fc6a2226a9720930b0f1d09006e992a7cc04568e0af4e",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-stage-2.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "2a5d093e4b932fdd60fe2418f14be07c87cd3a80418144c23ef9e042317a0b1c",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "scripts/verify-stage-3.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "scripts/verify-storage.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Project DB verification, safe evaluation, indexing tools and test/preview harness",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "c96943ed0ce52c3e929221cdae0d09e73370b08df7f563cc072d7b7338fa79c6",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/components/BriefMarkdown.tsx",
+      "statusBeforeStaging": " M",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "a28c7274637aa50eec31b01319ea73d36e2454ba7f719ded012f8b00592decb1",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/components/OsintDiagnostics.tsx",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/components/OsintSourceCard.test.tsx",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/components/OsintSourceCard.tsx",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/components/Shell.tsx",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "64918662f9e9d6a1403f28a7b1b4f4a7dfde1fb0f9ac930c1ca66baa436fe543",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/lib/analytics.functions.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "63823530210d55c1b4e89d7c506f9a39201b5c31c3c54cb491635da0ae1c6d7b",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/lib/analytics.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "6d398c7b66f176313cc0ea25deb32ddfa99ff44a59fa7bf761d936be692292fe",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/lib/briefs.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "8e87b14754b10efbd3c2ae6414038a604a231d6cc8da8142f5198ba49aad0d67",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/lib/documents.functions.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "25f4ee47d52931ff7df4c2b066cceac96f5b29dc69ea2d815ebfd147c70afdb9",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/lib/documents.test.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "957065a53fc914ae388f9cc916ebd66e0194eb00e246542491eced34ce9db3aa",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/lib/i18n/az.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "8a9bfed6b1cf47f50df78e5bf71da7f545fd0ff62ba219232314704e7c030f26",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/lib/osint.functions.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/osint.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/osint-copy.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/osint-copy.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/osint-language.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/osint-language.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/osint-source-display.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/osint-stage.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/osint-text.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/osint-text.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/requests.functions.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/requests.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/lib/requests.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/routes/_app.axtaris.tsx",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "c78149233c3dcb80261edb375742c6851062d0b2964464ba3a5e3b7465ba6919",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/routes/_app.index.tsx",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "f747065e90fd5cb238ab11f5490a07cfa6ee55b3da7ac8df2e534af89343e1b8",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/routes/_app.osint.tsx",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/routes/_app.senedler.tsx",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "54c06066458b246a529bdc58d9d17bd27fb8f605a1c30123a21a8ed44894db6b",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/routes/_app.senedler_.$id.tsx",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "2c744eb5d3d2cd2c42434e21608cae0dab4796a240bf2e61acfab5fd13e976ee",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/routes/_app.sorgu.$id.tsx",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/routes/_app.sorgu.tsx",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/routes/api.attachments.$kind.$parentId.$attachmentId.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "69c09b2f5af9898b020dd3234317b856942cdcc5dec86ea4b8e874b1796d5b6a",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/routeTree.gen.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "d5f6ec08e028f2bd89cd7a2e60e5095906b7e5a415a949b1de68ff533f233616",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/ai/exa.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/ai/exa.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/ai/gemini.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "e540c74cb2b642c3ca3fb858db4f7cb66d72b64481f2669858b9969ac35e2f0e",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/ai/gemini-gateway.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "021811b89a2f6f78cb5fe4a022c2d414e00552be1cbd821841146358347becb2",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/ai/gemini-search.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/ai/hasdata.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/ai/hasdata.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/ai/processing-policy.test.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "b47a390b0bf1c39eb9b1c113ec985845ce098a5784d7ffba0c43d4a5755fdc2f",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/ai/processing-policy.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "5ac5fc770d8c5b093ddcb4ece0be3a6ff9c487a3be3db8a647869e4a773d57b3",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/ai/provider-fallback.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/ai/provider-fallback.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/ai/tavily.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/ai/tavily.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/ai/types.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "753dc6569e41ea061b6ef9fe0c1d3b3620bc7069dea7e99e3968e14832543181",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/brief-search.test.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "93df4e88baf042a655782d80112df8493e24296c696278dba80f8c0c7841bcb7",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/citations.test.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "e249701047e305f995f86ebedff148c9abc9ec2ab6cc8589a82d6780447f3282",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/citations.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "1d2de63050c7bbb2b0e126bbfc2a98e7e8d7bf751e61c4079a4c6902bb4c540a",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/endpoint.test.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "203d920ad4720481d74e33e8c437b91b74b576a218778ad9425f2bbf8c765d61",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/endpoint.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "bb24f33783be1805023d4304c0390f4b5e15daef7c0d51ad4aab8a2997416ae9",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/filters.test.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "aed0a53c8257ff863a568d243a2facafdf7d33fb9d8f121882ba0d24bf65705a",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/filters.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "be0d46ada67e63de32c5b93dfe57fff8bd51714d1addfdcf3c2587f48442ff58",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/history.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "96ffcf25416e7e4e7cb8fdda746e31430d334a32bc0d664eae866cd91abfab5d",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/ranking.test.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "32f9595a9097982f27ad2bb7c822f29bc22e12eb20e57e7af8602ab42ed98be9",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/ranking.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "5c44952271094e72068d5a1f1de055d63e74cedd95a466cc451d21fdbdabc890",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/retrieval-eval-questions.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "3cc14c2aaaa9282fa903691d8e40bf56c46d3fba9ff08100899e9fee648a04c4",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/retrieval-metrics.test.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "4d2af3a3130bf0b9f7c7612135a0fed7def0efac019f8411e128ab876fb5b7b9",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/retrieval-metrics.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "fa7b226d488f37b41458dbab6575857be58af2cfd755b8f5ffd5cdea81de3ae6",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/search.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "4f7071a583092d68ade6356f1a938bca3a7dfe03db8828ddcd55f9e28f574e08",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/analytics/source-access.ts",
+      "statusBeforeStaging": "AM",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "9d77fc27847a91ae3b97edb5a6e02e608503d867b8669043f81a8e364643c533",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/briefs/index-state.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "e425488179a704099e3acf0ef19e666a76e91ef0f9329718256e8e503d302427",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/briefs/queries.test.ts",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "939330838b5afff8379272426e24ae5144a9a88743b48ad21bdd3f2d2ae1fc6a",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/briefs/queries.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "162331169334f43a21d7e248898f824cbdc7e0e8c44f63ca61a00256c617f18c",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/briefs/mutations.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "5d7aa53c205e676be60d709f56d5e4e9409ca2aeb9c8e2189af03c002a910207",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/briefs/search-normalization.test.ts",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "dd2ede807f41184b0aaf469a9bed5547b5ee37faa297ad2a1f0aa696e6790bb8",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/config.test.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "56cae9a053bbe9c34de500959c496595bf207416136a990362fb769ea62fd04f",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/config.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "1e1a606c75e69654e1fc65b7b4d575743560b47310c7c23682f49b7de5ac55de",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/db/access.test.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Schema, RLS and clearance predicates",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "d9c62706d294d5b9ec74f22916ace8947b6527185e849253fd1210023905803a",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/db/access.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Schema, RLS and clearance predicates",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "d95a054af64acc7da0526b427d7aa93163aa789d8e3805b6cef84ce69c7189bf",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/db/schema.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Schema, RLS and clearance predicates",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "c7e5d583dfb0a2c7af57170f00562c180a548a6eedd7c15e0f12e9b16c4046be",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/env.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "4e786c511ed200f1b3a281bfd8ace64a18a4214a9c1bce26e3a4168e34a0d010",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/evaluation-safety.test.ts",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "582af12e24739790eb4ed0bb6a76b7496bde6d5800fc5dd6a8d5185a7fec00c6",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/evaluation-safety.ts",
+      "statusBeforeStaging": "AM",
+      "disposition": "stage-current-version",
+      "purpose": "Provider configuration, external processing policy and safe project evaluation",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "740a06b18e79a6fa6110c6a477812b294ca1b7d20e89ec53d26d6a26d3f3c871",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/inngest/events.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "b4eade840807b16bed78ac4997fe80cc9bc07c4744305aa16647917e39b7ee98",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/inngest/functions.test.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "d3e17377cd6fa64d5ebe77a9d1d609f0588ff1dba45602a98ece987a91620ef5",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/inngest/functions.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "c132f88ae8cc84f01c5d0117199ff5ecb76d758136b91a7ca57fd886974b92a7",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/jobs/cleanup-storage.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "3af458b5d301a227edee9ff1a52e8c81bf800f81ba1f8dabbbd5919fcc902bb9",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/jobs/index-brief.test.ts",
+      "statusBeforeStaging": "AM",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "4c0a67ead20728fff488794982c48cd30c8d4c6e7683e82b6a3f72d2ba2e80f7",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/jobs/index-brief.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "64da305b4975b31c1158ef70c4ba86dc47b4bed1515103db430a68af543601b3",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/jobs/index-state.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "2575216a1067975d45918276e7e4729ee8b20a4b9e5b5c546e61ab52465f4186",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/jobs/process-document.test.ts",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "750c0cabd2d6463648812e87bf466863f56708fe936b62280b16c7130cde997a",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/jobs/process-document.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "3260419d0f32122ae1e8a78d7f38731b9996983b813589bd7a90acaec2fbca50",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/jobs/recover-indexes.ts",
+      "statusBeforeStaging": "??",
+      "disposition": "stage-current-version",
+      "purpose": "Durable indexing, atomic replacement, recovery and lexical brief catalog",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "29c8e9ea135b7dd5147726c4eba2ad0895202203e54cc3560a8f08b941a3389f",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/jobs/retry-osint-summary.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/jobs/retry-osint-summary.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/jobs/run-osint.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/jobs/run-osint.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/access.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/access.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/cache.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/cache.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/charset.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/charset.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/diagnostics.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/diagnostics.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/domain-classification.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/domain-classification.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/domain-classification-store.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/fetch-public-page.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/query-expansion.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/query-expansion.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/language.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/page-cache.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/pinned-lookup.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/pinned-lookup.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/ranking.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/ranking.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/reports.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/reports.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/report-synthesis.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/report-synthesis.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/report-validation.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/report-validation.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/search-cache.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/security.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/source-registry.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/source-registry.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/source-summary-state.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/source-summary-state.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/ssrf.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/stale-runs.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/stale-runs.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/summary-generation.test.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/summary-generation.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/osint/urls.ts",
+      "statusBeforeStaging": "D ",
+      "disposition": "preserve-intentional-deletion",
+      "purpose": "Preserve intentional removal of retired web OSINT or requests",
+      "present": false,
+      "dispositionCheck": "PASS",
+      "sha256": null,
+      "evidence": "Intentional absence; retired routes/imports checked, historical SQL retained"
+    },
+    {
+      "path": "src/server/prompts/analytics.ts",
+      "statusBeforeStaging": "MM",
+      "disposition": "stage-current-version",
+      "purpose": "Core RAG, live source/history access, citations, deadlines and metrics",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "4eca41711027d8184043d699ca769f55ed39c48f8e828eda1739beed64743061",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/server/seed-demo.test.ts",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "b7fc4994e7d8659b7fe0472bd5966c2af385006648b7e6578acb86508af557b2",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/test/analytics-layout.test.tsx",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "13cccf35fc57ab5e2dbc484b498a94e3bbc7d7067a0d9e28f6f7329664a2c0a2",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/test/app-routing.test.tsx",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "098ff3c928da954f7c40e7f558305b944d92ecbb0f4bb9261a912262713e8de1",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/test/document-detail.test.tsx",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "ed6781cacc378ec5c136e5a47e33f17af11f04c54fc3db46e1366f618f0c97e9",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/test/safe-env.test.ts",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "c72f7f382d140a8452671d2e3fdc6e36111d15c562a767de7dc07a489fd6ba54",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/test/safe-env.ts",
+      "statusBeforeStaging": "A ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "a5240652aab33390689be40a83133074db218653574ceccb9bf4072ccae92fe8",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "src/test/setup.ts",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "V1 routes/UI, auth-aware server functions and regression tests",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "7d9540d96489f796cf25e4dcf03aa7bb2f9c721602e6601df51b5a1f16457f25",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "tsconfig.eval.json",
+      "statusBeforeStaging": "AM",
+      "disposition": "stage-current-version",
+      "purpose": "Build/dependency/configuration documentation and checkpoint tooling",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "89d4b70bdfd2a561f74cf279b2f812d9a93ab72e7fa7a440239a0e7faf4eec2a",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    },
+    {
+      "path": "zirve_military_seed_data_2026-10-18.json",
+      "statusBeforeStaging": "M ",
+      "disposition": "stage-current-version",
+      "purpose": "Preserve existing synthetic corpus dataset update",
+      "present": true,
+      "dispositionCheck": "PASS",
+      "sha256": "bdf6eebd1298ef2bad0a8e13deea46ab2027e4db802fbb6f429cd726d02982f6",
+      "evidence": "Critical path/source contract review; typecheck/lint/build and relevant regression/live gates"
+    }
+  ]
+}

@@ -2,12 +2,14 @@
 
 Веб-приложение для Core RAG поиска по внутренним документам и аналитическим сводкам. Интерфейс приложения — на азербайджанском. V1 рассчитана на работу с внутренним корпусом.
 
+Актуальный итог hardening: [V1 production report](docs/V1_FINAL_PRODUCTION_REPORT.md). **Production NO-GO** до подтверждения deployment revision, актуальных cloud workers и production smoke; passing local checks не заменяют эти gates.
+
 ## Локальный запуск
 
 Нужен Bun. Скопируйте переменные в `.env.local`, затем выполните:
 
 ```sh
-bun install
+bun install --frozen-lockfile
 bun run dev
 ```
 
@@ -50,6 +52,10 @@ bun run db:verify:search
 Аналитические evaluation scripts (`db:verify:search`, `db:eval:rerank`) используют существующую настроенную DB и clearance активного пользователя (`EVALUATION_USER_ID` позволяет выбрать его явно). Отдельная evaluation DB запрещена; `ANALYTICS_EVAL_DATABASE_URL` отклоняется. Benchmark может вызывать настроенный embedding provider; rerank по умолчанию отключён.
 
 Внешняя AI-обработка разрешена кодом только для `open` по умолчанию. Расширение `AI_EXTERNAL_ALLOWED_CLASSIFICATIONS` требует согласованной политики и непустого `AI_EXTERNAL_POLICY_REFERENCE`; наличие строки само по себе не подтверждает согласование. `AI_BACKUP_MODEL` не реализован. Модели проекта: основная `gemini-3.8-flash`, лёгкая `gemini-3.5-flash-lite`, embeddings Gemini Embedding 2 (768 измерений).
+
+У вопроса V1 нет отдельного поля classification: внешние query embedding/rerank/generation консервативно используют текущий clearance пользователя, как и history. Для пользователей выше `open` без approved policy остаётся локальный lexical sources search. Новые attachments сохраняются как проверенные server-only copies; временный signed PUT/discard не может изменить committed файл.
+
+Порядок review/release и обязательные runtime доказательства: [RELEASE_RUNBOOK.md](./docs/release/RELEASE_RUNBOOK.md). Production target: `https://analitika-one.vercel.app`; доступность login не доказывает проверенную revision или работу cloud workers.
 
 ## Архитектура
 

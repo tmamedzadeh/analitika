@@ -1,0 +1,40 @@
+{
+  "checkedAt": "2026-10-22T03:53:30.243Z",
+  "status": "PASS",
+  "checks": [
+    {
+      "table": "documents",
+      "beforeRows": 13,
+      "afterRows": 13,
+      "sha256Equal": true
+    },
+    {
+      "table": "daily_briefs",
+      "beforeRows": 10,
+      "afterRows": 10,
+      "sha256Equal": true
+    },
+    {
+      "table": "chunks",
+      "beforeRows": 107,
+      "afterRows": 107,
+      "sha256Equal": true
+    },
+    {
+      "table": "attachments",
+      "beforeRows": 3,
+      "afterRows": 3,
+      "sha256Equal": true
+    },
+    {
+      "table": "brief_attachments",
+      "beforeRows": 0,
+      "afterRows": 0,
+      "sha256Equal": true
+    }
+  ],
+  "scope": "Ordered complete rows including body/text/embedding/metadata and attachment references in five corpus tables; exact same DB. Auth rate-limit/session operational tables are outside corpus digests.",
+  "migrationsAppliedOrEdited": false,
+  "separateDatabaseCreated": false,
+  "globalReindexOrReset": false
+}

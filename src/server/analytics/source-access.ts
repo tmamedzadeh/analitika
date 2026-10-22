@@ -6,6 +6,24 @@ import { accessFilter, documentAccessFilter } from "@/server/db/access";
 import { appUsers, chunks, dailyBriefs, documents } from "@/server/db/schema";
 import { hasCommittedDocumentIndex } from "./filters";
 import { hasCommittedBriefIndex } from "../briefs/index-state";
+import { AuthorizationError } from "../auth";
+
+/** Questions have no separate classification field in V1; use the live user's clearance. */
+export async function withAnalyticsQueryAccess<T>(
+  userId: string,
+  use: (classification: string) => T | Promise<T>,
+): Promise<T> {
+  return getDb().transaction(async (transaction) => {
+    const [user] = await transaction
+      .select({ clearance: appUsers.clearance })
+      .from(appUsers)
+      .where(and(eq(appUsers.id, userId), eq(appUsers.active, true)))
+      .for("share")
+      .limit(1);
+    if (!user) throw new AuthorizationError();
+    return use(user.clearance);
+  });
+}
 
 export async function recheckAnalyticsSourceAccess(
   sources: readonly AnalyticsSource[],
@@ -22,18 +40,24 @@ export async function withAnalyticsCandidateAccess<T>(
     documentIds: ReadonlySet<string>;
     briefIds: ReadonlySet<string>;
     chunkIds: ReadonlySet<string>;
+    queryClassification: string;
   }) => T | Promise<T>,
   candidateChunkIds: readonly string[] = [],
 ): Promise<T> {
   return getDb().transaction(async (transaction) => {
     const [activeUser] = await transaction
-      .select({ id: appUsers.id })
+      .select({ id: appUsers.id, clearance: appUsers.clearance })
       .from(appUsers)
       .where(and(eq(appUsers.id, userId), eq(appUsers.active, true)))
       .for("share")
       .limit(1);
     if (!activeUser)
-      return rerank({ documentIds: new Set(), briefIds: new Set(), chunkIds: new Set() });
+      return rerank({
+        documentIds: new Set(),
+        briefIds: new Set(),
+        chunkIds: new Set(),
+        queryClassification: "unknown",
+      });
 
     const [documentsAllowed, briefsAllowed] = await Promise.all([
       documentIds.length
@@ -75,6 +99,7 @@ export async function withAnalyticsCandidateAccess<T>(
       documentIds: new Set(documentsAllowed.map((document) => document.id)),
       briefIds: new Set(briefsAllowed.map((brief) => brief.id)),
       chunkIds: new Set(currentChunks.map((chunk) => chunk.id)),
+      queryClassification: activeUser.clearance,
     });
   });
 }
@@ -83,9 +108,9 @@ export async function withAnalyticsCandidateAccess<T>(
 export async function withAnalyticsSourceAccess<T>(
   sources: readonly AnalyticsSource[],
   userId: string,
-  publish: (available: AnalyticsSource[]) => T | Promise<T>,
+  publish: (available: AnalyticsSource[], queryClassification: string) => T | Promise<T>,
 ): Promise<{ sources: AnalyticsSource[]; value: T }> {
-  if (!sources.length) return { sources: [], value: await publish([]) };
+  if (!sources.length) return { sources: [], value: await publish([], "unknown") };
   const db = getDb();
   const documentIds = [
     ...new Set(sources.flatMap((source) => (source.documentId ? [source.documentId] : []))),
@@ -95,14 +120,14 @@ export async function withAnalyticsSourceAccess<T>(
   ];
   return db.transaction(async (transaction) => {
     const [activeUser] = await transaction
-      .select({ id: appUsers.id })
+      .select({ id: appUsers.id, clearance: appUsers.clearance })
       .from(appUsers)
       .where(and(eq(appUsers.id, userId), eq(appUsers.active, true)))
       .for("share")
       .limit(1);
     if (!activeUser) {
       const available: AnalyticsSource[] = [];
-      return { sources: available, value: await publish(available) };
+      return { sources: available, value: await publish(available, "unknown") };
     }
     const [accessibleDocuments, accessibleBriefs] = await Promise.all([
       documentIds.length
@@ -181,7 +206,7 @@ export async function withAnalyticsSourceAccess<T>(
         return [];
       })
       .map((source, index) => ({ ...source, n: index + 1 }));
-    return { sources: available, value: await publish(available) };
+    return { sources: available, value: await publish(available, activeUser.clearance) };
   });
 }
 

@@ -76,7 +76,7 @@ async function verifyStage1(): Promise<void> {
     currentStep = "private Storage signed image upload, CORS preflight, read, and metadata";
     for (const photo of photos) {
       objectKeys.push(photo.key);
-      const uploadUrl = await storage.getSignedUploadUrl(photo.key, "image/png");
+      const uploadUrl = await storage.getSignedUploadUrl(photo.key, "image/png", pngBytes.length);
       const preflight = await fetch(uploadUrl, {
         method: "OPTIONS",
         headers: {

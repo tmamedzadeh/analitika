@@ -1,0 +1,26 @@
+{
+  "capturedAt": "2026-10-22T03:15:05.711Z",
+  "algorithm": "SHA256 of ordered complete row JSON including corpus body, chunk text, embedding, metadata; no content emitted",
+  "tables": {
+    "documents": {
+      "rows": 13,
+      "sha256": "01f4c8dd7b5b2766b28457ff02aa87ee8317d6452bd3a24b3bd0eeb5818770ef"
+    },
+    "daily_briefs": {
+      "rows": 10,
+      "sha256": "e0bea131d8b5b2963f93e5375eed613e1817146faee9e1e411a21434675a5397"
+    },
+    "chunks": {
+      "rows": 107,
+      "sha256": "f75c9d7f69db547ee2319ef5826f7146d7ca9591ac264a200203c0378d4d272d"
+    },
+    "attachments": {
+      "rows": 3,
+      "sha256": "f66365df4575637d3c83d049fa0690933e20d08c12ee4eddb176fc756f96219d"
+    },
+    "brief_attachments": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  }
+}

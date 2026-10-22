@@ -23,7 +23,12 @@ export type StoredObjectStream = {
 export interface StorageProvider {
   put(object: StorageObject): Promise<void>;
   getSignedUrl(key: string, expiresInSeconds?: number): Promise<string>;
-  getSignedUploadUrl(key: string, contentType: string, expiresInSeconds?: number): Promise<string>;
+  getSignedUploadUrl(
+    key: string,
+    contentType: string,
+    size: number,
+    expiresInSeconds?: number,
+  ): Promise<string>;
   getMetadata(key: string): Promise<StoredObjectMetadata>;
   getPrefix(key: string, length: number): Promise<Uint8Array>;
   getObjectStream(key: string): Promise<StoredObjectStream>;

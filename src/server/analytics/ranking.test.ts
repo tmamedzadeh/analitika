@@ -42,6 +42,24 @@ describe("reciprocalRankFusion", () => {
 });
 
 describe("settleRetrievalBranches", () => {
+  it.each(["vector", "full_text", "trigram"])(
+    "retains the other branches during an independent %s outage",
+    async (failed) => {
+      const result = await settleRetrievalBranches(
+        ["vector", "full_text", "trigram"].map((name) => ({
+          name,
+          run: async () => {
+            if (name === failed) throw new Error("controlled outage");
+            return [{ id: name }];
+          },
+        })),
+      );
+      expect(result.failed).toEqual([failed]);
+      expect(reciprocalRankFusion(result.results).map(({ item }) => item.id)).toEqual(
+        ["vector", "full_text", "trigram"].filter((name) => name !== failed),
+      );
+    },
+  );
   it("keeps successful branch results when another branch fails", async () => {
     const result = await settleRetrievalBranches([
       { name: "full_text", run: async () => ["match"] },

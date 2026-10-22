@@ -1,0 +1,27 @@
+{
+  "checkedAt": "2026-10-21T17:27:52.465Z",
+  "config": {
+    "chatModel": "gemini-3.8-flash",
+    "lightModel": "gemini-3.5-flash-lite",
+    "embeddingModel": "gemini-embedding-2",
+    "externalClassifications": [
+      "open"
+    ],
+    "policyReferencePresent": false,
+    "rerank": "false",
+    "eventKeyPresent": true,
+    "signingKeyPresent": true,
+    "hostingCredentialPresent": false,
+    "migrationUrlPresent": true
+  },
+  "github": [
+    {
+      "path": "deployments?per_page=5",
+      "status": 404
+    },
+    {
+      "path": "commits/a45706e8c0979df1babd20851639e0c9d6a99982/status",
+      "status": 404
+    }
+  ]
+}

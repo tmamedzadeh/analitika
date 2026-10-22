@@ -28,11 +28,33 @@ try {
   ) or not exists (select 1 from chunks c where c.brief_id = ${dailyBriefs.id})`);
   let completed = 0;
   let failed = 0;
+  let skipped = 0;
+  async function recordOutcome(kind: "document" | "brief", id: string) {
+    const [row] =
+      kind === "document"
+        ? await db
+            .select({
+              status: documents.status,
+              valid: sql<boolean>`${documents.chunkCount} > 0 and (select count(*) from chunks c where c.document_id = ${documents.id} and c.embedding_model = ${model} and c.embedding is not null) = ${documents.chunkCount}`,
+            })
+            .from(documents)
+            .where(eq(documents.id, id))
+        : await db
+            .select({
+              status: dailyBriefs.indexStatus,
+              valid: sql<boolean>`exists (select 1 from chunks c where c.brief_id = ${dailyBriefs.id}) and not exists (select 1 from chunks c where c.brief_id = ${dailyBriefs.id} and (c.embedding_model <> ${model} or c.embedding is null))`,
+            })
+            .from(dailyBriefs)
+            .where(eq(dailyBriefs.id, id));
+    if (row?.status === "ready" && row.valid) completed++;
+    else if (!row || row.status === "processing") skipped++;
+    else failed++;
+  }
   if (apply) {
     for (const row of documentRows) {
       try {
         await processDocumentJob(row.id);
-        completed++;
+        await recordOutcome("document", row.id);
       } catch {
         failed++;
       }
@@ -60,11 +82,11 @@ try {
           )
           .returning({ id: dailyBriefs.id });
         if (!queued) {
-          failed++;
+          skipped++;
           continue;
         }
         await indexBriefJob(row.id);
-        completed++;
+        await recordOutcome("brief", row.id);
       } catch {
         failed++;
       }
@@ -79,6 +101,7 @@ try {
         briefs: briefRows.length,
         completed,
         failed,
+        skipped,
       },
       null,
       2,

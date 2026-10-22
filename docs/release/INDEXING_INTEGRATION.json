@@ -1,6 +1,6 @@
 {
-  "runId": "05e3b28e-cdff-45e9-b897-678b2430e94b",
-  "capturedAt": "2026-10-21T14:11:55.475Z",
+  "runId": "9a4e9acb-a4d5-4dca-8a47-801a77bcafea",
+  "capturedAt": "2026-10-22T03:23:47.346Z",
   "checks": [
     {
       "name": "document: initial indexing and duplicate delivery",
@@ -63,11 +63,19 @@
       "status": "PASS"
     },
     {
+      "name": "mutations: clearance and live role guard direction, retry and deletion predicates",
+      "status": "PASS"
+    },
+    {
       "name": "citations: current chunk ownership, exact text and live clearance revalidation",
       "status": "PASS"
     },
     {
       "name": "history: administrator clearance filters list metadata and direct records",
+      "status": "PASS"
+    },
+    {
+      "name": "history: live administrator demotion rejects stale-session access to another author",
       "status": "PASS"
     }
   ],

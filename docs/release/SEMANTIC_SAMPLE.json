@@ -1,0 +1,36 @@
+{
+  "checkedAt": "2026-10-22T03:19:57.312Z",
+  "model": "gemini-3.8-flash",
+  "externalInput": "explicitly open, inline fictional sample only; no corpus or closed text",
+  "purpose": "Human semantic spot check after SDK retry/deadline fixes; earlier 3-case live generation evidence preserved",
+  "finishReason": "stop",
+  "status": "PASS",
+  "publishable": true,
+  "attempts": [
+    {
+      "attempt": 1,
+      "publishable": true,
+      "evidenceChecks": {
+        "exactExcerptCount": 5,
+        "unsupportedNumericFactCount": 0,
+        "unanchoredClaimCount": 0
+      }
+    }
+  ],
+  "evidenceChecks": {
+    "exactExcerptCount": 5,
+    "unsupportedNumericFactCount": 0,
+    "unanchoredClaimCount": 0
+  },
+  "semanticReview": {
+    "status": "PASS scoped manual spot check",
+    "method": "Agent compared each final synthetic claim with the supplied source text after reading the complete response",
+    "factsChecked": [
+      "42 units",
+      "21 October 2026",
+      "fictional test sample"
+    ],
+    "claimCount": 5,
+    "limit": "Single inline synthetic sample; not automatic semantic entailment and not a corpus-wide guarantee"
+  }
+}
