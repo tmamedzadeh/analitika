@@ -1,4 +1,24 @@
 export const az = {
+  ai: {
+    switched: "AI modeli dəyişdirildi",
+    backupActivated: "Ehtiyat AI modeli aktivləşdirildi",
+    quota: "AI modelinin limiti dolub. Sorğunuz {model} ilə emal olunur.",
+    unavailable: "AI modeli müvəqqəti əlçatan deyil. Sorğunuz {model} ilə emal olunur.",
+    generatedBy: "{model} tərəfindən yaradılıb",
+    llm: "LLM",
+    semanticSearch: "Mənaca axtarış",
+    lexicalFallback: "Mənaca axtarış müvəqqəti əlçatan deyil. Adi axtarış nəticələri göstərilir.",
+  },
+  documentLibrary: {
+    description: "Əlçatan sənədləri axtarın və nəzərdən keçirin.",
+    add: "Əlavə et",
+    addTitle: "Məlumat bazasına əlavə et",
+    search: "Sənədlərdə axtarış",
+    searchPlaceholder: "Sənədin adını və ya mətnini axtarın…",
+    attachments: "Əlavələr mövcuddur",
+    loadMore: "Daha çox göstər",
+    noMatches: "Axtarışa uyğun sənəd tapılmadı.",
+  },
   loader: {
     loading: "Məlumat yüklənir…",
     processing: "Məlumatlar emal olunur…",

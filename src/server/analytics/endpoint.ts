@@ -272,6 +272,7 @@ async function handleAnalyticsSearch(
           close();
         };
         if (sources.length === 0) {
+          model = "";
           const answer = az.analytics.noSources;
           send({
             type: "final",
@@ -300,6 +301,7 @@ async function handleAnalyticsSearch(
         }
 
         if (mode === "sources") {
+          model = "";
           activeStage = "source_access_before_publish";
           const finalPublication = await withAnalyticsSourceAccess(
             sources,
@@ -381,6 +383,8 @@ async function handleAnalyticsSearch(
                       ...generationPrompt,
                       signal: aborter.signal,
                       timeoutMs: 60_000,
+                      deadlineAt: startedAt + 105_000,
+                      onFallback: (fallback) => send({ type: "model-fallback", fallback }),
                     }),
                 );
                 if (generated.model) model = generated.model;

@@ -21,7 +21,6 @@ import {
   rerankOrderOrOriginal,
   type RerankProvider,
 } from "@/server/ai/rerank";
-import { GeminiLLMProvider } from "@/server/ai/gemini";
 import { createGeminiProviders } from "@/server/ai/gemini";
 import { getDb } from "@/server/db";
 import { accessFilter, documentAccessFilter, getCurrentUser } from "@/server/db/access";
@@ -247,7 +246,7 @@ export async function searchDocumentChunks(
   const rerankProvider =
     options.rerankProvider ??
     (config.enableRerank && config.lightModel
-      ? new GeminiRerankProvider(new GeminiLLMProvider(config.lightModel, "AI_LIGHT_MODEL"))
+      ? new GeminiRerankProvider(providers.light)
       : undefined);
   const currentUser = getCurrentUser();
   const reranked = await withAnalyticsCandidateAccess(

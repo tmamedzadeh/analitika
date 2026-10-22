@@ -1,18 +1,22 @@
 import { BriefMarkdown } from "./BriefMarkdown";
 import { az } from "@/lib/i18n/az";
+import { modelDisplayName } from "@/lib/ai";
 
 type CitationTarget = { n: number; available?: boolean };
 
 export function AnalyticsAnswer({
   answer,
   sources,
+  model,
 }: {
   answer: string;
   sources: readonly CitationTarget[];
+  model?: string | null | undefined;
 }) {
   // Ignore any model-authored URL, including URLs attached to citation labels.
   const markdown = answer.replace(/\[(\d+)\](?:\([^\r\n)]*\))?/gu, "[$1](#citation-$1)");
   return (
+    <div>
     <BriefMarkdown
       markdown={markdown}
       linkRenderer={(href, children) => {
@@ -34,5 +38,7 @@ export function AnalyticsAnswer({
         );
       }}
     />
+    {model && answer !== az.analytics.noSources && <p className="mt-4 text-xs text-muted-foreground">{az.ai.generatedBy.replace("{model}", modelDisplayName(model))}</p>}
+    </div>
   );
 }

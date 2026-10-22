@@ -19,6 +19,7 @@ import { Route as ApiInngestRouteImport } from './routes/api.inngest'
 import { Route as AppBriflerIdRouteImport } from './routes/_app.brifler.$id'
 import { Route as AppBriflerYeniRouteImport } from './routes/_app.brifler.yeni'
 import { Route as AppSenedlerIdRouteImport } from './routes/_app.senedler_.$id'
+import { Route as AppSenedlerYeniRouteImport } from './routes/_app.senedler_.yeni'
 import { Route as ApiAnalyticsSearchRouteImport } from './routes/api.analytics.search'
 import { Route as ApiAuthLoginRouteImport } from './routes/api.auth.login'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api.auth.logout'
@@ -74,6 +75,11 @@ const AppSenedlerIdRoute = AppSenedlerIdRouteImport.update({
   path: '/senedler/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSenedlerYeniRoute = AppSenedlerYeniRouteImport.update({
+  id: '/senedler_/yeni',
+  path: '/senedler/yeni',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiAnalyticsSearchRoute = ApiAnalyticsSearchRouteImport.update({
   id: '/api/analytics/search',
   path: '/api/analytics/search',
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/brifler/$id': typeof AppBriflerIdRoute
   '/brifler/yeni': typeof AppBriflerYeniRoute
   '/senedler/$id': typeof AppSenedlerIdRoute
+  '/senedler/yeni': typeof AppSenedlerYeniRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/brifler/$id': typeof AppBriflerIdRoute
   '/brifler/yeni': typeof AppBriflerYeniRoute
   '/senedler/$id': typeof AppSenedlerIdRoute
+  '/senedler/yeni': typeof AppSenedlerYeniRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/_app/brifler/$id': typeof AppBriflerIdRoute
   '/_app/brifler/yeni': typeof AppBriflerYeniRoute
   '/_app/senedler_/$id': typeof AppSenedlerIdRoute
+  '/_app/senedler_/yeni': typeof AppSenedlerYeniRoute
   '/api/analytics/search': typeof ApiAnalyticsSearchRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/brifler/$id'
     | '/brifler/yeni'
     | '/senedler/$id'
+    | '/senedler/yeni'
     | '/api/analytics/search'
     | '/api/auth/login'
     | '/api/auth/logout'
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/brifler/$id'
     | '/brifler/yeni'
     | '/senedler/$id'
+    | '/senedler/yeni'
     | '/api/analytics/search'
     | '/api/auth/login'
     | '/api/auth/logout'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/_app/brifler/$id'
     | '/_app/brifler/yeni'
     | '/_app/senedler_/$id'
+    | '/_app/senedler_/yeni'
     | '/api/analytics/search'
     | '/api/auth/login'
     | '/api/auth/logout'
@@ -285,6 +297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSenedlerIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/senedler_/yeni': {
+      id: '/_app/senedler_/yeni'
+      path: '/senedler/yeni'
+      fullPath: '/senedler/yeni'
+      preLoaderRoute: typeof AppSenedlerYeniRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/analytics/search': {
       id: '/api/analytics/search'
       path: '/api/analytics/search'
@@ -331,6 +350,7 @@ interface AppRouteChildren {
   AppBriflerIdRoute: typeof AppBriflerIdRoute
   AppBriflerYeniRoute: typeof AppBriflerYeniRoute
   AppSenedlerIdRoute: typeof AppSenedlerIdRoute
+  AppSenedlerYeniRoute: typeof AppSenedlerYeniRoute
   AppBriflerIdRedakteRoute: typeof AppBriflerIdRedakteRoute
 }
 
@@ -342,6 +362,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBriflerIdRoute: AppBriflerIdRoute,
   AppBriflerYeniRoute: AppBriflerYeniRoute,
   AppSenedlerIdRoute: AppSenedlerIdRoute,
+  AppSenedlerYeniRoute: AppSenedlerYeniRoute,
   AppBriflerIdRedakteRoute: AppBriflerIdRedakteRoute,
 }
 

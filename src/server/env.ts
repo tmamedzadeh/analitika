@@ -24,6 +24,7 @@ export const serverEnvSchema = z.object({
   GOOGLE_GENERATIVE_AI_API_KEY: optionalValue,
   AI_CHAT_MODEL: optionalValue,
   AI_LIGHT_MODEL: optionalValue,
+  AI_BACKUP_MODEL: optionalValue,
   GEMINI_EMBED_MODEL: optionalValue,
   ANALYTICS_THINKING_LEVEL: z.enum(["low", "medium", "high"]).default("medium"),
   ANALYTICS_HISTORY_DAYS: z.coerce.number().int().min(1).max(3650).default(90),

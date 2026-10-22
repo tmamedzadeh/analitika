@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GeminiEmbeddingProvider, GeminiLLMProvider } from "./gemini";
 import { withAiDiagnostics } from "./diagnostics";
+import { clearGeminiModelCooldowns } from "./gemini-gateway";
 
 beforeEach(() => {
+  clearGeminiModelCooldowns();
   vi.stubEnv("GOOGLE_GENERATIVE_AI_API_KEY", "synthetic-test-key");
 });
 afterEach(() => {
@@ -63,7 +65,7 @@ describe("Gemini SDK and gateway retry budget", () => {
       expect(logs).not.toContain(secret);
   });
 
-  it("logs bounded SDK 503 attempts without falling back or exposing provider data", async () => {
+  it("logs bounded SDK 503 attempts and fallback without exposing provider data", async () => {
     vi.useFakeTimers();
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -89,14 +91,14 @@ describe("Gemini SDK and gateway retry budget", () => {
     await vi.runAllTimersAsync();
     await rejected;
 
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(4);
     const logs = [info.mock.calls, warn.mock.calls, error.mock.calls].flat().join(" ");
     expect(logs).toContain('"requestId":"503-test"');
     expect(logs).toContain('"attempt":2');
     expect(logs).toContain('"generationAttempt":2');
     expect(logs).toContain('"providerStatus":503');
     expect(logs).toContain('"errorCategory":"provider_unavailable"');
-    expect(logs).not.toContain('"event":"fallback"');
+    expect(logs).toContain('"event":"fallback"');
     for (const secret of [
       "private prompt",
       "private response and credentials",

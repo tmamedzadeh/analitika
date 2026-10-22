@@ -1,5 +1,6 @@
 import type { GeminiAttemptLimit } from "./gemini-gateway";
 import type { z } from "zod";
+import type { ModelFallback } from "@/lib/ai";
 
 export type ProviderRequestOptions = {
   maxAttempts?: GeminiAttemptLimit;
@@ -14,7 +15,7 @@ export type ProviderUsageStats = {
   usageReportedCalls?: number;
 };
 
-export type TextGenerationInput = {
+export type TextGenerationInput = ProviderRequestOptions & {
   system?: string;
   prompt: string;
   temperature?: number;
@@ -23,6 +24,8 @@ export type TextGenerationInput = {
   timeoutMs?: number;
   signal?: AbortSignal;
   maxAttempts?: GeminiAttemptLimit;
+  deadlineAt?: number;
+  onFallback?: (event: ModelFallback) => void;
 };
 
 export interface LLMProvider {

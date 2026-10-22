@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, or, sql, type SQL } from "drizzle-orm";
 
 import {
   briefExcerpt,
@@ -21,9 +21,10 @@ export type BriefListFilters = {
   period: "all" | "week" | "month";
   month: string;
   cursor: BriefCursor | null;
+  llm?: boolean;
 };
 
-function briefWindow(filters: Pick<BriefListFilters, "period" | "month">, now = new Date()) {
+export function briefWindow(filters: Pick<BriefListFilters, "period" | "month">, now = new Date()) {
   const today = getBakuDate(now);
   if (/^\d{4}-\d{2}$/.test(filters.month)) {
     const monthStart = new Date(`${filters.month}-01T00:00:00.000Z`);
@@ -71,11 +72,19 @@ export function buildBriefListConditions(filters: BriefListFilters) {
   return conditions;
 }
 
-export async function listBriefsPage(filters: BriefListFilters): Promise<{
+export async function listBriefsPage(filters: BriefListFilters, intelligent?: { match: SQL; score: SQL<number> }): Promise<{
   items: BriefListItem[];
   nextCursor: BriefCursor | null;
 }> {
   const db = getDb();
+  const conditions = intelligent ? buildBriefListConditions({ ...filters, query: "", cursor: null }) : buildBriefListConditions(filters);
+  if (intelligent) {
+    conditions.push(intelligent.match);
+    if (filters.cursor) {
+      const score = filters.cursor.score ?? 0;
+      conditions.push(sql`(${intelligent.score} < ${score} or (${intelligent.score} = ${score} and ${afterBriefPosition(filters.cursor)}))`);
+    }
+  }
   const rows = await db
     .select({
       id: dailyBriefs.id,
@@ -86,10 +95,11 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
       indexStatus: dailyBriefs.indexStatus,
       indexProgress: dailyBriefs.indexProgress,
       publishedAt: dailyBriefs.publishedAt,
+      score: intelligent?.score ?? sql<number>`0`,
     })
     .from(dailyBriefs)
-    .where(and(...buildBriefListConditions(filters)))
-    .orderBy(desc(dailyBriefs.briefDate), desc(dailyBriefs.id))
+    .where(and(...conditions))
+    .orderBy(...(intelligent ? [desc(intelligent.score)] : []), desc(dailyBriefs.briefDate), desc(dailyBriefs.id))
     .limit(BRIEF_PAGE_SIZE + 1);
 
   const hasMore = rows.length > BRIEF_PAGE_SIZE;
@@ -132,7 +142,7 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
     nextCursor: hasMore
       ? (() => {
           const last = pageRows.at(-1);
-          return last ? { date: last.date, id: last.id } : null;
+          return last ? { date: last.date, id: last.id, ...(intelligent ? { score: Number(last.score) } : {}) } : null;
         })()
       : null,
   };

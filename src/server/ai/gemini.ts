@@ -4,8 +4,9 @@ import { z } from "zod";
 
 import { readServerEnv, requireServerEnv } from "../env";
 import {
-  withGeminiQuotaFallback,
-  withGeminiQuotaFallbackStream,
+  canFallbackGemini,
+  isGeminiModelCoolingDown,
+  isGeminiQuotaError,
   withGeminiRequest,
   withGeminiStream,
   type GeminiQuotaKey,
@@ -16,6 +17,8 @@ import type {
   ProviderRequestOptions,
   TextGenerationInput,
 } from "./types";
+import { logAiDiagnostic } from "./diagnostics";
+import type { ModelFallback } from "@/lib/ai";
 
 function providerOptionsFor(input: TextGenerationInput, model: string) {
   const supportsThinking = /^gemini-(?:2\.5|3\.|4-)/.test(model);
@@ -28,6 +31,10 @@ function providerOptionsFor(input: TextGenerationInput, model: string) {
 }
 
 function signalFor(input: TextGenerationInput): AbortSignal | undefined {
+  if (input.deadlineAt !== undefined) {
+    const deadline = AbortSignal.timeout(Math.max(0, input.deadlineAt - Date.now()));
+    return AbortSignal.any([deadline, ...(input.signal ? [input.signal] : []), ...(input.timeoutMs ? [AbortSignal.timeout(input.timeoutMs)] : [])]);
+  }
   if (input.signal && input.timeoutMs) {
     return AbortSignal.any([input.signal, AbortSignal.timeout(input.timeoutMs)]);
   }
@@ -58,7 +65,27 @@ export class GeminiLLMProvider implements LLMProvider {
     readonly model: string,
     private readonly quotaKey: GeminiQuotaKey = "AI_CHAT_MODEL",
     private readonly fallbackModel?: string,
+    private readonly backupModel?: string,
+    private readonly chatModel?: string,
   ) {}
+
+  private route(input: TextGenerationInput, allowFallback = true) {
+    const models = [{ model: this.model, key: this.quotaKey }];
+    if (!allowFallback) return models;
+    if (this.quotaKey === "AI_CHAT_MODEL" && this.fallbackModel) models.push({ model: this.fallbackModel, key: "AI_LIGHT_MODEL" });
+    if (this.backupModel) models.push({ model: this.backupModel, key: "AI_BACKUP_MODEL" });
+    const unique = models.filter((entry, index) => models.findIndex((other) => other.model === entry.model) === index);
+    if (this.quotaKey === "AI_LIGHT_MODEL" && this.chatModel && this.backupModel && isGeminiModelCoolingDown(this.chatModel)) {
+      this.switched(input, this.model, this.backupModel, "quota");
+      return unique.filter(({ model }) => model === this.backupModel);
+    }
+    return unique;
+  }
+
+  private switched(input: TextGenerationInput, fromModel: string, toModel: string, reason: ModelFallback["reason"]) {
+    logAiDiagnostic({ event: "fallback", model: fromModel, fallbackModel: toModel, errorCategory: reason === "quota" ? "quota" : "provider_unavailable" });
+    input.onFallback?.({ fromModel, toModel, reason, backup: toModel === this.backupModel });
+  }
 
   private withRequest<T>(
     input: TextGenerationInput,
@@ -66,6 +93,7 @@ export class GeminiLLMProvider implements LLMProvider {
     allowQuotaFallback = true,
   ): Promise<T> {
     const signal = signalFor(input);
+    const deadlineAt = Math.min(input.deadlineAt ?? Infinity, input.timeoutMs ? Date.now() + input.timeoutMs : Infinity);
     const run = (model: string, quotaKey: GeminiQuotaKey, maxAttempts = input.maxAttempts) =>
       withGeminiRequest(
         quotaKey,
@@ -78,14 +106,21 @@ export class GeminiLLMProvider implements LLMProvider {
         maxAttempts,
         signal,
         model,
+        deadlineAt,
       );
-    const primary = () => run(this.model, this.quotaKey);
-    const fallbackModel = this.quotaKey === "AI_CHAT_MODEL" ? this.fallbackModel : undefined;
     const operationResult = async () => {
-      if (!allowQuotaFallback || !fallbackModel) return primary();
-      return withGeminiQuotaFallback(this.model, fallbackModel, primary, () =>
-        run(fallbackModel, "AI_LIGHT_MODEL", 1),
-      );
+      const route = this.route(input, allowQuotaFallback);
+      for (const [index, entry] of route.entries()) {
+        signal?.throwIfAborted();
+        try { return await run(entry.model, entry.key); }
+        catch (error) {
+          signal?.throwIfAborted();
+          const next = route[index + 1];
+          if (!next || !canFallbackGemini(error)) throw error;
+          this.switched(input, entry.model, next.model, isGeminiQuotaError(error) ? "quota" : "unavailable");
+        }
+      }
+      throw new Error("No AI model configured.");
     };
     return operationResult();
   }
@@ -203,6 +238,7 @@ export class GeminiLLMProvider implements LLMProvider {
   async streamText(input: TextGenerationInput): Promise<AsyncIterable<string>> {
     requireServerEnv("GOOGLE_GENERATIVE_AI_API_KEY");
     const signal = signalFor(input);
+    const deadlineAt = Math.min(input.deadlineAt ?? Infinity, input.timeoutMs ? Date.now() + input.timeoutMs : Infinity);
     const createStream = (
       model: string,
       quotaKey: GeminiQuotaKey,
@@ -225,16 +261,26 @@ export class GeminiLLMProvider implements LLMProvider {
         },
         maxAttempts,
         signal,
+        model,
+        deadlineAt,
       );
-    const primary = createStream(this.model, this.quotaKey);
-    if (this.quotaKey !== "AI_CHAT_MODEL") return primary;
-    const fallbackModel = this.fallbackModel;
-    return withGeminiQuotaFallbackStream(
-      primary,
-      this.model,
-      fallbackModel,
-      fallbackModel ? async () => createStream(fallbackModel, "AI_LIGHT_MODEL", 1) : undefined,
-    );
+    const route = this.route(input);
+    const switched = this.switched.bind(this);
+    return (async function* () {
+      let emitted = false;
+      for (const [index, entry] of route.entries()) {
+        signal?.throwIfAborted();
+        try {
+          for await (const text of createStream(entry.model, entry.key)) { emitted = true; yield text; }
+          return;
+        } catch (error) {
+          signal?.throwIfAborted();
+          const next = route[index + 1];
+          if (emitted || !next || !canFallbackGemini(error)) throw error;
+          switched(input, entry.model, next.model, isGeminiQuotaError(error) ? "quota" : "unavailable");
+        }
+      }
+    })();
   }
 }
 
@@ -386,10 +432,10 @@ export function createGeminiProviders() {
     );
   }
   return {
-    analytics: new GeminiLLMProvider(chatModel, "AI_CHAT_MODEL", lightModel),
+    analytics: new GeminiLLMProvider(chatModel, "AI_CHAT_MODEL", lightModel, env.AI_BACKUP_MODEL),
     light: lightModel
-      ? new GeminiLLMProvider(lightModel, "AI_LIGHT_MODEL")
-      : new GeminiLLMProvider(chatModel, "AI_CHAT_MODEL"),
+      ? new GeminiLLMProvider(lightModel, "AI_LIGHT_MODEL", undefined, env.AI_BACKUP_MODEL, chatModel)
+      : new GeminiLLMProvider(chatModel, "AI_CHAT_MODEL", undefined, env.AI_BACKUP_MODEL),
     embeddings: new GeminiEmbeddingProvider(requireServerEnv("GEMINI_EMBED_MODEL"), 768),
   };
 }

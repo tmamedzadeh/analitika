@@ -12,6 +12,8 @@ import { getAnalyticsQueryHistory, listRecentAnalyticsQueries } from "@/lib/anal
 import { directionIds, directionLabel } from "@/lib/directions";
 import { briefRouteForSearchSource, briefSearchLabel } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
+import type { ModelFallback } from "@/lib/ai";
+import { createFallbackNotifier } from "@/lib/ai-notifications";
 import { infoCredibilityValues, sourceReliabilityValues } from "@/lib/reliability";
 
 const initialFilters: AnalyticsFilters = {
@@ -95,6 +97,7 @@ function Analytics() {
   const [filters, setFilters] = useState<AnalyticsFilters>(initialFilters);
   const [sources, setSources] = useState<AnalyticsSourcePreview[]>([]);
   const [answer, setAnswer] = useState("");
+  const [model, setModel] = useState("");
   const [incomplete, setIncomplete] = useState(false);
   const [elapsedMs, setElapsedMs] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -134,6 +137,8 @@ function Analytics() {
     setSelectedHistory(null);
     setErrorReference("");
     setAnswer("");
+    setModel("");
+    const notifyFallback = createFallbackNotifier();
     setSources([]);
     setIncomplete(false);
     setElapsedMs(null);
@@ -179,7 +184,10 @@ function Analytics() {
           durationMs?: number;
           message?: string;
           requestId?: string;
+          model?: string;
+          fallback?: ModelFallback;
         };
+        if (event.type === "model-fallback" && event.fallback) notifyFallback(event.fallback);
         if (event.type === "sources") setSources(event.sources ?? []);
         if (event.type === "delta") setAnswer((current) => current + (event.text ?? ""));
         if (event.type === "final") {
@@ -187,6 +195,7 @@ function Analytics() {
           setAnswer(event.answer ?? "");
           setIncomplete(Boolean(event.incomplete));
           setElapsedMs(event.durationMs ?? null);
+          setModel(event.model ?? "");
         }
         if (event.type === "error") {
           receivedTerminalEvent = true;
@@ -399,7 +408,7 @@ function Analytics() {
             )}
             <div aria-live="polite" className="mt-4">
               {answer ? (
-                <AnalyticsAnswer answer={answer} sources={selectedHistory?.sources ?? sources} />
+                <AnalyticsAnswer answer={answer} sources={selectedHistory?.sources ?? sources} model={sourceOnly ? undefined : selectedHistory?.model ?? model} />
               ) : busy ? (
                 <p className="text-muted-foreground">{az.analytics.generating}</p>
               ) : (sourceOnly || selectedHistory) && visibleSourceCount > 0 ? (
@@ -410,39 +419,7 @@ function Analytics() {
                 <p className="text-muted-foreground">{az.analytics.emptyState}</p>
               )}
             </div>
-            <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
-              <button
-                className="pill disabled:opacity-50"
-                type="button"
-                disabled={!hasSearched || busy || noDirections}
-                onClick={() => void runSearch("sources")}
-              >
-                {az.analytics.showOnlyFragments}
-              </button>
-              <button
-                className="pill disabled:opacity-50"
-                type="button"
-                disabled={!hasSearched || busy || noDirections || question.trim().length === 0}
-                onClick={() => void runSearch("answer")}
-              >
-                {az.analytics.regenerate}
-              </button>
-              {selectedHistory && (
-                <button
-                  className="pill disabled:opacity-50"
-                  type="button"
-                  disabled={busy || noDirections}
-                  onClick={() =>
-                    void runSearch("answer", {
-                      query: selectedHistory.query,
-                      filters: selectedHistory.filters,
-                    })
-                  }
-                >
-                  {az.analytics.historyRerun}
-                </button>
-              )}
-            </div>
+
           </section>
 
           <section className="min-w-0">

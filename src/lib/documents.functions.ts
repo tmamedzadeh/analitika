@@ -22,6 +22,11 @@ import { deleteObjectsBestEffort } from "../server/storage/delete-objects";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 import { mergeIndexProgress } from "@/server/jobs/index-state";
 import { commitImageUploads, newImageUploadKey } from "@/server/storage/image-uploads";
+import { documentListSchema, listDocumentsPage } from "@/server/documents/queries";
+
+export const listDocuments = createServerFn({ method: "GET" })
+  .validator(documentListSchema)
+  .handler(async ({ data }) => listDocumentsPage(data));
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const documentDateSchema = z

@@ -7,6 +7,7 @@ export function getAppConfig() {
   return {
     analyticsModel: chatModel,
     lightModel: env.AI_LIGHT_MODEL,
+    backupModel: env.AI_BACKUP_MODEL,
     embeddingModel: requireServerEnv("GEMINI_EMBED_MODEL"),
     embeddingDimensions: 768 as const,
     analyticsThinkingLevel: env.ANALYTICS_THINKING_LEVEL,
