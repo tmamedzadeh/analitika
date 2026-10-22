@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-22T04:19:13.935Z",
+  "target": "https://analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+  "httpStatus": 200,
+  "eventTypes": [
+    "sources",
+    "final"
+  ],
+  "models": [
+    "gemini-3.8-flash"
+  ],
+  "history": {
+    "model": "gemini-3.8-flash",
+    "status": "done",
+    "durationMs": 8826
+  },
+  "scope": "Source-only request; no LLM generation; public predefined synthetic query. Model label is configured analytics model, not a claim of successful generation."
+}

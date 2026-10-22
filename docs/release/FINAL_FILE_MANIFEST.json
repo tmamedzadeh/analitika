@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-22T03:53:35.960Z",
+  "checkedAt": "2026-10-22T04:24:43.795Z",
   "base": "a45706e8c0979df1babd20851639e0c9d6a99982",
   "initialStagedFiles": 55,
   "backup": ".release-backup.local/pre-final-staged.patch (ignored local backup)",
@@ -50,8 +50,8 @@
     },
     {
       "path": "docs/release/CORPUS_DIGEST_FINAL_AFTER.json",
-      "sha256": "a9752c0b814a1c8e3ee2babe6e393a73d1e8f5859546300f38aa36cc87764f13",
-      "gitBlob": "b121ddaa8ff143073502fac2b8826df47e5f6beb",
+      "sha256": "4d8722ffe0117aff089bff605a3815bb6d72a0518301d2b7dbf86477d1b5da1d",
+      "gitBlob": "9c8feeda23b0cdb6883e62bbd146e7912f4d3e5c",
       "purpose": "Release report/evidence/current vs historical status"
     },
     {
@@ -80,14 +80,14 @@
     },
     {
       "path": "docs/release/FINAL_CHECKS.json",
-      "sha256": "29f0186e6ee9194b1a1344555de1f60e6ce2254ca0ce5d5d38ded2c0de6b7dc5",
-      "gitBlob": "37d8228c0fc8da93deb82773e11aa7f42fce0f58",
+      "sha256": "72894dc1767608b8af11fe3ff41f99bd8da428f740c860f7405609e34dbc8646",
+      "gitBlob": "ca529b243a7c14f25d06e9f49274f7d316f182a5",
       "purpose": "Release report/evidence/current vs historical status"
     },
     {
       "path": "docs/release/FINAL_DATA_PRESERVATION.json",
-      "sha256": "f500095676e6d9c0677bedf726b8718f9d763dc52d36ded9bbfff67cb104f08b",
-      "gitBlob": "594d70108887c432adee2eedad9f2714cda3cdac",
+      "sha256": "63812a1fffca29e4e57f1adcfa16ef3e7b5834db09fc1001bcf88088fc22f898",
+      "gitBlob": "67c05cf03dba8d6859c1dad65432b6333d169ca8",
       "purpose": "Release report/evidence/current vs historical status"
     },
     {
@@ -96,8 +96,8 @@
     },
     {
       "path": "docs/release/FINAL_SECRET_SCAN.json",
-      "sha256": "6cf5f553edc60463246db686f7ea4217781e225d4b11cb44a86b3d8d8f8ba9db",
-      "gitBlob": "2aafdac45906e3eb3ee8bd87e3f8aab19b6fb7a7",
+      "sha256": "475489f537c7d52e7093c9b9af1d1d45e508c90888ea2f7c1ab0bc7134098309",
+      "gitBlob": "ed063ad71548b5ef07d5ab5743caf8666d90064a",
       "purpose": "Final known-secret scan evidence"
     },
     {
@@ -116,6 +116,12 @@
       "path": "docs/release/GENERATION_INTEGRATION.json",
       "sha256": "4e074941d304af9e3f62cc41a65bf139563d4e9eed6687b314abfe5e9f3ddd90",
       "gitBlob": "62d670b31baab56cf06ef7c0b36eeb5881700e1e",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/GITHUB_FINAL_DELIVERY.json",
+      "sha256": "f4e264416dcc2da955906793adf6a9746ddf7fbe1a83b50100ff775d2590003e",
+      "gitBlob": "4e938d9aae62a50bddadf3deb1e84997af7e16a7",
       "purpose": "Release report/evidence/current vs historical status"
     },
     {
@@ -150,8 +156,8 @@
     },
     {
       "path": "docs/release/LIVE_DB_FINAL_AFTER.json",
-      "sha256": "51eee5f13337b6c22e66731f8d1b99136ad4765db18f7f3484f90bdd7edc569a",
-      "gitBlob": "af3047e3670449ed63c4ecebca917339e3cf88e7",
+      "sha256": "5202ca0b28785188e0f3428de3bd51c041184075e60338310e2343cfa3acd576",
+      "gitBlob": "b716b9ac47bbca6be3cc552bc03d4a5762d90317",
       "purpose": "Release report/evidence/current vs historical status"
     },
     {
@@ -176,6 +182,24 @@
       "path": "docs/release/LIVE_SCHEMA_DRIFT.json",
       "sha256": "6a74deb65ab0eec5450696a3c3dbf923cec15f5a55ad78b221849221f87f55ca",
       "gitBlob": "887297da632fa1ada667e3533c5599e0d4a2b091",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/PREVIEW_MODEL_CONFIG.json",
+      "sha256": "7c2f997965eaef892dc11f668808aeb976d52756800d30fc12fab2a7bac1f117",
+      "gitBlob": "7284debbe377cac2e9866237377fd73db97c8b1f",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/PREVIEW_RUNTIME_PROBE.json",
+      "sha256": "d1fab9a825056a772ea29989a515a97e3050a1eb713c451b4c46da78a6ed7957",
+      "gitBlob": "4998ae6528386fe23ccc649c5c01a1a3a6aba0dc",
+      "purpose": "Release report/evidence/current vs historical status"
+    },
+    {
+      "path": "docs/release/PREVIEW_SMOKE.json",
+      "sha256": "ef6bc15c1df6b38618ce00022c5039d99dee1718baa1d0d84d05ec0ccc1b8c58",
+      "gitBlob": "38bd8fcb55a991970830676f5a479fc6a56cb29b",
       "purpose": "Release report/evidence/current vs historical status"
     },
     {
@@ -234,8 +258,8 @@
     },
     {
       "path": "docs/release/RETRIEVAL_FINAL_COMPARISON.json",
-      "sha256": "0131a6a25b03d1db354679d6df150728970cd89b1b884d69559480e95d226c86",
-      "gitBlob": "b34c65198762cb6bbeb59fe8a943384517cd66a1",
+      "sha256": "751c180b09478e2410149451ebfe0726adadcb0f343d9ccc6a175540f18b8847",
+      "gitBlob": "2e81a1201b9ee2cf0033e07fee8278d72d93ea12",
       "purpose": "Release report/evidence/current vs historical status"
     },
     {
@@ -282,20 +306,20 @@
     },
     {
       "path": "docs/V1_FINAL_PRODUCTION_REPORT.md",
-      "sha256": "f160e3f92c64f50a33fd24d782039e5ad9c12a7e05557d5ba6dc979750cb1bd3",
-      "gitBlob": "1107c166c325d1e45eacc6e774820a41523bd7ea",
+      "sha256": "b5ff699078df1af4412665e4ffcfc91f5f704e95f0b8dff0352c17d93a42ab64",
+      "gitBlob": "aa0ba57820d53e0b65f4c824455a0d7015d547c4",
       "purpose": "Release report/evidence/current vs historical status"
     },
     {
       "path": "docs/V1_PROD_HARDENING_AUDIT.md",
-      "sha256": "e5d0e5915890a1df0caab88ce70873640dc3143f9a4b93d9946be3fe6519a89f",
-      "gitBlob": "afcb9ad372bb3f7545ec2ed0320c7a005b5a34ce",
+      "sha256": "41dabce8d4e2038197c1e4b53327729de8537afbadd6eba1b54513ebd8246104",
+      "gitBlob": "ef11dcaad3e776c923923caa7f7b4aa17c7dc395",
       "purpose": "Release report/evidence/current vs historical status"
     },
     {
       "path": "docs/WORK_SESSION_HANDOFF.md",
-      "sha256": "896595939b6065d47d2e2f2ea282b4f058e6886a9df6cb8dd6fda3b01df0e4c9",
-      "gitBlob": "df9b76df652dd52a6b89f6078569cca18703c656",
+      "sha256": "2f27d55522f36360a4b4394dec8325a5161373ba87c48ec86e9b778e8c018438",
+      "gitBlob": "5c89a0531b0a26b4132499f83339530e4086c7c4",
       "purpose": "Release report/evidence/current vs historical status"
     },
     {

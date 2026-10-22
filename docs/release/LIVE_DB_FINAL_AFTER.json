@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-22T03:53:18.559Z",
+  "capturedAt": "2026-10-22T04:22:19.109Z",
   "migrations": [
     {
       "tag": "0000_stage_0",
@@ -152,7 +152,7 @@
       "version": "PostgreSQL 17.11 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
       "timezone": "Asia/Baku",
       "date": "2026-10-22",
-      "time": "2026-10-22 07:53:18.94545+04"
+      "time": "2026-10-22 08:22:19.552869+04"
     }
   ],
   "serverAccessAfterRls": [

@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-10-22T03:59:40.962Z",
+  "method": "GET only; existing project automation credential via official header, existing Inngest signing key; no management access/config changes",
+  "results": [
+    {
+      "origin": "https://analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+      "loginStatus": 200,
+      "unsignedWorkerStatus": 401,
+      "signedWorkerStatus": 200,
+      "introspection": {
+        "app_id": "analitika",
+        "function_count": 6,
+        "has_event_key": true,
+        "has_signing_key": true,
+        "mode": "cloud",
+        "sdk_language": "js",
+        "sdk_version": "4.24.0",
+        "authentication_succeeded": true
+      }
+    },
+    {
+      "origin": "https://analitika-one.vercel.app",
+      "loginStatus": 200,
+      "unsignedWorkerStatus": 401,
+      "signedWorkerStatus": 200,
+      "introspection": {
+        "app_id": "analitika",
+        "function_count": 8,
+        "has_event_key": true,
+        "has_signing_key": true,
+        "mode": "cloud",
+        "sdk_language": "js",
+        "sdk_version": "4.24.0",
+        "authentication_succeeded": true
+      }
+    }
+  ]
+}

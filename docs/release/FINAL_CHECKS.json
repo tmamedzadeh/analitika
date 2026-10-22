@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-10-22T03:53:30.293Z",
+  "checkedAt": "2026-10-22T04:24:28.413Z",
   "branch": "codex/zirve-v1-rc-resume",
-  "baseHead": "a45706e8c0979df1babd20851639e0c9d6a99982",
+  "baseHead": "dd76d2e624ec43444cda974e5929a6124b4d6696",
   "gates": [
     {
       "label": "final-unit",
@@ -244,7 +244,106 @@
     "Local HTTP provider transport is synthetic; not external/cloud proof",
     "Primary and light live generation evidence separately reported",
     "Production Vercel access skipped at owner request; current runtime/revision not verified",
-    "No semantic entailment engine; scoped manual support review only"
+    "No semantic entailment engine; scoped manual support review only",
+    "Actual preview generation FAIL (sources then error, no validated final); local PASS does not override it"
   ],
-  "productionDecision": "NO-GO"
+  "productionDecision": "NO-GO",
+  "actualPreview": {
+    "checkedAt": "2026-10-22T04:17:17.859Z",
+    "target": "https://analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+    "status": "FAIL",
+    "checks": [
+      {
+        "name": "Actual preview login and Secure HttpOnly session uses the configured project DB",
+        "status": "PASS"
+      },
+      {
+        "name": "Preview hydrated document UUID, owner clearance denial, retired routes",
+        "status": "PASS"
+      },
+      {
+        "name": "Preview authenticated attachment reads the same private storage object",
+        "status": "PASS"
+      },
+      {
+        "name": "Provider failure diagnostics",
+        "status": "FAIL",
+        "eventTypes": [
+          "sources",
+          "error"
+        ]
+      }
+    ],
+    "diagnostics": {
+      "failedHttp": [
+        {
+          "host": "analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+          "path": "/osint",
+          "status": 404
+        },
+        {
+          "host": "analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+          "path": "/sorgu",
+          "status": 404
+        }
+      ],
+      "openDocument": {
+        "status": 200,
+        "hydratedMarkerPresent": true
+      },
+      "restrictedDocument": {
+        "denied": true
+      },
+      "/osint": 404,
+      "/sorgu": 404,
+      "lastPath": "/sorgu"
+    },
+    "fixtureLeftovers": 0,
+    "storageCleanup": "Exact one synthetic object removed; absence verified",
+    "corpusSourcesModified": false,
+    "methodCorrection": "Initial raw HTML marker assertion was invalid for client-hydrated document detail; corrected to wait for actual browser rendering",
+    "realProviderCalls": "Only open query/source processing through actual preview endpoint if generation stage reached; no synthetic transport",
+    "indexFixture": "One manually inserted synthetic vector/chunk for scoped retrieval, not cloud indexing proof",
+    "productionSmoke": false,
+    "cloudWorkerDelivery": false,
+    "revisionEvidence": "GitHub Vercel successful deployment associated with dd76d2e; this preview smoke is not production revision proof"
+  },
+  "runtimeIntrospection": {
+    "checkedAt": "2026-10-22T03:59:40.962Z",
+    "method": "GET only; existing project automation credential via official header, existing Inngest signing key; no management access/config changes",
+    "results": [
+      {
+        "origin": "https://analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app",
+        "loginStatus": 200,
+        "unsignedWorkerStatus": 401,
+        "signedWorkerStatus": 200,
+        "introspection": {
+          "app_id": "analitika",
+          "function_count": 6,
+          "has_event_key": true,
+          "has_signing_key": true,
+          "mode": "cloud",
+          "sdk_language": "js",
+          "sdk_version": "4.24.0",
+          "authentication_succeeded": true
+        }
+      },
+      {
+        "origin": "https://analitika-one.vercel.app",
+        "loginStatus": 200,
+        "unsignedWorkerStatus": 401,
+        "signedWorkerStatus": 200,
+        "introspection": {
+          "app_id": "analitika",
+          "function_count": 8,
+          "has_event_key": true,
+          "has_signing_key": true,
+          "mode": "cloud",
+          "sdk_language": "js",
+          "sdk_version": "4.24.0",
+          "authentication_succeeded": true
+        }
+      }
+    ]
+  }
 }

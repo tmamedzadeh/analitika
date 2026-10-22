@@ -2,6 +2,10 @@
 
 **PRODUCTION NO-GO.** Полный [финальный отчёт](V1_FINAL_PRODUCTION_REPORT.md), [новое задание с release authorization](release/PRODUCTION_RELEASE_REQUEST.md). Владелец затем попросил пропустить получение Vercel доступа; это не подтверждение runtime и не отмена security/release gates. Commit/push/PR разрешены, merge/deploy возможны только после gates. Архив ниже не является актуальной matrix.
 
+Code commit `dd76d2e624ec43444cda974e5929a6124b4d6696` опубликован, [draft PR #1](https://github.com/tmamedzadeh/analitika/pull/1). Автоматический Vercel preview status **success**, target `833Fp43aHCXLFuj4ciH7VfL6BEh1`. Подписанный runtime GET: preview6 functions, production8; unsigned401/signed200 у обоих. [Evidence](release/PREVIEW_RUNTIME_PROBE.json). Preview success не является production rollout; main не менялся.
+
+**Новый P0 FAIL actual preview generation:** [PREVIEW_SMOKE.json](release/PREVIEW_SMOKE.json). Три positive gates (real login в ту же DB, hydrated detail/clearance/retired routes, private storage linkage) PASS; actual open HTTP answer дал sources→error без final. Configured primary3.8 подтверждён отдельным sources-only response, причина provider/validation/env error без hosting logs не установлена. Не подменять этот FAIL локальными тремя generation PASS. Preview fixtures полностью cleaned; это не cloud indexing/production smoke proof.
+
 | Приоритет / задача | Статус | Актуальное evidence / ограничение |
 | --- | --- | --- |
 | P0 Cloud workers | FAIL configuration; NOT VERIFIED release execution | Inngest management API доступен по signing key: старый sync 20 октября, 8 jobs с retired OSINT, нет document recovery. CLOUD_WORKER_DISCOVERY.json |
@@ -29,7 +33,7 @@
 
 | Code | DB | Worker | Retrieval | Security | Runtime | Release |
 | --- | --- | --- | --- | --- | --- | --- |
-| PASS local | PASS | FAIL config / NOT VERIFIED new cloud runs | PASS scoped; fresh @5 ниже baseline | PASS local; deployed linkage NOT VERIFIED | NOT VERIFIED revision/smoke | **NO-GO** |
+| PASS local | PASS | FAIL config / NOT VERIFIED new cloud runs | PASS scoped; fresh @5 ниже baseline | PASS local/preview scoped; production NOT VERIFIED | FAIL preview generation / NOT VERIFIED production revision/smoke | **NO-GO** |
 
 Fresh evidence: [FINAL_CHECKS.json](release/FINAL_CHECKS.json), [LIVE_DB_FINAL_AFTER.json](release/LIVE_DB_FINAL_AFTER.json), [FINAL_DATA_PRESERVATION.json](release/FINAL_DATA_PRESERVATION.json), [GITHUB_FINAL_DELIVERY.json](release/GITHUB_FINAL_DELIVERY.json). Exact checks/limitations and acceptance matrix are in the full report. Retired OSINT functions получили pause HTTP200; API readback paused field не даёт, acknowledgement не назван state proof. Production sync/deploy/merge не выполнены.
 

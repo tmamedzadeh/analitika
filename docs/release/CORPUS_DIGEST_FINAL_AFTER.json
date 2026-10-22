@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-22T03:53:24.101Z",
+  "capturedAt": "2026-10-22T04:22:27.280Z",
   "algorithm": "SHA256 of ordered complete row JSON including corpus body, chunk text, embedding, metadata; no content emitted",
   "tables": {
     "documents": {

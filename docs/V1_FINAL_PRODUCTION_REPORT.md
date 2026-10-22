@@ -62,10 +62,11 @@ Uploads: до 10 MiB на image, JPG/PNG/WebP, user-bound staging keys, signed P
 | Retrieval baseline / fresh run | PASS execution; metrics changed | 17 queries, 20/20 gold IDs. Historical: Recall@5/10=1/1, MRR .855556, nDCG .879315. Fresh: Recall@5 .933333, @10 1, MRR .842857, nDCG .868204; 16 embedding200/1network-timeout. [Baseline](release/RETRIEVAL_BASELINE.json), [fresh metrics](release/RETRIEVAL_FINAL.json), [comparison](release/RETRIEVAL_FINAL_COMPARISON.json) |
 | Live generation | PASS scoped | [GENERATION_INTEGRATION.json](release/GENERATION_INTEGRATION.json): numeric+citation answer и два no-answer; quota fallback на согласованную light model наблюдался для всех трёх |
 | Primary sample | PASS scoped | [SEMANTIC_SAMPLE.json](release/SEMANTIC_SAMPLE.json): реальный primary model, five claims вручную сопоставлены с synthetic open source |
+| Actual Vercel preview smoke | FAIL generation; 3 positive gates PASS | [PREVIEW_SMOKE.json](release/PREVIEW_SMOKE.json): actual login/Secure cookie в ту же DB, hydrated UUID/clearance/retired routes и private attachment PASS; actual open Gemini HTTP `sources → error`, validated final отсутствует. Exact fixture/object cleanup подтверждён |
 | Native DB / integrity | PASS | drift 0, migration hashes matched, RLS/grants/integrity checks |
 | Production runtime | NOT VERIFIED | Только public GET: [PRODUCTION_PUBLIC_FINAL.json](release/PRODUCTION_PUBLIC_FINAL.json). Это не authenticated smoke и не revision proof |
 
-503 не признан permanent failure: metadata всех трёх моделей HTTP 200, минимальные chat requests HTTP 200. Реальные generation пробы также наблюдали 503 и отказ validation, затем успешный bounded quota fallback. [GEMINI_DIAGNOSTIC_FINAL.json](release/GEMINI_DIAGNOSTIC_FINAL.json). Provider root cause/capacity и project RPM/RPD/billing limits через доступные metadata не установлены; billing/ключи/модели не менялись.
+503 не признан permanent failure: metadata всех трёх моделей HTTP 200, минимальные chat requests HTTP 200. Реальные local-provider generation пробы также наблюдали 503 и отказ validation, затем успешный bounded quota fallback. [GEMINI_DIAGNOSTIC_FINAL.json](release/GEMINI_DIAGNOSTIC_FINAL.json). Actual preview sources-only request завершился `sources → final`, history done; configured model `gemini-3.8-flash` ([PREVIEW_MODEL_CONFIG.json](release/PREVIEW_MODEL_CONFIG.json)). Он не вызывает LLM и не отменяет generation FAIL. Provider root cause/capacity, точные deployed credentials/light-model env и project RPM/RPD/billing limits через доступные metadata не установлены; billing/ключи/модели не менялись. Без deployment/provider logs причина preview generation failure не приписывается ни quota, ни prompt validation предположительно.
 
 ## G. Значимые исправления hardening
 
@@ -86,9 +87,13 @@ Uploads: до 10 MiB на image, JPG/PNG/WebP, user-bound staging keys, signed P
 
 ## H. GitHub и production deployment
 
-Repository: https://github.com/tmamedzadeh/analitika. Release branch: `codex/zirve-v1-rc-resume`, исходный HEAD/main `a45706e8c0979df1babd20851639e0c9d6a99982`. Итоговый commit/PR/checks фиксируются в `GITHUB_FINAL_DELIVERY.json`; отчёт не подставляет ещё не существующий SHA.
+Repository: https://github.com/tmamedzadeh/analitika. Release branch: `codex/zirve-v1-rc-resume`, исходный HEAD/main `a45706e8c0979df1babd20851639e0c9d6a99982`. Проверенный code commit **`dd76d2e624ec43444cda974e5929a6124b4d6696`** опубликован; [draft PR #1](https://github.com/tmamedzadeh/analitika/pull/1) открыт в main. Main не менялся. GitHub PR mergeable=clean, protection/rules отсутствуют, reviews пусты; отсутствие branch protection не считается прохождением release gates. Дополнительный documentation/evidence commit сохраняет receipt без изменения проверенного кода. Наблюдённые SHA/checks — [GITHUB_FINAL_DELIVERY.json](release/GITHUB_FINAL_DELIVERY.json).
 
-Vercel target владельца: **https://analitika-one.vercel.app**. GitHub status указывает project `tm-d91f/analitika`; управление project/env/region/rollback через Vercel не проверено. У main: `failure / Deployment was blocked`, target `8MKdrbUZxDEE7XRtMdCKzSHyczcD`. Новый release production deployment ID/READY/live revision — **NOT VERIFIED**. Старый successful GitHub status: SHA `a2af6269d81e57e839ecc226e7e1a8ae0014f10f`, Vercel target `2VnHomtKSpAHZ3BcLR373qUBiDp2`; это rollback candidate, а не подтверждённый current-working rollback target.
+Vercel target владельца: **https://analitika-one.vercel.app**. GitHub status указывает project `tm-d91f/analitika`; управление project/env/region/rollback через Vercel не проверено. У main: `failure / Deployment was blocked`, target `8MKdrbUZxDEE7XRtMdCKzSHyczcD`. Для code commit `dd76d2e` автоматический **preview** deployment завершился успешно: Vercel target **`833Fp43aHCXLFuj4ciH7VfL6BEh1`**, [preview URL](https://analitika-git-codex-zirve-v1-rc-resume-tm-d91f.vercel.app). Это проверено через GitHub/Vercel bot status; отдельного manual deploy не было. Новый **production** deployment ID/READY/live revision — **NOT VERIFIED**. Старый successful GitHub status: SHA `a2af6269d81e57e839ecc226e7e1a8ae0014f10f`, Vercel target `2VnHomtKSpAHZ3BcLR373qUBiDp2`; это rollback candidate, а не подтверждённый current-working rollback target.
+
+Без подключения management использован уже настроенный project automation credential через официальный header, только к hostname этого проекта. [Подписанный GET probe](release/PREVIEW_RUNTIME_PROBE.json) подтвердил: preview unsigned Inngest401/signed200, **6 functions**; production unsigned401/signed200, **8 functions**. Таким образом расхождение опубликованного production с проверенным кодом подтверждено непосредственно runtime. Cloud registration по-прежнему отдельна от endpoint introspection. Credentials, signatures и query values в evidence не включены.
+
+Preview smoke выполнялся на code commit `dd76d2e`: browser/client hydration, настоящий login, тот же DB session и private S3 объект. Изначальный raw HTML marker assertion был неверным для client-hydrated detail; browser header override также исправлена на сохранение всех Cookie headers. Это исправления диагностического метода, не заявленные app fixes. После них три functional gates PASS; generation остаётся реальным FAIL. Source fixtures использовали один manually inserted synthetic vector, поэтому этот smoke не доказывает cloud indexing. После пробы пользователи/history/documents/object удалены, пользовательский corpus не менялся.
 
 В Inngest app `analitika` найден successful sync 2026-10-20T14:07:30Z к отдельному Vercel deployment hostname, 8 functions. Есть старые `run-osint`, `close-stale-osint-runs`, `retry-osint-summary`; отсутствует `requeue-stale-document-indexes`. В recent history brief recovery/cleanups COMPLETED, obsolete OSINT cron FAILED. [CLOUD_WORKER_DISCOVERY.json](release/CLOUD_WORKER_DISCOVERY.json). Это обнаруженное runtime расхождение, не выполнение новых workers. Три retired functions получили pause HTTP 200: [RETIRED_CLOUD_JOBS_PAUSED.json](release/RETIRED_CLOUD_JOBS_PAUSED.json).
 
@@ -98,6 +103,7 @@ Vercel target владельца: **https://analitika-one.vercel.app**. GitHub s
 | --- | --- | --- |
 | P0 | Подтвердить Vercel project/source main/build/env/DB/models/policy/storage/region/timeouts | NOT VERIFIED; Vercel management access отсутствует, владелец попросил его пропустить |
 | P0 | Актуальная production revision и READY release | NOT VERIFIED; old main deployment blocked, проверенный код ещё не подтверждён в production |
+| P0 | Успешная actual preview/runtime generation | FAIL; `sources → error`, final отсутствует; configured primary3.8 подтверждён. Нужны sanitized provider/hosting diagnostics и исправление причины с повторным validated answer; доступ к management пропущен |
 | P0 | Актуальные шесть Inngest functions | FAIL current config; stale 8-function app, document recovery отсутствует |
 | P0 | Real cloud document+brief event→ready, delivery/signing, duplicate retry | NOT VERIFIED на release revision; ручной local worker и SDK simulations не заменяют cloud |
 | P1 | Scheduled document recovery и реальный cold restart | NOT VERIFIED; local DB pool reconnect не является process/cloud restart |
@@ -144,11 +150,12 @@ Qwen/backup model, глобальный distributed quota scheduler, расши�
 | Migration/integrity/corpus | PASS | 24 migrations, zero drift/integrity, before/after digests |
 | Current cloud functions/recovery | FAIL / NOT VERIFIED | Stale registration; новые document/brief/restart runs не проверены |
 | GitHub review branch/PR | Delivery record | `GITHUB_FINAL_DELIVERY.json`; main merge заблокирован release gates |
-| Vercel READY / live release SHA | NOT VERIFIED | Management gate пропущен по указанию владельца |
+| Vercel preview | PASS deployment; FAIL generation smoke | GitHub success привязан к dd76d2e; login/clearance/storage PASS, actual answer FAIL |
+| Vercel production READY / live release SHA | NOT VERIFIED | Management gate пропущен; production endpoint всё ещё8functions |
 | Real production smoke | NOT VERIFIED | Public GET only |
 | Rollback readiness | NOT VERIFIED | Historical candidate найден, usable target/access не подтверждены |
 | Full report и сохранение работы | PASS | Этот файл, audit/handoff/evidence/manifest |
 
 ## M. Final Decision
 
-**PRODUCTION NO-GO.** Локальные исправления и проверки не устраняют отсутствие подтверждённого production rollout и актуальных cloud workers. Признать V1 Production завершённым можно после прохождения всех оставшихся обязательных gates, а не на основании commit/push, старого deployment или одного login GET.
+**PRODUCTION NO-GO.** Локальные исправления и проверки не отменяют actual preview generation FAIL, отсутствие подтверждённого production rollout и актуальных cloud workers. Признать V1 Production завершённым можно после прохождения всех оставшихся обязательных gates, а не на основании commit/push, preview READY, старого deployment или одного login GET.
