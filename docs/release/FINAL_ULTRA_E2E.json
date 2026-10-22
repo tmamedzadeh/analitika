@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-22T13:26:17.841Z",
+  "target": "http://127.0.0.1:4176",
+  "artifactSha256": "f2d49abcfc1a6de3444c6a24fd67888fee808cd9bceac14212ee576ae4de4bb8",
+  "checks": [
+    {
+      "name": "anonymous routes redirect to login and data APIs reject access",
+      "status": "PASS"
+    }
+  ],
+  "status": "FAIL",
+  "failureCase": "real login rejects bad password, establishes HttpOnly SameSite session",
+  "fixtureCleanup": "completed",
+  "fixtureLeftovers": 0,
+  "storageFixtureCleanup": {
+    "keys": 0,
+    "absenceVerified": true
+  },
+  "cloudWorkerDelivery": "NOT VERIFIED; local worker explicitly exercised"
+}

@@ -1,0 +1,33 @@
+{
+  "checkedAt": "2026-10-22T13:30:46.541Z",
+  "target": "http://127.0.0.1:4176",
+  "artifactSha256": "f2d49abcfc1a6de3444c6a24fd67888fee808cd9bceac14212ee576ae4de4bb8",
+  "checks": [
+    {
+      "name": "anonymous routes redirect to login and data APIs reject access",
+      "status": "PASS"
+    },
+    {
+      "name": "real login rejects bad password, establishes HttpOnly SameSite session",
+      "status": "PASS"
+    },
+    {
+      "name": "document create, durable queue, automatic detail navigation and catalog link",
+      "status": "PASS"
+    },
+    {
+      "name": "owner/admin clearance cannot open a restricted document by UUID",
+      "status": "PASS"
+    }
+  ],
+  "status": "FAIL",
+  "failureCase": "brief creation, detail/edit route, lexical AND search and empty search state",
+  "fixtureCleanup": "completed",
+  "fixtureLeftovers": 0,
+  "storageFixtureCleanup": {
+    "keys": 4,
+    "absenceVerified": true
+  },
+  "cloudWorkerDelivery": "NOT VERIFIED; local worker explicitly exercised",
+  "screenshotDirectory": ".release-backup.local\\FINAL_ANALYTICS_APP_BROWSER"
+}

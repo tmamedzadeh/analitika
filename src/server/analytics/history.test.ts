@@ -51,6 +51,11 @@ function arrange(
     legacy?: boolean;
     malformed?: boolean;
     brief?: boolean;
+    missingMetadata?: boolean;
+    unknownCitation?: boolean;
+    missingMapping?: boolean;
+    duplicateNumber?: boolean;
+    ambiguousParent?: boolean;
   } = {},
 ) {
   const saved = options.legacy ? { ...snapshot, chunkId: undefined } : { ...snapshot };
@@ -58,6 +63,14 @@ function arrange(
     saved.documentId = null as unknown as string;
     saved.briefId = id as unknown as null;
   }
+  if (options.ambiguousParent) saved.briefId = id as unknown as null;
+  const sources = options.missingMetadata
+    ? [{ n: snapshot.n, documentId: id, chunkId }]
+    : options.missingMapping
+      ? []
+      : options.duplicateNumber
+        ? [saved, saved]
+        : [saved];
   mocks.query.mockImplementation(async (sql: string) => {
     if (sql.startsWith('select "id" from "app_users"'))
       return { rows: options.active === false ? [] : [[user.id]] };
@@ -73,8 +86,8 @@ function arrange(
                   "Saved question",
                   filters,
                   "done",
-                  "Saved answer [8].",
-                  options.malformed ? [{ n: -1 }] : [saved],
+                  options.unknownCitation ? "Saved answer [9]." : "Saved answer [8].",
+                  options.malformed ? [{ n: -1 }] : sources,
                   "open",
                   "test-model",
                   12,
@@ -125,6 +138,11 @@ describe("authorized current history previews", () => {
       sourceReliability: "D",
       infoCredibility: 5,
     });
+    expect(record?.sources[0]).toMatchObject({
+      title: "Current title",
+      caption: "Current section",
+    });
+    expect(JSON.stringify(record)).not.toMatch(/Saved title|Saved section/);
     const calls = mocks.query.mock.calls as [string, unknown[]][];
     const documentRead = calls.find(([sql]) => sql.startsWith('select "title"'))!;
     expect(documentRead[0]).toContain('"app_users"."active" = true');
@@ -135,14 +153,17 @@ describe("authorized current history previews", () => {
     expect(chunkRead[0]).toContain('"documents"."chunk_count" >');
     expect(chunkRead[1]).toEqual(expect.arrayContaining([chunkId, id]));
   });
-  it.each([{ active: false }, { visible: false }, { malformed: true }])(
-    "returns no metadata or excerpts for invalid account/history: %j",
-    async (options) => {
-      arrange(options);
-      expect(await read()).toBeNull();
-      expect(mocks.query.mock.calls.some(([sql]) => sql.includes('from "chunks"'))).toBe(false);
-    },
-  );
+  it.each([
+    { active: false },
+    { visible: false },
+    { malformed: true },
+    { duplicateNumber: true },
+    { ambiguousParent: true },
+  ])("returns no metadata or excerpts for invalid account/history: %j", async (options) => {
+    arrange(options);
+    expect(await read()).toBeNull();
+    expect(mocks.query.mock.calls.some(([sql]) => sql.includes('from "chunks"'))).toBe(false);
+  });
   it.each([{ document: false }, { chunk: false }])(
     "suppresses saved text and preview after source/chunk revocation: %j",
     async (options) => {
@@ -161,17 +182,49 @@ describe("authorized current history previews", () => {
       expect(JSON.stringify(record)).not.toContain("Current authorized excerpt");
     },
   );
-  it("keeps legacy sources navigable without fabricating an excerpt", async () => {
+  it("keeps current legacy parent metadata navigable but withholds an unverifiable saved answer", async () => {
     arrange({ legacy: true });
     const record = await read();
     expect(record?.sources[0]).toMatchObject({
       n: 8,
       available: true,
       documentId: id,
-      preview: null,
+      title: "Current title",
+      caption: "",
+      preview: {
+        title: "Current title",
+        sourceKind: "document",
+        chunkId: "",
+        sectionTitle: "",
+        quote: "",
+      },
     });
+    expect(record?.status).toBe("incomplete");
+    expect(record?.answer).toBe(az.analytics.sourceUnavailable);
+    expect(JSON.stringify(record)).not.toMatch(/Saved title|Saved section|Saved answer/);
     expect(mocks.query.mock.calls.some(([sql]) => sql.includes('from "chunks"'))).toBe(false);
   });
+  it("resolves legacy snapshots with missing display metadata using their exact current fragment", async () => {
+    arrange({ missingMetadata: true });
+    const record = await read();
+    expect(record?.answer).toBe("Saved answer [8].");
+    expect(record?.sources[0]?.preview).toMatchObject({
+      n: 8,
+      title: "Current title",
+      sectionTitle: "Current section",
+      quote: "Current authorized excerpt",
+    });
+  });
+  it.each([{ unknownCitation: true }, { missingMapping: true }])(
+    "does not replay answer citations missing from verified history mappings: %j",
+    async (options) => {
+      arrange(options);
+      const record = await read();
+      expect(record?.status).toBe("incomplete");
+      expect(record?.answer).toBe(az.analytics.sourceUnavailable);
+      expect(JSON.stringify(record)).not.toContain("Saved answer");
+    },
+  );
   it("requires a published brief, committed index and exact parent for brief previews", async () => {
     arrange({ brief: true });
     const record = await read();

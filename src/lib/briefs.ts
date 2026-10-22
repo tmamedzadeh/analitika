@@ -212,6 +212,3 @@ export function briefRouteForSearchSource(source: {
     : null;
 }
 
-export function briefSearchLabel(date: string): string {
-  return `${az.analytics.openBrief} · ${date}`;
-}

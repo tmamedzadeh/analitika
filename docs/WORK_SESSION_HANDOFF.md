@@ -1,5 +1,7 @@
 # Current V1 handoff — 2026-10-22
 
+Final source/prompt/security audit and current verification evidence: [ZIRVƏ final ultra audit](release/ZIRVE_FINAL_ULTRA_AUDIT.md). Source cards now group by typed parent identity, distinguish material/fragment counts, and support scoped exact-fragment expansion and focus. Legacy history with unverifiable chunks cannot replay its saved answer; failed reopening clears stale content. Original retrieval, model/fallback configuration and production environment remain unchanged.
+
 The functional implementation and security boundary are documented in [Executive Analytics V1](analytics-v1.md), [shared search](search-v1.md) and the [release runbook](release/RELEASE_RUNBOOK.md). Phase A checks: [161 targeted tests, TypeScript, ESLint and build](release/EXECUTIVE_ANALYTICS_CHECKS.md). Cleanup decisions: [repository manifest](repository-cleanup.md).
 
 Executive prompts, scoped reliability warnings, trusted citation previews, original-filter Copy/Regenerate and 115/105/120-second client/server/function budgets are implemented. Models, embeddings, database schema, permissions and production environment are unchanged.

@@ -1,8 +1,14 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AnalyticsAnswer } from "./AnalyticsAnswer";
+import { AnalyticsCitation } from "./AnalyticsCitation";
+import { AnalyticsSourceCard } from "./AnalyticsSourceCard";
 import { az } from "@/lib/i18n/az";
-import type { AnalyticsSourcePreview } from "@/lib/analytics";
+import {
+  analyticsFragmentId,
+  groupAnalyticsSources,
+  type AnalyticsSourcePreview,
+} from "@/lib/analytics";
 
 const preview: AnalyticsSourcePreview = {
   n: 8,
@@ -22,7 +28,10 @@ const preview: AnalyticsSourcePreview = {
   isTable: false,
   attachmentCount: 0,
 };
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  window.history.replaceState(null, "", window.location.pathname);
+});
 
 describe("analytics citation links", () => {
   it("attributes the actual model and omits attribution for non-generated answers", () => {
@@ -55,10 +64,37 @@ describe("analytics citation links", () => {
     }
   });
 
+  it("sends a grouped citation to the exact fragment inside its material card", async () => {
+    render(
+      <AnalyticsCitation
+        source={{
+          n: 3,
+          documentId: "document-a",
+          chunkId: "chunk-3",
+          sourceKind: "document",
+          preview: { ...preview, n: 3, documentId: "document-a", chunkId: "chunk-3" },
+        }}
+        groupKey="document:document-a"
+      />,
+    );
+    const citation = screen.getByRole("link", {
+      name: az.analytics.openSource.replace("{n}", "3"),
+    });
+    expect(citation).toHaveAttribute("href", "#fragment-document%3Adocument-a-3");
+    fireEvent.focus(citation);
+    // The popover describes exactly this mapping: its own section, date and excerpt.
+    expect(await screen.findByText(/2026-10-21 · Approved budget/)).toBeInTheDocument();
+    expect(screen.getByText(preview.quote)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: az.analytics.sourceCard })).toHaveAttribute(
+      "href",
+      "#fragment-document%3Adocument-a-3",
+    );
+  });
+
   it("uses no model-authored URL as a document or citation destination", () => {
     const { container } = render(
       <AnalyticsAnswer
-        answer="Nəticə [1](https://untrusted.test/senedler/secret). [Hesabat](https://untrusted.test/report) [Daxili sənəd](/senedler/secret)."
+        answer="Nəticə [1](https://untrusted.test/senedler/secret). [Hesabat](https://untrusted.test/report) [Daxili sənəd](/senedler/secret). [Saxta](#citation-1) <script>alert(1)</script> ![Şəkil](https://untrusted.test/track.png)"
         sources={[{ n: 1 }]}
       />,
     );
@@ -67,6 +103,8 @@ describe("analytics citation links", () => {
     expect(container.querySelector('a[href*="untrusted"]')).toBeNull();
     expect(container.querySelector('a[href*="secret"]')).toBeNull();
     expect(container).toHaveTextContent("Hesabat");
+    expect(container).toHaveTextContent("Saxta");
+    expect(container.querySelector("script, img")).toBeNull();
   });
 
   it("keeps unavailable history sources and unknown source numbers non-clickable", () => {
@@ -141,11 +179,63 @@ describe("analytics answer actions and source previews", () => {
     );
     expect(screen.getByRole("link", { name: az.analytics.sourceCard })).toHaveAttribute(
       "href",
-      "#source-8",
+      "#fragment-document%3Atrusted-document-8",
     );
     fireEvent.keyDown(citation, { key: "Escape" });
     fireEvent.click(citation);
     expect(await screen.findByText(preview.quote)).toBeInTheDocument();
+  });
+  it("navigates from a touch-opened citation popover to its scoped collapsed fragment", async () => {
+    const sources = [
+      { ...preview, n: 1, chunkId: "first", quote: "Birinci fraqment" },
+      { ...preview, n: 3, chunkId: "third", quote: "Üçüncü fraqment" },
+    ];
+    const [group] = groupAnalyticsSources(sources);
+    const { container } = render(
+      <>
+        <AnalyticsAnswer
+          answer="Nəticə [3]."
+          sources={sources.map((item) => ({ n: item.n, preview: item }))}
+          navigationScope="history-a"
+        />
+        <AnalyticsSourceCard
+          group={group!}
+          fragmentLabel="2 fraqment"
+          openLabel="document"
+          navigationScope="history-a"
+        />
+      </>,
+    );
+    const answer = container.querySelector(".analytics-answer")!;
+    const trigger = within(answer as HTMLElement).getByRole("link", {
+      name: az.analytics.openSource.replace("{n}", "3"),
+    });
+    fireEvent.pointerDown(trigger, { pointerType: "touch" });
+    fireEvent.click(trigger);
+    expect(await screen.findByText("Üçüncü fraqment")).toBeVisible();
+    expect(screen.getByText(/2026-10-21 · Approved budget/)).toBeVisible();
+    fireEvent.click(screen.getByRole("link", { name: az.analytics.sourceCard }));
+    const target = document.getElementById(analyticsFragmentId(group!.key, 3, "history-a"))!;
+    await waitFor(() => expect(target).toHaveFocus());
+    expect(target).toBeVisible();
+    expect(target).toHaveTextContent("Üçüncü fraqment");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("button", { name: az.analytics.toggleFragments })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+  it("keeps authorized legacy parent mappings without chunk IDs navigable", () => {
+    render(
+      <AnalyticsAnswer
+        answer="Nəticə [6]."
+        sources={[{ n: 6, briefId: "legacy-brief", title: "Bülleten" }]}
+        navigationScope="legacy"
+      />,
+    );
+    expect(
+      screen.getByRole("link", { name: az.analytics.openSource.replace("{n}", "6") }),
+    ).toHaveAttribute("href", "#legacy-fragment-brief%3Alegacy-brief-6");
   });
   it("never shows a revoked source preview even when obsolete metadata was supplied", () => {
     render(

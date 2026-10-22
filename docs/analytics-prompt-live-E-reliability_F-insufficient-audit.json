@@ -1,0 +1,131 @@
+{
+  "generatedAt": "2026-10-22T13:26:48.248Z",
+  "dataPolicy": "Invented open synthetic fixtures only; no database/storage/history access. Not real-world intelligence or proof of live RAG quality.",
+  "bounds": "Six sequential logical generations at most; one attempt per existing provider route; existing model/fallback/quota implementation unchanged; stop on first provider failure.",
+  "semanticReview": "Manual review required for relevance, grounding, Azerbaijani, synthesis, completeness, coherence, boilerplate, repetition, local caveats, citations, executive style and proportional length. Publication validation alone does not establish semantic quality.",
+  "completedCases": 2,
+  "selectedCases": [
+    "E-reliability",
+    "F-insufficient"
+  ],
+  "remainingCases": [],
+  "usage": {
+    "apiCalls": 3,
+    "inputTokens": 7158,
+    "outputTokens": 3184,
+    "thinkingTokens": 2434,
+    "usageReportedCalls": 2
+  },
+  "results": [
+    {
+      "id": "E-reliability",
+      "query": "Avadanlığın qəbul və istismardan çıxarılması barədə bu məlumatların etibarlılıq səviyyəsi nə dərəcədədir?",
+      "sources": [
+        {
+          "n": 1,
+          "sourceKind": "document",
+          "documentId": "synthetic-yoxlama-hesabatı",
+          "briefId": null,
+          "chunkId": "synthetic-yoxlama-hesabatı-1",
+          "title": "Açıq sintetik sınaq: yoxlama-hesabatı",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində avadanlığın qəbulu 1 oktyabr tarixli qəbul aktında təsdiqlənir. Akt qəbul tarixini təsdiqləyir, avadanlığın döyüş şəraitində nəticəsini və ya sonrakı istismarını təsdiqləmir.",
+          "quote": "Sınaq ssenarisində avadanlığın qəbulu 1 oktyabr tarixli qəbul aktında təsdiqlənir. Akt qəbul tarixini təsdiqləyir, avadanlığın döyüş şəraitində nəticəsini və ya sonrakı istismarını təsdiqləmir.",
+          "charStart": 0,
+          "charEnd": 193,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "A",
+          "infoCredibility": 1
+        },
+        {
+          "n": 3,
+          "sourceKind": "document",
+          "documentId": "synthetic-anonim-iddia",
+          "briefId": null,
+          "chunkId": "synthetic-anonim-iddia-3",
+          "title": "Açıq sintetik sınaq: anonim-iddia",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində anonim şəxs avadanlığın artıq istismardan çıxarıldığını iddia edir. Sınaq toplusunda bu iddianı təsdiqləyən texniki baxış aktı, ikinci müstəqil mənbə və ya rəsmi açıqlama yoxdur.",
+          "quote": "Sınaq ssenarisində anonim şəxs avadanlığın artıq istismardan çıxarıldığını iddia edir. Sınaq toplusunda bu iddianı təsdiqləyən texniki baxış aktı, ikinci müstəqil mənbə və ya rəsmi açıqlama yoxdur.",
+          "charStart": 0,
+          "charEnd": 197,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "D",
+          "infoCredibility": 5
+        },
+        {
+          "n": 6,
+          "sourceKind": "document",
+          "documentId": "synthetic-anonim-iddia",
+          "briefId": null,
+          "chunkId": "synthetic-anonim-iddia-6",
+          "title": "Açıq sintetik sınaq: anonim-iddia",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Eyni anonim şəxsin eyni avadanlığın istismardan çıxarılması barədə sözləri bu materialın başqa bölməsində təkrar edilir. Bu hissə yeni müstəqil təsdiq deyil.",
+          "quote": "Eyni anonim şəxsin eyni avadanlığın istismardan çıxarılması barədə sözləri bu materialın başqa bölməsində təkrar edilir. Bu hissə yeni müstəqil təsdiq deyil.",
+          "charStart": 0,
+          "charEnd": 157,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "D",
+          "infoCredibility": 5
+        }
+      ],
+      "model": "gemini-3.5-flash-lite",
+      "finishReason": "stop",
+      "elapsedMs": 27229,
+      "answer": "Avadanlığın qəbulu və istismardan çıxarılması barədə məlumatların etibarlılıq səviyyəsi mənbələrin kateqoriyasından və təqdim olunan sübutların xarakterindən asılı olaraq kəskin şəkildə fərqlənir. \n\nAvadanlığın qəbulu prosesi tam etibarlı və rəsmən təsdiqlənmiş məlumatlara əsaslanır. 1 oktyabr 2026-cı il tarixinə olan yoxlama hesabatına əsasən, avadanlığın qəbulu A (Tam etibarlı) mənbə reytinqi və 1 (Təsdiqlənib) məlumat reytinqi ilə qiymətləndirilən qəbul aktı ilə təsdiq olunur [1]. Bununla belə, həmin sənədin əhatə dairəsi məhduddur: akt yalnız qəbul tarixini təsdiqləyir, avadanlığın döyüş şəraitindəki nəticələrini və ya sonrakı istismar vəziyyətini əhatə etmir [1].\n\nAvadanlığın istismardan çıxarılması ilə bağlı irəli sürülən iddialar isə aşağı etibarlılıq səviyyəsinə malikdir və təsdiqlənməyib. Bu məlumatlar D (Adətən etibarsız) mənbə etibarlılığı və 5 (Ehtimal olunmayan) məlumat etibarlılığı reytinqləri ilə qiymətləndirilir [3], [6]. İddialar anonim şəxsin bəyanatına əsaslanır və sınaq toplusunda hər hansı texniki baxış aktı, rəsmi açıqlama və ya ikinci müstəqil mənbə ilə dəstəklənmir [3]. Eyni M2 material qrupuna daxil olan [6] nömrəli fraqmentdəki qeydlər yeni müstəqil təsdiq deyil, əvvəlki bölmədə verilmiş həmin anonim şəxsin sözlərinin təkrarıdır [6].",
+      "validatedAnswer": "Avadanlığın qəbulu və istismardan çıxarılması barədə məlumatların etibarlılıq səviyyəsi mənbələrin kateqoriyasından və təqdim olunan sübutların xarakterindən asılı olaraq kəskin şəkildə fərqlənir. \n\nAvadanlığın qəbulu prosesi tam etibarlı və rəsmən təsdiqlənmiş məlumatlara əsaslanır. 1 oktyabr 2026-cı il tarixinə olan yoxlama hesabatına əsasən, avadanlığın qəbulu A (Tam etibarlı) mənbə reytinqi və 1 (Təsdiqlənib) məlumat reytinqi ilə qiymətləndirilən qəbul aktı ilə təsdiq olunur [1]. Bununla belə, həmin sənədin əhatə dairəsi məhduddur: akt yalnız qəbul tarixini təsdiqləyir, avadanlığın döyüş şəraitindəki nəticələrini və ya sonrakı istismar vəziyyətini əhatə etmir [1].\n\nAvadanlığın istismardan çıxarılması ilə bağlı irəli sürülən iddialar isə aşağı etibarlılıq səviyyəsinə malikdir və təsdiqlənməyib. Bu məlumatlar D (Adətən etibarsız) mənbə etibarlılığı və 5 (Ehtimal olunmayan) məlumat etibarlılığı reytinqləri ilə qiymətləndirilir [3], [6]. İddialar anonim şəxsin bəyanatına əsaslanır və sınaq toplusunda hər hansı texniki baxış aktı, rəsmi açıqlama və ya ikinci müstəqil mənbə ilə dəstəklənmir [3]. Eyni M2 material qrupuna daxil olan [6] nömrəli fraqmentdəki qeydlər yeni müstəqil təsdiq deyil, əvvəlki bölmədə verilmiş həmin anonim şəxsin sözlərinin təkrarıdır [6].",
+      "publicationFailureReasons": [],
+      "usedLowReliability": true
+    },
+    {
+      "id": "F-insufficient",
+      "query": "Ermənistanın 2027-ci il üçün təsdiqlənmiş müdafiə büdcəsinin dəqiq ABŞ dolları ekvivalenti nə qədərdir?",
+      "sources": [
+        {
+          "n": 1,
+          "sourceKind": "document",
+          "documentId": "synthetic-büdcə-layihəsi",
+          "briefId": null,
+          "chunkId": "synthetic-büdcə-layihəsi-1",
+          "title": "Açıq sintetik sınaq: büdcə-layihəsi",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Yalnız sintetik sınaq ssenarisində: Ermənistanın 2027-ci il üçün müdafiə xərcləri büdcə layihəsində 700 milyard dram nəzərdə tutulur. Bu, 1 oktyabr 2026-cı il tarixli layihə göstəricisidir. Mənbədə parlamentin yekun təsdiqi və ya faktiki xərc barədə məlumat yoxdur. Müqayisə üçün eyni sınaq materialında 2026-cı ilin təsdiqlənmiş müdafiə ayırması 650 milyard dram göstərilir. Dollar ekvivalenti və məzənnə verilməyib.",
+          "quote": "Yalnız sintetik sınaq ssenarisində: Ermənistanın 2027-ci il üçün müdafiə xərcləri büdcə layihəsində 700 milyard dram nəzərdə tutulur. Bu, 1 oktyabr 2026-cı il tarixli layihə göstəricisidir. Mənbədə parlamentin yekun təsdiqi və ya faktiki xərc barədə məlumat yoxdur. Müqayisə üçün eyni sınaq materialında 2026-cı ilin təsdiqlənmiş müdafiə ayırması 650 milyard dram göstərilir. Dollar ekvivalenti və məzənnə verilməyib.",
+          "charStart": 0,
+          "charEnd": 417,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "A",
+          "infoCredibility": 1
+        }
+      ],
+      "model": "gemini-3.5-flash-lite",
+      "finishReason": "stop",
+      "elapsedMs": 42343,
+      "answer": "Ermənistanın 2027-ci il üçün müdafiə büdcəsinin dəqiq ABŞ dolları ekvivalenti təqdim edilmiş mənbələrdə mövcud deyil [1]. \n\nTəqdim edilən sintetik sınaq ssenarisinə əsasən, 1 oktyabr 2026-cı il tarixli büdcə layihəsində 2027-ci il üçün müdafiə xərcləri 700 milyard dram nəzərdə tutulmuşdur [1]. Lakin bu rəqəm yalnız layihə göstəricisidir və sənəddə parlamentin yekun təsdiqi, faktiki xərc, həmçinin dollar ekvivalenti və məzənnə barədə məlumat verilməmişdir [1]. Müqayisə üçün, həmin sınaq materialında 2026-cı ilin təsdiqlənmiş müdafiə ayırması 650 milyard dram göstərilir [1].",
+      "validatedAnswer": "Ermənistanın 2027-ci il üçün müdafiə büdcəsinin dəqiq ABŞ dolları ekvivalenti təqdim edilmiş mənbələrdə mövcud deyil [1]. \n\nTəqdim edilən sintetik sınaq ssenarisinə əsasən, 1 oktyabr 2026-cı il tarixli büdcə layihəsində 2027-ci il üçün müdafiə xərcləri 700 milyard dram nəzərdə tutulmuşdur [1]. Lakin bu rəqəm yalnız layihə göstəricisidir və sənəddə parlamentin yekun təsdiqi, faktiki xərc, həmçinin dollar ekvivalenti və məzənnə barədə məlumat verilməmişdir [1]. Müqayisə üçün, həmin sınaq materialında 2026-cı ilin təsdiqlənmiş müdafiə ayırması 650 milyard dram göstərilir [1].",
+      "publicationFailureReasons": [],
+      "usedLowReliability": false
+    }
+  ]
+}

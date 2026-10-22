@@ -54,3 +54,129 @@ export type AnalyticsSource = {
 };
 
 export type AnalyticsSourcePreview = Omit<AnalyticsSource, "text" | "charStart" | "charEnd">;
+
+/** Display-only grouping key: one source card per unique parent material. */
+export type AnalyticsSourceGroupKey = `document:${string}` | `brief:${string}` | `chunk:${string}`;
+
+type GroupableSource = {
+  n: number;
+  chunkId?: string | null | undefined;
+  documentId?: string | null | undefined;
+  briefId?: string | null | undefined;
+  sourceKind?: "document" | "brief" | undefined;
+};
+
+/** Older authorized history mappings may omit the material type. */
+export function analyticsSourceKind(source: GroupableSource): "document" | "brief" {
+  return (
+    source.sourceKind ?? (source.documentId ? "document" : source.briefId ? "brief" : "document")
+  );
+}
+
+/**
+ * Stable identity of the parent material. Never derived from title, date or text.
+ * Documents and briefs never merge, even with identical IDs. Sources without a
+ * usable parent ID stay in their own single-chunk group.
+ */
+export function analyticsSourceGroupKey(source: GroupableSource): AnalyticsSourceGroupKey {
+  // A brief and a document never share a group, even with an identical UUID.
+  const kind = analyticsSourceKind(source);
+  if (kind === "brief" && source.briefId) return `brief:${source.briefId}`;
+  if (kind === "document" && source.documentId) return `document:${source.documentId}`;
+  return `chunk:${kind}:${source.chunkId || `n:${source.n}`}`;
+}
+
+export type AnalyticsSourceGroup<S extends GroupableSource = AnalyticsSourcePreview> = {
+  key: AnalyticsSourceGroupKey;
+  sourceKind: "document" | "brief";
+  documentId: string | null;
+  briefId: string | null;
+  /** Member chunks in retrieval order; each cited chunk appears once. */
+  chunks: S[];
+  /** Citation numbers used in the answer that this group owns, ascending. */
+  citedNumbers: number[];
+  /** Original citation numbers, including aliases, mapped to the displayed chunk. */
+  citationChunks: Map<number, S>;
+  /** Chunk count that should be displayed for this group. */
+  displayedChunkCount: number;
+};
+
+/**
+ * Groups sources by parent material while keeping chunk-level numbering intact.
+ * With `cited` supplied, only cited chunks and numbers are counted (answer mode);
+ * without it every supplied (retrieved) chunk is counted (sources-only mode).
+ */
+export function groupAnalyticsSources<S extends GroupableSource>(
+  sources: readonly S[],
+  cited?: ReadonlySet<number>,
+): AnalyticsSourceGroup<S>[] {
+  const groups = new Map<AnalyticsSourceGroupKey, AnalyticsSourceGroup<S>>();
+  const seenChunks = new Map<AnalyticsSourceGroupKey, Map<string, S>>();
+  const seenNumbers = new Set<number>();
+  for (const source of sources) {
+    const citedHere = cited ? cited.has(source.n) : true;
+    if (!citedHere || seenNumbers.has(source.n)) continue;
+    seenNumbers.add(source.n);
+    const key = analyticsSourceGroupKey(source);
+    const kind = analyticsSourceKind(source);
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        key,
+        sourceKind: kind,
+        documentId: kind === "document" ? (source.documentId ?? null) : null,
+        briefId: kind === "brief" ? (source.briefId ?? null) : null,
+        chunks: [],
+        citedNumbers: [],
+        citationChunks: new Map(),
+        displayedChunkCount: 0,
+      };
+      groups.set(key, group);
+      seenChunks.set(key, new Map());
+    }
+    // A repeated reference to the same chunk is one fragment, one number.
+    const chunkIdentity = source.chunkId || `n:${source.n}`;
+    if (!seenChunks.get(key)!.has(chunkIdentity)) {
+      seenChunks.get(key)!.set(chunkIdentity, source);
+      group.chunks.push(source);
+      group.displayedChunkCount += 1;
+    }
+    group.citationChunks.set(source.n, seenChunks.get(key)!.get(chunkIdentity)!);
+    group.citedNumbers.push(source.n);
+  }
+  for (const group of groups.values()) group.citedNumbers.sort((a, b) => a - b);
+  return [...groups.values()];
+}
+
+/** DOM identity is scoped to one displayed answer/history entry; numbering stays intact. */
+export function analyticsFragmentId(groupKey: string, n: number, navigationScope = ""): string {
+  return `${navigationScope ? `${navigationScope}-` : ""}fragment-${groupKey}-${n}`;
+}
+
+export function analyticsFragmentAnchor(groupKey: string, n: number, navigationScope = ""): string {
+  return `#${encodeURIComponent(analyticsFragmentId(groupKey, n, navigationScope))}`;
+}
+
+/** Also signals repeated jumps to the current hash, which do not fire hashchange. */
+export function navigateToAnalyticsFragment(anchor: string): void {
+  if (window.location.hash !== anchor) window.history.pushState(null, "", anchor);
+  window.dispatchEvent(new Event("hashchange"));
+}
+
+export type AnalyticsSourceCounts = {
+  /** Unique parent materials represented by the supplied sources. */
+  materials: number;
+  /** Unique chunks represented by the supplied sources. */
+  fragments: number;
+};
+
+export function analyticsSourceCounts<S extends GroupableSource>(
+  sources: readonly S[],
+  cited?: ReadonlySet<number>,
+): AnalyticsSourceCounts {
+  const groups = groupAnalyticsSources(sources, cited);
+  return {
+    materials: groups.length,
+    fragments: groups.reduce((total, group) => total + group.displayedChunkCount, 0),
+  };
+}

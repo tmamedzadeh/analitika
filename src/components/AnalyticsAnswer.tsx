@@ -5,7 +5,7 @@ import { AnalyticsCitation, type AnalyticsCitationSource } from "./AnalyticsCita
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { az } from "@/lib/i18n/az";
 import { modelDisplayName } from "@/lib/ai";
-import { citedSourceNumbers } from "@/lib/analytics";
+import { analyticsSourceGroupKey, citedSourceNumbers } from "@/lib/analytics";
 import { isLowReliability } from "@/lib/reliability";
 
 export function AnalyticsAnswer({
@@ -14,12 +14,14 @@ export function AnalyticsAnswer({
   model,
   onRegenerate,
   busy = false,
+  navigationScope,
 }: {
   answer: string;
   sources: readonly AnalyticsCitationSource[];
   model?: string | null | undefined;
   onRegenerate?: (() => void) | undefined;
   busy?: boolean;
+  navigationScope?: string | undefined;
 }) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const copying = useRef(false);
@@ -60,12 +62,20 @@ export function AnalyticsAnswer({
         markdown={markdown}
         linkRenderer={(href, children) => {
           const match = /^#citation-(\d+)$/u.exec(href ?? "");
-          if (!match) return <>{children}</>;
+          if (!match || children !== match[1]) return <>{children}</>;
           const source = sources.find(
             (candidate) => candidate.n === Number(match[1]) && candidate.available !== false,
           );
           return source ? (
-            <AnalyticsCitation source={source} />
+            <AnalyticsCitation
+              source={source}
+              groupKey={
+                source.preview || source.documentId || source.briefId || source.chunkId
+                  ? analyticsSourceGroupKey({ ...source, ...source.preview, n: source.n })
+                  : undefined
+              }
+              navigationScope={navigationScope}
+            />
           ) : (
             <span className="cite">[{children}]</span>
           );

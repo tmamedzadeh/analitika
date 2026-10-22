@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
       publish: (available: AnalyticsSource[], queryClassification: string) => unknown,
     ) => {
       const available = [...sources];
-      return { sources: available, value: await publish(available, "open") };
+      return { sources: available, value: await publish(available, "secret") };
     },
   ),
   updateHistory: vi.fn(async (_id: string, _value: unknown) => undefined),
@@ -85,11 +85,11 @@ const source = {
   classification: "open",
 };
 
-function request(signal?: AbortSignal) {
+function request(signal?: AbortSignal, mode: "answer" | "sources" = "answer") {
   return new Request("https://app.example.test/api/analytics/search", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ query: "question", filters, mode: "answer" }),
+    body: JSON.stringify({ query: "question", filters, mode }),
     ...(signal ? { signal } : {}),
   });
 }
@@ -147,7 +147,7 @@ describe("analytics stream access and cancellation", () => {
     });
     mocks.withSourceAccess.mockImplementation(async (sources, _userId, publish) => {
       const available = [...sources];
-      return { sources: available, value: await publish(available, "open") };
+      return { sources: available, value: await publish(available, "secret") };
     });
   });
 
@@ -220,6 +220,71 @@ describe("analytics stream access and cancellation", () => {
       expect.any(String),
       expect.objectContaining({ status: "failed", answer: "", sources: [] }),
     );
+  });
+
+  it("does not retry or publish a late provider completion after client cancellation", async () => {
+    let complete: ((value: { text: string; finishReason: string }) => void) | undefined;
+    mocks.generate.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const reader = response.body!.getReader();
+    await reader.read();
+    await vi.waitFor(() => expect(complete).toBeDefined());
+    await reader.cancel();
+    complete!({ text: "late private answer [1]", finishReason: "length" });
+    await vi.waitFor(() =>
+      expect(mocks.updateHistory).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ status: "cancelled" }),
+      ),
+    );
+    // Let the provider's ignored-abort promise settle before checking attempts.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mocks.generate).toHaveBeenCalledOnce();
+    expect(mocks.updateHistory).not.toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "done" }),
+    );
+  });
+
+  it.each(["answer", "sources"] as const)(
+    "revokes %s publication after a clearance downgrade even when open sources remain accessible",
+    async (mode) => {
+      let check = 0;
+      mocks.withSourceAccess.mockImplementation(async (sources, _userId, publish) => {
+        const available = [...sources];
+        const clearance = ++check < (mode === "answer" ? 3 : 2) ? "secret" : "open";
+        return { sources: available, value: await publish(available, clearance) };
+      });
+      const response = await withCurrentUser(user, () =>
+        handleAnalyticsSearchRequest(request(undefined, mode)),
+      );
+      const stream = await response.text();
+      expect(stream).toContain('"type":"error"');
+      expect(stream).not.toContain('"type":"final"');
+      expect(stream).not.toContain("answer [1]");
+      expect(mocks.updateHistory).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ status: "failed", answer: "", sources: [] }),
+      );
+    },
+  );
+
+  it("does not send a classified question to Gemini after an account clearance downgrade", async () => {
+    mocks.withSourceAccess.mockImplementation(async (sources, _userId, publish) => {
+      const available = [...sources];
+      return { sources: available, value: await publish(available, "open") };
+    });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const stream = await response.text();
+    expect(stream).toContain('"type":"error"');
+    expect(stream).not.toContain(source.quote);
+    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(mocks.buildPrompt).not.toHaveBeenCalled();
   });
 
   it("sends a terminal SSE error with requestId when the overall deadline expires", async () => {

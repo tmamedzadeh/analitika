@@ -1,18 +1,23 @@
 ﻿import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { ChevronDown, History, Square } from "lucide-react";
 
 import { AnalyticsAnswer } from "@/components/AnalyticsAnswer";
+import { AnalyticsSourceCard } from "@/components/AnalyticsSourceCard";
 import { DirectionMultiSelect } from "@/components/DirectionMultiSelect";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
 import type { AnalyticsFilters, AnalyticsSourcePreview } from "@/lib/analytics";
-import { ANALYTICS_CLIENT_DEADLINE_MS, citedSourceNumbers } from "@/lib/analytics";
+import {
+  ANALYTICS_CLIENT_DEADLINE_MS,
+  analyticsSourceCounts,
+  citedSourceNumbers,
+  groupAnalyticsSources,
+} from "@/lib/analytics";
 import { getAnalyticsQueryHistory, listRecentAnalyticsQueries } from "@/lib/analytics.functions";
-import { directionIds, directionLabel } from "@/lib/directions";
-import { briefRouteForSearchSource, briefSearchLabel } from "@/lib/briefs";
+import { directionIds } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
 import type { ModelFallback } from "@/lib/ai";
 import { createFallbackNotifier } from "@/lib/ai-notifications";
@@ -47,51 +52,26 @@ function historyStatusLabel(status: string): string {
   return az.analytics.historyFailedStatus;
 }
 
-function sourceUrl(source: AnalyticsSourcePreview): string {
-  return briefRouteForSearchSource(source) ?? "#";
-}
-
-function ReliabilityBadges({ source }: { source: AnalyticsSourcePreview }) {
-  if (source.sourceReliability === null || source.infoCredibility === null)
-    return <span className="label-mono">{az.analytics.unrated}</span>;
-  const defaultSourceRating = source.sourceReliability === "F";
-  const defaultInfoRating = source.infoCredibility === 6;
-  const sourceLabel = az.reliability.sourceBadge + " " + source.sourceReliability;
-  const infoLabel = az.reliability.informationBadge + " " + source.infoCredibility;
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      <span
-        className={
-          "label-mono rounded-full border px-2 py-1 " +
-          (defaultSourceRating
-            ? "border-border text-muted-foreground/60"
-            : "border-primary/30 text-primary")
-        }
-        title={az.reliability.source[source.sourceReliability]}
-        tabIndex={0}
-        aria-label={sourceLabel + ": " + az.reliability.source[source.sourceReliability]}
-      >
-        {sourceLabel}
-      </span>
-      <span
-        className={
-          "label-mono rounded-full border px-2 py-1 " +
-          (defaultInfoRating
-            ? "border-border text-muted-foreground/60"
-            : "border-primary/30 text-primary")
-        }
-        title={az.reliability.information[source.infoCredibility]}
-        tabIndex={0}
-        aria-label={infoLabel + ": " + az.reliability.information[source.infoCredibility]}
-      >
-        {infoLabel}
-      </span>
-    </div>
-  );
+/** Material and fragment counts always describe the same authorized source set. */
+function materialFragmentsLabel(
+  materials: number,
+  fragments: number,
+  mode: "cited" | "retrieved",
+): string {
+  const materialsLabel = (
+    mode === "cited" ? az.analytics.citedSourcesCount : az.analytics.retrievedSourcesCount
+  ).replace("{count}", String(materials));
+  const fragmentsLabel = (
+    mode === "cited" ? az.analytics.citedFragmentsCount : az.analytics.retrievedFragmentsCount
+  ).replace("{count}", String(fragments));
+  return az.analytics.sourcesAndFragmentsCount
+    .replace("{materials}", materialsLabel)
+    .replace("{fragments}", fragmentsLabel);
 }
 
 function Analytics() {
   const queryClient = useQueryClient();
+  const navigationScope = useId();
   const [question, setQuestion] = useState("");
   const [filters, setFilters] = useState<AnalyticsFilters>(initialFilters);
   const [sources, setSources] = useState<AnalyticsSourcePreview[]>([]);
@@ -118,35 +98,56 @@ function Analytics() {
     useState<Awaited<ReturnType<typeof getAnalyticsQueryHistory>>>(null);
   const noDirections = filters.directionIds.length === 0;
   const usedSourceNumbers = citedSourceNumbers(answer);
-  const visibleSources =
-    sourceOnly || usedSourceNumbers.size === 0
-      ? sources
-      : sources.filter((source) => usedSourceNumbers.has(source.n));
-  const historySources = selectedHistory?.sources.filter(
-    (source) => usedSourceNumbers.size === 0 || usedSourceNumbers.has(source.n),
+  // History has its own authorized mappings; the live SSE list is empty when it opens.
+  // Legacy parent-only snapshots remain navigable without inventing a fragment preview.
+  const availableSources: AnalyticsSourcePreview[] = selectedHistory
+    ? selectedHistory.sources.flatMap((source) => {
+        if (!source.available || (!source.documentId && !source.briefId)) return [];
+        if (source.preview) return [source.preview];
+        return [
+          {
+            n: source.n,
+            sourceKind: source.documentId ? "document" : "brief",
+            documentId: source.documentId,
+            briefId: source.briefId,
+            chunkId: source.chunkId ?? "",
+            title: source.title,
+            sectionTitle: "",
+            quote: "",
+            docDate: null,
+            briefDate: null,
+            direction: null,
+            classification: null,
+            sourceReliability: null,
+            infoCredibility: null,
+            isTable: false,
+            attachmentCount: 0,
+          },
+        ];
+      })
+    : sources;
+  const retrievedCounts = analyticsSourceCounts(availableSources);
+  const citedCounts = analyticsSourceCounts(availableSources, usedSourceNumbers);
+  const sourcesAreCited = !sourceOnly && Boolean(answer);
+  const shownGroups = groupAnalyticsSources(
+    availableSources,
+    sourcesAreCited ? usedSourceNumbers : undefined,
   );
-  const retrievedSourceCount = selectedHistory
-    ? selectedHistory.sources.filter((source) => source.available).length
-    : sources.length;
-  const citedSourceCount = selectedHistory
-    ? selectedHistory.sources.filter(
-        (source) => source.available && usedSourceNumbers.has(source.n),
-      ).length
-    : sources.filter((source) => usedSourceNumbers.has(source.n)).length;
-  const visibleSourceCount = selectedHistory
-    ? historySources!.filter((source) => source.available).length
-    : visibleSources.length;
-  const sourceCountLabel = (
-    sourceOnly || !answer ? az.analytics.retrievedSourcesCount : az.analytics.citedSourcesCount
-  ).replace("{count}", String(sourceOnly || !answer ? retrievedSourceCount : citedSourceCount));
-  const sourceListCountLabel = (
-    sourceOnly || usedSourceNumbers.size === 0
-      ? az.analytics.retrievedSourcesCount
-      : az.analytics.citedSourcesCount
-  ).replace(
-    "{count}",
-    String(sourceOnly || usedSourceNumbers.size === 0 ? retrievedSourceCount : citedSourceCount),
+  const unavailableSources =
+    selectedHistory?.sources.filter(
+      (source) => !source.available && (!sourcesAreCited || usedSourceNumbers.has(source.n)),
+    ) ?? [];
+  const shownCounts = sourcesAreCited ? citedCounts : retrievedCounts;
+  const shownMode = sourcesAreCited ? "cited" : "retrieved";
+  const sourceCountLabel = materialFragmentsLabel(
+    shownCounts.materials,
+    shownCounts.fragments,
+    shownMode,
   );
+  const sourceListCountLabel = sourceCountLabel;
+  const shownFragmentLabel = sourcesAreCited
+    ? az.analytics.citedFragmentsCount
+    : az.analytics.retrievedFragmentsCount;
 
   const historyQuery = useQuery({
     queryKey: ["analytics", "history"],
@@ -312,7 +313,13 @@ function Analytics() {
       setQuestion(record.query);
       setFilters(record.filters);
       setSources([]);
-      setAnswer(record.answer);
+      // A fail-closed history response still exposes its authorized parent list.
+      // The neutral server warning is not a generated, cited answer.
+      setAnswer(
+        record.status === "incomplete" && record.answer === az.analytics.sourceUnavailable
+          ? ""
+          : record.answer,
+      );
       setIncomplete(record.status === "incomplete");
       setElapsedMs(record.durationMs);
       setModel(record.model ?? "");
@@ -320,6 +327,15 @@ function Analytics() {
       setSourceOnly(false);
       setPageError("");
     } catch {
+      // A rejected reopen is authoritative; do not keep a previously readable snapshot.
+      setSelectedHistory(null);
+      setActiveHistoryId(null);
+      setAnswerContext(null);
+      setAnswer("");
+      setSources([]);
+      setModel("");
+      setElapsedMs(null);
+      setIncomplete(false);
       setPageError(az.analytics.historyOpenFailed);
     } finally {
       historyLock.current = false;
@@ -350,6 +366,14 @@ function Analytics() {
           type="submit"
         >
           {busy ? az.analytics.searching : az.analytics.searchButton}
+        </button>
+        <button
+          className="pill min-h-11 shrink-0 justify-center px-5"
+          type="button"
+          disabled={busy || historyLoading || noDirections || question.trim().length === 0}
+          onClick={() => void runSearch("sources")}
+        >
+          {az.analytics.sourcesOnly}
         </button>
       </form>
 
@@ -436,11 +460,11 @@ function Analytics() {
           <section className="panel panel-glow h-fit px-4 py-5 sm:p-7" aria-busy={busy}>
             <div className="mx-auto">
               <div className="flex flex-wrap items-center justify-between gap-2">
-              {answerContext && (
-                <h2 className="text-xl leading-snug font-semibold tracking-tight break-words sm:text-2xl">
-                  {answerContext.query}
-                </h2>
-              )}
+                {answerContext && (
+                  <h2 className="text-xl leading-snug font-semibold tracking-tight break-words sm:text-2xl">
+                    {answerContext.query}
+                  </h2>
+                )}
 
                 <span className="label-mono">
                   {busy ? (
@@ -480,6 +504,7 @@ function Analytics() {
               <div aria-live="polite" className="mt-4">
                 {answer ? (
                   <AnalyticsAnswer
+                    navigationScope={navigationScope}
                     answer={answer}
                     sources={
                       selectedHistory?.sources ??
@@ -493,7 +518,7 @@ function Analytics() {
                   />
                 ) : busy ? (
                   <p className="text-muted-foreground">{az.analytics.generating}</p>
-                ) : (sourceOnly || selectedHistory) && visibleSourceCount > 0 ? (
+                ) : (sourceOnly || selectedHistory) && shownGroups.length > 0 ? (
                   <p className="text-muted-foreground">{az.analytics.fragmentsOnly}</p>
                 ) : hasSearched ? (
                   <p className="text-muted-foreground">{az.analytics.noSources}</p>
@@ -511,116 +536,47 @@ function Analytics() {
                 <span className="label-mono">{sourceListCountLabel}</span>
               ) : null}
             </div>
-            {citedSourceCount > 0 && (
+            {shownMode === "cited" && (
               <p className="mb-3 text-xs text-muted-foreground">
                 {az.analytics.citationNumbering}{" "}
-                {az.analytics.retrievedSourcesCount.replace(
-                  "{count}",
-                  String(retrievedSourceCount),
+                {materialFragmentsLabel(
+                  retrievedCounts.materials,
+                  retrievedCounts.fragments,
+                  "retrieved",
                 )}
                 .
               </p>
             )}
             <div className="space-y-3">
-              {selectedHistory
-                ? historySources!.map((source) => (
-                    <article
-                      key={`${source.n}-${source.title}`}
-                      id={`source-${source.n}`}
-                      className="panel scroll-mt-6 p-5"
-                      tabIndex={-1}
-                    >
-                      <h3 className="break-words font-semibold [overflow-wrap:anywhere]">
-                        <span className="cite ml-0! mr-1">{source.n}</span>
-                        {source.title}
-                      </h3>
-                      {source.caption && <p className="label-mono mt-2">{source.caption}</p>}
-                      {source.preview && (
-                        <>
-                          <p className="label-mono mt-2">
-                            {source.preview.docDate ?? source.preview.briefDate}
-                          </p>
-                          <ReliabilityBadges source={source.preview} />
-                          <p className="mt-2 text-sm">«{source.preview.quote}»</p>
-                        </>
-                      )}
-                      <p className="label-mono mt-2">
-                        {source.available
-                          ? source.usedInAnswer
-                            ? az.analytics.sourceUsedInAnswer
-                            : az.analytics.sourceNotUsedInAnswer
-                          : az.analytics.sourceUnavailable}
-                      </p>
-                      {source.available && (source.documentId || source.briefId) && (
-                        <a
-                          className="pill mt-3 inline-flex"
-                          href={
-                            source.documentId
-                              ? `/senedler/${encodeURIComponent(source.documentId)}`
-                              : `/brifler/${encodeURIComponent(source.briefId!)}`
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {source.documentId ? az.analytics.openDocument : az.analytics.openBrief}
-                        </a>
-                      )}
-                    </article>
-                  ))
-                : visibleSources.map((source) => (
-                    <article
-                      key={source.chunkId}
-                      id={`source-${source.n}`}
-                      className="panel scroll-mt-6 p-5"
-                      tabIndex={-1}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <h3 className="break-words font-semibold [overflow-wrap:anywhere]">
-                          <span className="cite ml-0! mr-1">{source.n}</span>
-                          {source.title}
-                        </h3>
-                        {source.sourceKind === "brief" ? (
-                          <span className="label-mono">
-                            {briefSearchLabel(source.briefDate ?? "")}
-                          </span>
-                        ) : (
-                          <ReliabilityBadges source={source} />
-                        )}
-                      </div>
-                      <p className="label-mono mt-2">
-                        {(source.sourceKind === "brief"
-                          ? [source.sectionTitle || az.analytics.sectionUnknown]
-                          : [
-                              directionLabel(source.direction) ?? az.directions.unassigned,
-                              source.sectionTitle || az.analytics.sectionUnknown,
-                              source.docDate,
-                            ]
-                        )
-                          .filter(Boolean)
-                          .join(" · ")}
-                        {source.isTable ? " · " + az.analytics.table : ""}
-                      </p>
-                      {source.quote && <p className="mt-2 text-sm">«{source.quote}»</p>}
-                      <a
-                        className="pill mt-3 inline-flex"
-                        href={sourceUrl(source)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {source.sourceKind === "brief"
-                          ? briefSearchLabel(source.briefDate ?? "")
-                          : az.analytics.openDocument}
-                        {source.attachmentCount > 0
-                          ? " · " + source.attachmentCount + " " + az.analytics.photos
-                          : ""}
-                      </a>
-                    </article>
-                  ))}
-              {hasSearched && visibleSourceCount === 0 && !busy && !pageError && (
-                <div className="panel p-5 text-sm text-muted-foreground">
-                  {az.analytics.noSources}
-                </div>
-              )}
+              {shownGroups.map((group) => (
+                <AnalyticsSourceCard
+                  key={group.key}
+                  group={group}
+                  navigationScope={navigationScope}
+                  fragmentLabel={shownFragmentLabel.replace(
+                    "{count}",
+                    String(group.displayedChunkCount),
+                  )}
+                  openLabel={group.sourceKind === "brief" ? "brief" : "document"}
+                />
+              ))}
+              {unavailableSources.map((source) => (
+                <article
+                  key={`unavailable-${source.n}`}
+                  className="panel p-5 text-sm text-muted-foreground"
+                >
+                  [{source.n}] {az.analytics.sourceUnavailable}
+                </article>
+              ))}
+              {hasSearched &&
+                shownGroups.length === 0 &&
+                unavailableSources.length === 0 &&
+                !busy &&
+                !pageError && (
+                  <div className="panel p-5 text-sm text-muted-foreground">
+                    {az.analytics.noSources}
+                  </div>
+                )}
               {!hasSearched && (
                 <div className="panel p-5 text-sm text-muted-foreground">
                   {az.analytics.sourcesHint}

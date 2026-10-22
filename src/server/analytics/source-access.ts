@@ -110,7 +110,6 @@ export async function withAnalyticsSourceAccess<T>(
   userId: string,
   publish: (available: AnalyticsSource[], queryClassification: string) => T | Promise<T>,
 ): Promise<{ sources: AnalyticsSource[]; value: T }> {
-  if (!sources.length) return { sources: [], value: await publish([], "unknown") };
   const db = getDb();
   const documentIds = [
     ...new Set(sources.flatMap((source) => (source.documentId ? [source.documentId] : []))),
@@ -158,23 +157,25 @@ export async function withAnalyticsSourceAccess<T>(
             .for("share")
         : Promise.resolve([]),
     ]);
-    const currentChunks = await transaction
-      .select({
-        id: chunks.id,
-        documentId: chunks.documentId,
-        briefId: chunks.briefId,
-        text: chunks.text,
-        charStart: chunks.charStart,
-        charEnd: chunks.charEnd,
-      })
-      .from(chunks)
-      .where(
-        inArray(
-          chunks.id,
-          sources.map((source) => source.chunkId),
-        ),
-      )
-      .for("share");
+    const currentChunks = sources.length
+      ? await transaction
+          .select({
+            id: chunks.id,
+            documentId: chunks.documentId,
+            briefId: chunks.briefId,
+            text: chunks.text,
+            charStart: chunks.charStart,
+            charEnd: chunks.charEnd,
+          })
+          .from(chunks)
+          .where(
+            inArray(
+              chunks.id,
+              sources.map((source) => source.chunkId),
+            ),
+          )
+          .for("share")
+      : [];
     const chunkById = new Map(currentChunks.map((chunk) => [chunk.id, chunk]));
     const documentById = new Map(accessibleDocuments.map((document) => [document.id, document]));
     const briefById = new Map(accessibleBriefs.map((brief) => [brief.id, brief]));
@@ -217,6 +218,17 @@ export function sameAnalyticsSourceSet(
   actual: readonly AnalyticsSource[],
 ): boolean {
   if (expected.length !== actual.length) return false;
-  const actualChunkIds = new Set(actual.map((source) => source.chunkId));
-  return expected.every((source) => actualChunkIds.has(source.chunkId));
+  // The generated [n] is bound to its exact parent/fragment mapping, not just
+  // membership of the same chunk IDs in a differently ordered set.
+  return expected.every((source, index) => {
+    const candidate = actual[index];
+    if (!candidate) return false;
+    return (
+      source.n === candidate.n &&
+      source.chunkId === candidate.chunkId &&
+      source.sourceKind === candidate.sourceKind &&
+      source.documentId === candidate.documentId &&
+      source.briefId === candidate.briefId
+    );
+  });
 }

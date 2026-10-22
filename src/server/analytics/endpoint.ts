@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { getCurrentUser } from "@/server/auth";
+import { AuthorizationError, canAccessClassification, getCurrentUser } from "@/server/auth";
+import type { Clearance } from "@/lib/classification";
 
 import { ANALYTICS_SERVER_DEADLINE_MS, analyticsSearchRequestSchema } from "@/lib/analytics";
 import type { AnalyticsSource, AnalyticsSourcePreview } from "@/lib/analytics";
@@ -90,6 +91,10 @@ async function handleAnalyticsSearch(
   const { query, filters, mode } = parsed.data;
   const historyId = randomUUID();
   const user = getCurrentUser();
+  // Questions carry the clearance at which they entered the request. An
+  // account downgrade must also revoke answers derived from that question.
+  const canUseQuestion = (liveClearance: string) =>
+    canAccessClassification({ clearance: liveClearance as Clearance }, user.clearance);
   let model = "";
   let activeStage: NonNullable<AiDiagnosticEvent["stage"]> = "retrieval";
   let activeAttempt = 0;
@@ -226,7 +231,9 @@ async function handleAnalyticsSearch(
         const retrievedCount = sources.length;
         activeStage = "source_access_before_prompt";
         try {
-          await withAnalyticsSourceAccess(sources, user.id, (available) => {
+          await withAnalyticsSourceAccess(sources, user.id, (available, liveClearance) => {
+            aborter.signal.throwIfAborted();
+            if (!canUseQuestion(liveClearance)) throw new AuthorizationError();
             sources = available;
             const sourcePreviews: AnalyticsSourcePreview[] = sources.map(
               ({ text: _text, charStart: _charStart, charEnd: _charEnd, ...source }) => source,
@@ -234,6 +241,14 @@ async function handleAnalyticsSearch(
             send({ type: "sources", sources: sourcePreviews });
           });
         } catch (error) {
+          if (aborter.signal.aborted) {
+            await saveHistory({
+              status: abortedHistoryStatus(),
+              durationMs: Date.now() - startedAt,
+            });
+            close();
+            return;
+          }
           logAiDiagnostic({
             event: "failure",
             stage: "source_access_before_prompt",
@@ -247,6 +262,11 @@ async function handleAnalyticsSearch(
             maxClassification: "open",
           });
           send({ type: "error", message: az.analytics.answerFailed, requestId });
+          close();
+          return;
+        }
+        if (aborter.signal.aborted) {
+          await saveHistory({ status: abortedHistoryStatus(), durationMs: Date.now() - startedAt });
           close();
           return;
         }
@@ -311,8 +331,9 @@ async function handleAnalyticsSearch(
           const finalPublication = await withAnalyticsSourceAccess(
             sources,
             user.id,
-            (available) => {
-              if (!sameAnalyticsSourceSet(sources, available)) return false;
+            (available, liveClearance) => {
+              if (!canUseQuestion(liveClearance) || !sameAnalyticsSourceSet(sources, available))
+                return false;
               sources = available;
               return send({
                 type: "final",
@@ -351,8 +372,9 @@ async function handleAnalyticsSearch(
           const generation = await withAnalyticsSourceAccess(
             sources,
             user.id,
-            async (available) => {
-              if (!sameAnalyticsSourceSet(sources, available)) {
+            async (available, liveClearance) => {
+              aborter.signal.throwIfAborted();
+              if (!canUseQuestion(liveClearance) || !sameAnalyticsSourceSet(sources, available)) {
                 return { accessChanged: true, validatedAnswer: null };
               }
               sources = available;
@@ -364,6 +386,7 @@ async function handleAnalyticsSearch(
               );
               let validatedAnswer: ReturnType<typeof validateCitations> | null = null;
               for (let attempt = 0; attempt < 2; attempt += 1) {
+                aborter.signal.throwIfAborted();
                 activeStage = "generation";
                 activeAttempt = attempt + 1;
                 const generationPrompt =
@@ -391,6 +414,7 @@ async function handleAnalyticsSearch(
                       onFallback: (fallback) => send({ type: "model-fallback", fallback }),
                     }),
                 );
+                aborter.signal.throwIfAborted();
                 if (generated.model) model = generated.model;
                 activeStage = "answer_validation";
                 const validated = validateCitations(generated.text, sources);
@@ -451,8 +475,9 @@ async function handleAnalyticsSearch(
           const finalPublication = await withAnalyticsSourceAccess(
             sources,
             user.id,
-            (available) => {
-              if (!sameAnalyticsSourceSet(sources, available)) return false;
+            (available, liveClearance) => {
+              if (!canUseQuestion(liveClearance) || !sameAnalyticsSourceSet(sources, available))
+                return false;
               sources = available;
               return send({
                 type: "final",

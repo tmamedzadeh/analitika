@@ -1,0 +1,97 @@
+{
+  "generatedAt": "2026-10-22T13:27:47.724Z",
+  "dataPolicy": "Invented open synthetic fixtures only; no database/storage/history access. Not real-world intelligence or proof of live RAG quality.",
+  "bounds": "Six sequential logical generations at most; one attempt per existing provider route; existing model/fallback/quota implementation unchanged; stop on first provider failure.",
+  "semanticReview": "Manual review required for relevance, grounding, Azerbaijani, synthesis, completeness, coherence, boilerplate, repetition, local caveats, citations, executive style and proportional length. Publication validation alone does not establish semantic quality.",
+  "completedCases": 1,
+  "selectedCases": [
+    "C-assessment"
+  ],
+  "remainingCases": [],
+  "usage": {
+    "apiCalls": 2,
+    "inputTokens": 4070,
+    "outputTokens": 2149,
+    "thinkingTokens": 1486,
+    "usageReportedCalls": 1
+  },
+  "results": [
+    {
+      "id": "C-assessment",
+      "query": "İranın raket və pilotsuz sistemlər üzrə müdafiə-sənaye potensialını qiymətləndir.",
+      "sources": [
+        {
+          "n": 1,
+          "sourceKind": "document",
+          "documentId": "synthetic-sənaye-hesabatı",
+          "briefId": null,
+          "chunkId": "synthetic-sənaye-hesabatı-1",
+          "title": "Açıq sintetik sınaq: sənaye-hesabatı",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində İranın iki müdafiə müəssisəsində raket və pilotsuz uçuş aparatları üçün mühərrik və idarəetmə modullarının istehsal xətləri yenilənib. Hesabat yığım və texniki xidmət imkanlarının genişləndiyini göstərir. Kritik elektron komponentlərin bir hissəsi idxaldan asılıdır. Materialda istehsal həcmi, məhsuldarlıq və döyüş şəraitində sınaq nəticələri açıqlanmır.",
+          "quote": "Sınaq ssenarisində İranın iki müdafiə müəssisəsində raket və pilotsuz uçuş aparatları üçün mühərrik və idarəetmə modullarının istehsal xətləri yenilənib. Hesabat yığım və texniki xidmət imkanlarının genişləndiyini göstərir. Kritik elektron komponentlərin bir hissəsi idxaldan asılıdır. Materialda istehsal həcmi, məhsuldarlıq və döyüş şəraitində sınaq nəticələri açıqlanmır.",
+          "charStart": 0,
+          "charEnd": 374,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "B",
+          "infoCredibility": 2
+        },
+        {
+          "n": 3,
+          "sourceKind": "document",
+          "documentId": "synthetic-rəsmi-bəyanat",
+          "briefId": null,
+          "chunkId": "synthetic-rəsmi-bəyanat-3",
+          "title": "Açıq sintetik sınaq: rəsmi-bəyanat",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində bir qurum yeni pilotsuz sistemin sınaqlarının tamamlandığını və raket istehsalının artırıldığını bəyan edib. Bu, qurumun bəyanatıdır; təqdim edilmiş materialda istehsal üzrə faktiki say və texniki sınaq protokolu yoxdur. İddia olunan uçuş məsafəsi və dəqiqlik üzrə ölçülmüş göstərici verilmir.",
+          "quote": "Sınaq ssenarisində bir qurum yeni pilotsuz sistemin sınaqlarının tamamlandığını və raket istehsalının artırıldığını bəyan edib. Bu, qurumun bəyanatıdır; təqdim edilmiş materialda istehsal üzrə faktiki say və texniki sınaq protokolu yoxdur. İddia olunan uçuş məsafəsi və dəqiqlik üzrə ölçülmüş göstərici verilmir.",
+          "charStart": 0,
+          "charEnd": 312,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "C",
+          "infoCredibility": 3
+        },
+        {
+          "n": 6,
+          "sourceKind": "document",
+          "documentId": "synthetic-sənaye-hesabatı",
+          "briefId": null,
+          "chunkId": "synthetic-sənaye-hesabatı-6",
+          "title": "Açıq sintetik sınaq: sənaye-hesabatı",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində mövcud platformaların texniki xidməti və heyət hazırlığı təşkil olunub. Hesabatda istismar müddətinin uzadılması üçün texniki xidmətin əhəmiyyəti göstərilir. İdxal komponentləri üzrə tədarük fasilələrinin istehsalın sabitliyinə təsir edə biləcəyi qeyd olunur. Yeni xəttin qurulması ilə sabit kütləvi istehsalın əldə edilməsi ayrıca mərhələlərdir.",
+          "quote": "Sınaq ssenarisində mövcud platformaların texniki xidməti və heyət hazırlığı təşkil olunub. Hesabatda istismar müddətinin uzadılması üçün texniki xidmətin əhəmiyyəti göstərilir. İdxal komponentləri üzrə tədarük fasilələrinin istehsalın sabitliyinə təsir edə biləcəyi qeyd olunur. Yeni xəttin qurulması ilə sabit kütləvi istehsalın əldə edilməsi ayrıca mərhələlərdir.",
+          "charStart": 0,
+          "charEnd": 365,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "B",
+          "infoCredibility": 2
+        }
+      ],
+      "systemPromptSha256": "6313f7716ae31940c63994ebdc6112c2287c9a54903c6322b475aa5a5714d107",
+      "model": "gemini-3.5-flash-lite",
+      "finishReason": "stop",
+      "elapsedMs": 28449,
+      "answer": "İranın raket və pilotsuz sistemlər üzrə müdafiə-sənaye potensialı müəssisələrdə istehsal xətlərinin yenilənməsi və yığım imkanlarının genişləndirilməsi ilə xarakterizə olunur [1], lakin kritik komponentlərdən idxal asılılığı [1, 6], eləcə də faktiki istehsal həcmləri və texniki göstəricilərin rəsmi olaraq açıqlanmaması potensialın real miqyasını məhdudlaşdırır [1, 3].\n\n### İstehsal və Texniki İmkanların Yenilənməsi\nİki müdafiə müəssisəsində raketlər və pilotsuz uçuş aparatları üçün mühərrik və idarəetmə modullarının istehsal xətləri yenilənmiş, yığım və texniki xidmət imkanları genişləndirilmişdir [1]. Eyni zamanda, mövcud platformaların istismar müddətinin uzadılması üçün texniki xidmət tədbirləri və heyət hazırlığı təşkil olunmuşdur [6]. \n\n### Rəsmi İddialar və Məlumat Məhdudiyyətləri\nRəsmi bəyanatlarda yeni pilotsuz sistemin sınaqlarının tamamlandığı və raket istehsalının artırıldığı iddia edilir [3]. Lakin bu məlumatlar qurumun bəyanatına əsaslanır [3]; təqdim edilən materiallarda istehsal üzrə faktiki say, texniki sınaq protokolları, həmçinin iddia edilən uçuş məsafəsi və dəqiqlik üzrə ölçülmüş göstəricilər mövcud deyil [3]. Sənaye hesabatlarında da istehsal həcmi, məhsuldarlıq və döyüş şəraitində sınaq nəticələri açıqlanmır [1].\n\n### Sənaye Sabitliyi və İdxal Asılılığı Riskləri\nMövcud istehsal potensialının sabitliyi tədarük zəncirindən asılıdır. Kritik elektron komponentlərin bir hissəsinin idxaldan asılı olduğu və idxal komponentləri üzrə tədarük fasilələrinin istehsalın sabitliyinə mənfi təsir edə biləcəyi qeyd olunur [1, 6]. Bununla yanaşı, yeni istehsal xəttinin qurulması ilə sabit kütləvi istehsalın əldə edilməsi ayrı-ayrı mərhələlər olaraq qiymətləndirilir [6], bu da bəyan edilən istehsal artımının dərhal kütləvi və dayanıqlı xarakter daşıdığını təsdiqləməyə imkan vermir.",
+      "validatedAnswer": "İranın raket və pilotsuz sistemlər üzrə müdafiə-sənaye potensialı müəssisələrdə istehsal xətlərinin yenilənməsi və yığım imkanlarının genişləndirilməsi ilə xarakterizə olunur [1], lakin kritik komponentlərdən idxal asılılığı [1][6], eləcə də faktiki istehsal həcmləri və texniki göstəricilərin rəsmi olaraq açıqlanmaması potensialın real miqyasını məhdudlaşdırır [1][3].\n\n### İstehsal və Texniki İmkanların Yenilənməsi\nİki müdafiə müəssisəsində raketlər və pilotsuz uçuş aparatları üçün mühərrik və idarəetmə modullarının istehsal xətləri yenilənmiş, yığım və texniki xidmət imkanları genişləndirilmişdir [1]. Eyni zamanda, mövcud platformaların istismar müddətinin uzadılması üçün texniki xidmət tədbirləri və heyət hazırlığı təşkil olunmuşdur [6]. \n\n### Rəsmi İddialar və Məlumat Məhdudiyyətləri\nRəsmi bəyanatlarda yeni pilotsuz sistemin sınaqlarının tamamlandığı və raket istehsalının artırıldığı iddia edilir [3]. Lakin bu məlumatlar qurumun bəyanatına əsaslanır [3]; təqdim edilən materiallarda istehsal üzrə faktiki say, texniki sınaq protokolları, həmçinin iddia edilən uçuş məsafəsi və dəqiqlik üzrə ölçülmüş göstəricilər mövcud deyil [3]. Sənaye hesabatlarında da istehsal həcmi, məhsuldarlıq və döyüş şəraitində sınaq nəticələri açıqlanmır [1].\n\n### Sənaye Sabitliyi və İdxal Asılılığı Riskləri\nMövcud istehsal potensialının sabitliyi tədarük zəncirindən asılıdır. Kritik elektron komponentlərin bir hissəsinin idxaldan asılı olduğu və idxal komponentləri üzrə tədarük fasilələrinin istehsalın sabitliyinə mənfi təsir edə biləcəyi qeyd olunur [1][6]. Bununla yanaşı, yeni istehsal xəttinin qurulması ilə sabit kütləvi istehsalın əldə edilməsi ayrı-ayrı mərhələlər olaraq qiymətləndirilir [6], bu da bəyan edilən istehsal artımının dərhal kütləvi və dayanıqlı xarakter daşıdığını təsdiqləməyə imkan vermir.",
+      "publicationFailureReasons": [],
+      "usedLowReliability": false
+    }
+  ]
+}

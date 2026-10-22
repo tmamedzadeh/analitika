@@ -1,7 +1,8 @@
 /** Real browser smoke against a local server and the configured DB; only scoped synthetic fixtures are written. */
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { basename, dirname, extname, join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { closeDb, getDb } from "../src/server/db";
@@ -24,6 +25,11 @@ import { isOwnedImageUploadKey } from "../src/server/storage/image-uploads";
 
 requireProjectEvaluationDatabase();
 const baseUrl = process.argv[2] ?? "http://127.0.0.1:4175";
+const reportPath = process.argv[3] ?? "docs/release/BROWSER_E2E.json";
+const screenshotDirectory = join(
+  ".release-backup.local",
+  basename(reportPath, extname(reportPath)),
+);
 if (!["127.0.0.1", "localhost", "[::1]"].includes(new URL(baseUrl).hostname))
   throw new Error("Browser release verification requires a local server.");
 const db = getDb();
@@ -63,6 +69,7 @@ async function check(name: string, test: () => Promise<void>) {
 }
 
 try {
+  await mkdir(screenshotDirectory, { recursive: true });
   await db.insert(appUsers).values({
     id: userId,
     username,
@@ -137,37 +144,47 @@ try {
       await page.locator('input[name="password"]').fill(password);
       await page.getByRole("button", { name: az.auth.signIn, exact: true }).click();
       await page.waitForURL((url) => url.pathname === "/senedler", { timeout: 60_000 });
-      await page.locator('input[name="title"]').waitFor();
+      await page.getByRole("heading", { name: az.navigation.documents, exact: true }).waitFor();
+      await page.getByRole("link", { name: az.documentLibrary.add, exact: true }).waitFor();
       const cookie = (await context.cookies()).find((entry) => entry.name === "analitika_session");
       assert.ok(cookie?.httpOnly);
       assert.equal(cookie.sameSite, "Lax");
     },
   );
   await check(
-    "document create, durable queue, loading state and direct recent-document navigation",
+    "document create, durable queue, automatic detail navigation and catalog link",
     async () => {
       actionPhase = "document form input";
+      await page.getByRole("link", { name: az.documentLibrary.add, exact: true }).click();
+      await page.waitForURL((url) => url.pathname === "/senedler/yeni");
       await page.locator('input[name="title"]').fill(title);
       await page.locator('textarea[name="body"]').fill(body);
       await page.locator('select[name="direction"]').selectOption("OSINT");
       await page.locator('input[type="file"]').setInputFiles(photo);
       actionPhase = "document form submit";
       await page.getByRole("button", { name: az.documents.form.save, exact: true }).click();
-      await page
-        .getByText(az.documents.form.success, { exact: true })
-        .or(page.getByText(az.documents.form.savedQueuePending, { exact: true }))
-        .waitFor({ timeout: 60_000 });
+      await page.waitForURL(/\/senedler\/[0-9a-f-]{36}$/, { timeout: 60_000 });
+      await page.getByRole("heading", { name: title, exact: true }).waitFor();
       actionPhase = "document DB readback";
       const [created] = await db
-        .select({ id: documents.id })
+        .select({ id: documents.id, status: documents.status })
         .from(documents)
         .where(and(eq(documents.ownerId, userId), eq(documents.title, title)));
       assert.ok(created);
+      assert.equal(new URL(page.url()).pathname, `/senedler/${created.id}`);
+      assert.ok(["queued", "processing", "ready"].includes(created.status));
       createdDocumentIds.push(created.id);
       // Exercise the real local provider/worker path. Cloud delivery is audited separately.
       actionPhase = "document provider processing";
       await processDocumentJob(created.id);
-      actionPhase = "document detail navigation";
+      const [indexed] = await db
+        .select({ status: documents.status })
+        .from(documents)
+        .where(eq(documents.id, created.id));
+      assert.equal(indexed?.status, "ready");
+      actionPhase = "document catalog navigation";
+      await page.getByRole("link", { name: az.documents.backToList, exact: true }).click();
+      await page.waitForURL((url) => url.pathname === "/senedler");
       await page.getByRole("link", { name: title, exact: true }).click();
       await page.waitForURL(`**/senedler/${created.id}`);
       await page.getByRole("heading", { name: title, exact: true }).waitFor();
@@ -221,9 +238,19 @@ try {
         .filter({ hasText: "Updated synthetic brief with 43 units." })
         .waitFor({ timeout: 60_000 });
       await page.goto(baseUrl);
+      actionPhase = "brief lexical AND search submit";
       await page.getByLabel(az.briefs.searchLabel).fill(`${token} beta alfa`);
+      await page.getByLabel(az.briefs.searchLabel).press("Enter");
       await page.getByRole("link", { name: title, exact: false }).first().waitFor();
+      await page.waitForFunction(() => document.querySelectorAll('a[href^="/brifler/"]:not([href="/brifler/yeni"])').length === 1);
+      assert.equal(await page.locator(`a[href="/brifler/${createdBriefIds[0]}"]`).count(), 1);
+      assert.equal(
+        await page.locator('a[href^="/brifler/"]:not([href="/brifler/yeni"])').count(),
+        1,
+      );
+      actionPhase = "brief missing-token search submit";
       await page.getByLabel(az.briefs.searchLabel).fill(`${token} nonexistentword`);
+      await page.getByLabel(az.briefs.searchLabel).press("Enter");
       await page.getByText(az.briefs.noMatches, { exact: true }).waitFor();
     },
   );
@@ -256,12 +283,18 @@ try {
       await page.getByRole("button", { name: token, exact: false }).first().waitFor();
       await page.getByRole("button", { name: token, exact: false }).first().click();
       actionPhase = "history source navigation";
-      const sourceLink = page.locator(`a[href="/senedler/${createdDocumentIds[1]}"]`).first();
+      const sourceLink = page
+        .locator(`article[data-source-group="document:${createdDocumentIds[1]}"]`)
+        .getByRole("link", { name: az.analytics.openDocument, exact: true });
       await sourceLink.waitFor();
+      const sourceUrl = new URL((await sourceLink.getAttribute("href"))!, baseUrl);
+      assert.equal(sourceUrl.pathname, `/senedler/${createdDocumentIds[1]}`);
+      assert.ok(sourceUrl.searchParams.get("chunk"));
       const opened = context.waitForEvent("page");
       await sourceLink.click();
       const sourcePage = await opened;
       await sourcePage.getByRole("heading", { name: title, exact: true }).waitFor();
+      await sourcePage.locator('[data-chunk-highlight="true"]').first().waitFor();
       await sourcePage.close();
     },
   );
@@ -306,7 +339,10 @@ try {
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       true,
     );
-    await page.screenshot({ path: "docs/release/BROWSER_MOBILE.png", fullPage: true });
+    await page.screenshot({
+      path: join(screenshotDirectory, "mobile-document-detail.png"),
+      fullPage: true,
+    });
     for (const [path, name] of [
       ["/", "briefs"],
       ["/axtaris", "analytics"],
@@ -325,7 +361,10 @@ try {
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
         true,
       );
-      await page.screenshot({ path: `.release-backup.local/mobile-${name}.png`, fullPage: true });
+      await page.screenshot({
+        path: join(screenshotDirectory, `mobile-${name}.png`),
+        fullPage: true,
+      });
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
   });
@@ -363,7 +402,7 @@ try {
   assert.deepEqual(browserErrors, []);
 } catch (error) {
   await activePage
-    ?.screenshot({ path: ".release-backup.local/browser-failure.png", fullPage: true })
+    ?.screenshot({ path: join(screenshotDirectory, "browser-failure.png"), fullPage: true })
     .catch(() => undefined);
   console.error(
     JSON.stringify({
@@ -497,8 +536,10 @@ try {
     fixtureLeftovers,
     storageFixtureCleanup: { keys: fixtureStorageKeys.size, absenceVerified: true },
     cloudWorkerDelivery: "NOT VERIFIED; local worker explicitly exercised",
+    screenshotDirectory,
   };
-  await writeFile("docs/release/BROWSER_E2E.json", JSON.stringify(result, null, 2) + "\n");
+  await mkdir(dirname(reportPath), { recursive: true });
+  await writeFile(reportPath, JSON.stringify(result, null, 2) + "\n");
   await closeDb();
   closeStorage();
   console.log(JSON.stringify(result, null, 2));

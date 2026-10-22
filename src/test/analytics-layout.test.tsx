@@ -15,6 +15,24 @@ import {
 
 afterEach(() => vi.unstubAllGlobals());
 
+function materialCounts(materials: number, fragments: number, mode: "cited" | "retrieved") {
+  return az.analytics.sourcesAndFragmentsCount
+    .replace(
+      "{materials}",
+      (mode === "cited"
+        ? az.analytics.citedSourcesCount
+        : az.analytics.retrievedSourcesCount
+      ).replace("{count}", String(materials)),
+    )
+    .replace(
+      "{fragments}",
+      (mode === "cited"
+        ? az.analytics.citedFragmentsCount
+        : az.analytics.retrievedFragmentsCount
+      ).replace("{count}", String(fragments)),
+    );
+}
+
 async function openAnalytics() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   const router = createRouter({
@@ -45,10 +63,16 @@ const syntheticSources: AnalyticsSourcePreview[] = Array.from({ length: 8 }, (_,
   isTable: false,
   attachmentCount: 0,
 }));
+// Chunks 2 and 8 belong to the same parent document; every other chunk is its own document.
+const groupedSources: AnalyticsSourcePreview[] = syntheticSources.map((source) =>
+  source.n === 2 || source.n === 8
+    ? { ...source, documentId: "shared-document", chunkId: `chunk-${source.n}` }
+    : source,
+);
 function response(answer = "Nəticə [2][8].") {
   return new Response(
     [
-      { type: "sources", sources: syntheticSources },
+      { type: "sources", sources: groupedSources },
       { type: "final", answer, model: "gemini-3.1-flash-lite", durationMs: 1000 },
     ]
       .map((event) => `data: ${JSON.stringify(event)}\n\n`)
@@ -135,22 +159,187 @@ describe("analytics search layout", () => {
       "href",
       `/brifler/${briefId}`,
     );
-    expect(
-      screen.getByRole("link", { name: az.analytics.openSource.replace("{n}", "1") }),
-    ).toHaveAttribute("href", "#source-1");
-    expect(document.getElementById("source-1")).toBeInTheDocument();
+    const sourceLink = screen.getAllByRole("link", {
+      name: az.analytics.openSource.replace("{n}", "1"),
+    })[0]!;
+    const fragmentId = decodeURIComponent(sourceLink.getAttribute("href")!.slice(1));
+    expect(fragmentId).toContain(`document:${documentId}-1`);
+    expect(document.getElementById(fragmentId)).toBeInTheDocument();
     expect(
       screen.queryByRole("link", { name: az.analytics.openSource.replace("{n}", "3") }),
     ).toBeNull();
-    expect(
-      screen.getAllByText(az.analytics.citedSourcesCount.replace("{count}", "2")),
-    ).toHaveLength(2);
+    // One card per authorized parent: document + brief; unavailable metadata is inert.
+    expect(screen.getAllByText(materialCounts(2, 2, "cited"))).toHaveLength(2);
+    expect(screen.getByText(`[3] ${az.analytics.sourceUnavailable}`)).toBeInTheDocument();
+    expect(screen.queryByText(/citedSourcesCount|\{count\}/)).toBeNull();
     expect(screen.queryByText(az.analytics.noSources)).not.toBeInTheDocument();
     expect(
       screen.getAllByRole("link", {
         name: new RegExp(`${az.analytics.openDocument}|${az.analytics.openBrief}`),
       }),
     ).toHaveLength(2);
+  });
+  it("shows one card per material and counts retrieved fragments in sources-only mode", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          [
+            { type: "sources", sources: syntheticSources },
+            { type: "final", answer: "", model: "", durationMs: 10 },
+          ]
+            .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+            .join(""),
+          { headers: { "content-type": "text/event-stream" } },
+        ),
+      ),
+    );
+    await openAnalytics();
+    fireEvent.change(screen.getByLabelText(az.analytics.questionLabel), {
+      target: { value: "Question" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.sourcesOnly }));
+    await screen.findByText(az.analytics.fragmentsOnly);
+    // 8 distinct parent documents.
+    expect(screen.getAllByRole("article")).toHaveLength(8);
+    expect(
+      screen.getAllByText(
+        az.analytics.sourcesAndFragmentsCount
+          .replace("{materials}", az.analytics.retrievedSourcesCount.replace("{count}", "8"))
+          .replace("{fragments}", az.analytics.retrievedFragmentsCount.replace("{count}", "8")),
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/istinad edilmiş/)).toBeNull();
+  });
+  it("keeps authorized parent cards when history suppresses an unverifiable answer", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([
+      {
+        id: "legacy",
+        query: "Legacy question",
+        status: "done",
+        createdAt: "2026-10-22T08:00:00Z",
+        durationMs: 20,
+      },
+    ]);
+    const metadata = {
+      caption: "",
+      usedInAnswer: false,
+      maxClassification: "open",
+      model: "test",
+      durationMs: 20,
+      createdAt: "2026-10-22T08:00:00Z",
+    };
+    vi.mocked(getAnalyticsQueryHistory).mockResolvedValue({
+      id: "legacy",
+      query: "Legacy question",
+      status: "incomplete",
+      answer: az.analytics.sourceUnavailable,
+      model: "test",
+      durationMs: 20,
+      createdAt: metadata.createdAt,
+      filters: {
+        period: "all",
+        directionIds: [...directionIds],
+        minSourceReliability: "all",
+        minInfoCredibility: "all",
+      },
+      sources: [
+        {
+          ...metadata,
+          n: 1,
+          title: "Current authorized parent",
+          available: true,
+          documentId: "available-parent",
+          briefId: null,
+        },
+        {
+          ...metadata,
+          n: 6,
+          title: "Current authorized parent",
+          available: true,
+          documentId: "available-parent",
+          briefId: null,
+        },
+        {
+          ...metadata,
+          n: 3,
+          title: az.analytics.sourceUnavailable,
+          available: false,
+          documentId: null,
+          briefId: null,
+        },
+      ],
+    });
+    await openAnalytics();
+    fireEvent.click(await screen.findByRole("button", { name: /Legacy question/ }));
+    expect(await screen.findByText(az.analytics.fragmentsOnly)).toBeInTheDocument();
+    expect(screen.getAllByText(materialCounts(1, 2, "retrieved"))).toHaveLength(1);
+    expect(screen.getByRole("link", { name: az.analytics.openDocument })).toHaveAttribute(
+      "href",
+      "/senedler/available-parent",
+    );
+    expect(screen.getByText(`[3] ${az.analytics.sourceUnavailable}`)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: az.analytics.copy })).toBeNull();
+    expect(screen.queryByRole("button", { name: az.analytics.regenerate })).toBeNull();
+    expect(screen.queryByText(/istinad edilmiş/)).toBeNull();
+  });
+
+  it("never counts retrieved material as cited when the answer has no citation", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(response("Dəqiq göstərici təqdim edilməyib.")),
+    );
+    await openAnalytics();
+    fireEvent.change(screen.getByLabelText(az.analytics.questionLabel), {
+      target: { value: "Question" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.searchButton }));
+    await screen.findByRole("button", { name: az.analytics.regenerate });
+    expect(screen.getAllByText(materialCounts(0, 0, "cited"))).toHaveLength(2);
+    expect(screen.queryAllByRole("article")).toHaveLength(0);
+    expect(screen.queryByText("Synthetic source 1")).toBeNull();
+  });
+  it("removes a previously visible history answer when a fresh authorization check rejects it", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([
+      {
+        id: "revoked",
+        query: "Revocable question",
+        status: "done",
+        createdAt: "2026-10-22T08:00:00Z",
+        durationMs: 20,
+      },
+    ]);
+    vi.mocked(getAnalyticsQueryHistory)
+      .mockResolvedValueOnce({
+        id: "revoked",
+        query: "Revocable question",
+        status: "done",
+        answer: "Previously visible answer.",
+        sources: [],
+        model: "test",
+        durationMs: 20,
+        createdAt: "2026-10-22T08:00:00Z",
+        filters: {
+          period: "all",
+          directionIds: [...directionIds],
+          minSourceReliability: "all",
+          minInfoCredibility: "all",
+        },
+      })
+      .mockResolvedValueOnce(null);
+    await openAnalytics();
+    const historyItem = await screen.findByRole("button", { name: /Revocable question/ });
+    fireEvent.click(historyItem);
+    await screen.findByText("Previously visible answer.");
+    fireEvent.click(historyItem);
+    expect(await screen.findByRole("alert")).toHaveTextContent(az.analytics.historyOpenFailed);
+    expect(screen.queryByText("Previously visible answer.")).toBeNull();
+    expect(screen.queryByRole("button", { name: az.analytics.copy })).toBeNull();
+    expect(screen.queryByRole("button", { name: az.analytics.regenerate })).toBeNull();
+    expect(screen.queryAllByRole("article")).toHaveLength(0);
+    expect(historyItem).not.toHaveAttribute("aria-current", "true");
   });
   it("places recent queries on the right and sources below the synthesis", async () => {
     vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
@@ -167,20 +356,20 @@ describe("analytics search layout", () => {
 
     const historyTitle = await screen.findByRole("heading", { name: az.analytics.historyTitle });
     const sourcesTitle = screen.getByText(az.analytics.sources);
-    const synthesisTitle = screen.getByText(az.analytics.synthesis);
     const historyAside = historyTitle.closest("aside");
     const layout = historyAside?.parentElement;
 
     expect(historyAside).not.toBeNull();
     expect(layout).toHaveClass("grid", "xl:grid-cols-[minmax(0,1fr)_280px]");
+    expect(layout?.firstElementChild?.contains(sourcesTitle)).toBe(true);
     expect(
       sourcesTitle.compareDocumentPosition(historyTitle) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(
-      synthesisTitle.compareDocumentPosition(sourcesTitle) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(layout?.firstElementChild?.contains(sourcesTitle)).toBe(true);
     expect(screen.getByText(az.analytics.emptyState)).toBeInTheDocument();
+    expect(
+      screen.getByText(az.analytics.emptyState).compareDocumentPosition(sourcesTitle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.getByText(az.analytics.historyEmpty)).toBeInTheDocument();
     const toggle = screen.getByRole("button", { name: az.analytics.historyTitle });
     fireEvent.click(toggle);
@@ -210,14 +399,18 @@ describe("analytics regeneration and transport", () => {
     fireEvent.change(screen.getByLabelText(az.analytics.periodLabel), { target: { value: "30d" } });
     fireEvent.click(screen.getByRole("button", { name: az.analytics.searchButton }));
     await screen.findByRole("button", { name: az.analytics.regenerate });
+    // Chunks [2] and [8] belong to one document: two cited fragments, one cited material.
+    expect(screen.getAllByText(materialCounts(1, 2, "cited"))).toHaveLength(2);
     expect(
-      screen.getAllByText(az.analytics.citedSourcesCount.replace("{count}", "2")),
-    ).toHaveLength(2);
-    expect(document.getElementById("source-8")).toBeInTheDocument();
+      screen.getByText(az.analytics.citedFragmentsCount.replace("{count}", "2")),
+    ).toBeInTheDocument();
+    // [1] was returned by retrieval but never cited, so it is neither counted nor listed.
     expect(document.getElementById("source-1")).toBeNull();
-    expect(
-      screen.getByRole("link", { name: az.analytics.openSource.replace("{n}", "8") }),
-    ).toHaveAttribute("href", "#source-8");
+    for (const link of screen.getAllByRole("link", {
+      name: az.analytics.openSource.replace("{n}", "8"),
+    })) {
+      expect(link).toHaveAttribute("href", expect.stringContaining("document%3Ashared-document-8"));
+    }
     fireEvent.change(screen.getByLabelText(az.analytics.questionLabel), {
       target: { value: "Edited question" },
     });
@@ -236,6 +429,30 @@ describe("analytics regeneration and transport", () => {
     expect(screen.getByRole("heading", { name: "Original question" })).toBeInTheDocument();
     await act(async () => finish!(response("New answer [8].")));
     expect(await screen.findByText(/New answer/)).toBeInTheDocument();
+  });
+  it("lists each cited material once and keeps chunk-level citation numbers", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response()));
+    await openAnalytics();
+    fireEvent.change(screen.getByLabelText(az.analytics.questionLabel), {
+      target: { value: "Question" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.searchButton }));
+    await screen.findByRole("button", { name: az.analytics.regenerate });
+    // Eight retrieved fragments from seven materials; only one material is cited.
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.queryByText("Synthetic source 3")).toBeNull();
+    expect(screen.getByText(new RegExp(materialCounts(7, 8, "retrieved")))).toBeInTheDocument();
+    for (const n of [2, 8]) {
+      for (const link of screen.getAllByRole("link", {
+        name: az.analytics.openSource.replace("{n}", String(n)),
+      })) {
+        expect(link).toHaveAttribute(
+          "href",
+          expect.stringContaining(`document%3Ashared-document-${n}`),
+        );
+      }
+    }
   });
   it("regenerates history using its own request without sending an update ID", async () => {
     const historicalFilters = {
@@ -332,6 +549,45 @@ describe("analytics regeneration and transport", () => {
       expect(screen.getByRole("alert")).toHaveTextContent(az.analytics.answerFailed),
     );
     expect(screen.queryByText("Synthetic source 1")).toBeNull();
+    expect(screen.queryByRole("button", { name: az.analytics.regenerate })).toBeNull();
+  });
+  it("clears delivered source previews and partial prose after a terminal access error", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
+    let streamController: ReadableStreamDefaultController<Uint8Array>;
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        streamController = controller;
+      },
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(stream)));
+    await openAnalytics();
+    fireEvent.change(screen.getByLabelText(az.analytics.questionLabel), {
+      target: { value: "Question" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.searchButton }));
+    await act(async () => {
+      streamController!.enqueue(
+        encoder.encode(`data: ${JSON.stringify({ type: "sources", sources: groupedSources })}\n\n`),
+      );
+      streamController!.enqueue(
+        encoder.encode(
+          `data: ${JSON.stringify({ type: "delta", text: "Partial answer [2]." })}\n\n`,
+        ),
+      );
+    });
+    expect(screen.getByText("Synthetic source 2")).toBeInTheDocument();
+    await act(async () => {
+      streamController!.enqueue(
+        encoder.encode(
+          `data: ${JSON.stringify({ type: "error", message: az.analytics.sourceUnavailable })}\n\n`,
+        ),
+      );
+      streamController!.close();
+    });
+    expect(await screen.findByRole("alert")).toHaveTextContent(az.analytics.sourceUnavailable);
+    expect(screen.queryByText("Synthetic source 2")).toBeNull();
+    expect(screen.queryByText(/Partial answer/)).toBeNull();
     expect(screen.queryByRole("button", { name: az.analytics.regenerate })).toBeNull();
   });
 });

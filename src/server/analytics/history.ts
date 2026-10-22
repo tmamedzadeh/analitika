@@ -16,20 +16,23 @@ import type { AnalyticsFilters, AnalyticsSource, AnalyticsSourcePreview } from "
 import { hasCommittedDocumentIndex } from "./filters";
 import { hasCommittedBriefIndex } from "../briefs/index-state";
 import type { InfoCredibility, SourceReliability } from "@/lib/reliability";
+import { validateCitations } from "./citations";
 
 const sourceSnapshotSchema = z.object({
   n: z.number().int().positive(),
-  documentId: z.string().uuid().nullable(),
-  briefId: z.string().uuid().nullable(),
+  documentId: z.string().uuid().nullable().default(null),
+  briefId: z.string().uuid().nullable().default(null),
   // IDs only: previews are read from the current authorized chunk, never copied into history.
   chunkId: z.string().uuid().optional(),
-  title: z.string(),
-  caption: z.string(),
-  usedInAnswer: z.boolean(),
-  maxClassification: z.string(),
-  model: z.string(),
-  durationMs: z.number().int().nonnegative(),
-  createdAt: z.string(),
+  // Missing legacy display metadata is never evidence of source availability.
+  // Resolve it from the authorized parent instead of trusting the saved label.
+  title: z.string().default(""),
+  caption: z.string().default(""),
+  usedInAnswer: z.boolean().default(false),
+  maxClassification: z.string().default("unknown"),
+  model: z.string().default(""),
+  durationMs: z.number().int().nonnegative().default(0),
+  createdAt: z.string().default(""),
 });
 
 export type AnalyticsHistorySource = z.infer<typeof sourceSnapshotSchema> & {
@@ -188,6 +191,12 @@ export async function getAnalyticsHistoryRecord(id: string) {
     const parsedSources = z.array(sourceSnapshotSchema).safeParse(row.sources);
     if (!parsedSources.success) return null;
     const snapshots = parsedSources.data;
+    // A citation number must identify exactly one parent and one saved fragment.
+    if (
+      new Set(snapshots.map((source) => source.n)).size !== snapshots.length ||
+      snapshots.some((source) => source.documentId && source.briefId)
+    )
+      return null;
     const resolved: AnalyticsHistorySource[] = [];
     for (const source of snapshots) {
       let available = false;
@@ -293,13 +302,31 @@ export async function getAnalyticsHistoryRecord(id: string) {
             attachmentCount: 0,
           };
         else available = false;
+      } else if (available && metadata) {
+        // Legacy snapshots can still link to their currently authorized parent.
+        // An empty ID/excerpt explicitly means that no exact chunk was verified.
+        preview = {
+          ...metadata,
+          n: source.n,
+          chunkId: "",
+          documentId: source.documentId,
+          briefId: source.briefId,
+          sectionTitle: "",
+          quote: "",
+          isTable: false,
+          attachmentCount: 0,
+        };
       }
       resolved.push({
         ...source,
         available,
         preview: available ? preview : null,
         ...(available
-          ? {}
+          ? {
+              title: metadata!.title,
+              caption: preview?.sectionTitle ?? "",
+              maxClassification: metadata!.classification ?? source.maxClassification,
+            }
           : {
               documentId: null,
               briefId: null,
@@ -325,7 +352,12 @@ export async function getAnalyticsHistoryRecord(id: string) {
       )
       .limit(1);
     if (!stillVisible) return null;
-    const unavailableCitation = resolved.some((source) => !source.available);
+    const verifiedSources = resolved.flatMap((source) =>
+      source.available && source.chunkId && source.preview ? [source.preview] : [],
+    );
+    const unavailableCitation =
+      resolved.some((source) => !source.available || !source.chunkId) ||
+      validateCitations(row.answer ?? "", verifiedSources).incomplete;
     return {
       id: row.id,
       query: row.query,

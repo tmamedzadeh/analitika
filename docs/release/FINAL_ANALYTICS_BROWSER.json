@@ -1,0 +1,74 @@
+{
+  "checkedAt": "2026-10-22T13:23:48.981Z",
+  "kind": "isolated production-component browser smoke",
+  "browser": "Microsoft Edge (headless Chromium)",
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "touch": true
+    }
+  ],
+  "fixtures": "synthetic open data only; no DB, authentication server, provider or external API calls",
+  "clipboard": "browser Clipboard API replaced with a local capture to assert exact Markdown payload",
+  "checks": [
+    {
+      "name": "desktop: identity grouping, compact defaults, unique IDs and no overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "desktop: citation opens exact metadata popover within viewport",
+      "status": "PASS"
+    },
+    {
+      "name": "desktop: source-card jump expands exact [3], scrolls and keeps fragment focus",
+      "status": "PASS"
+    },
+    {
+      "name": "desktop: repeated same-hash jump reopens collapsed card",
+      "status": "PASS"
+    },
+    {
+      "name": "desktop: keyboard Enter/Tab/Escape and fragment focus",
+      "status": "PASS"
+    },
+    {
+      "name": "desktop: copy preserves original Markdown and citation numbering",
+      "status": "PASS"
+    },
+    {
+      "name": "mobile: identity grouping, compact defaults, unique IDs and no overflow",
+      "status": "PASS"
+    },
+    {
+      "name": "mobile: citation opens exact metadata popover within viewport",
+      "status": "PASS"
+    },
+    {
+      "name": "mobile: source-card jump expands exact [3], scrolls and keeps fragment focus",
+      "status": "PASS"
+    },
+    {
+      "name": "mobile: repeated same-hash jump reopens collapsed card",
+      "status": "PASS"
+    },
+    {
+      "name": "mobile: copy preserves original Markdown and citation numbering",
+      "status": "PASS"
+    }
+  ],
+  "errors": [],
+  "externalRequests": [],
+  "status": "PASS",
+  "failureCase": null,
+  "failure": null,
+  "limitations": "Component browser coverage only; route/HTTP/security behavior is covered separately by tests and authorized integration checks.",
+  "screenshots": [
+    ".release-backup.local/final-analytics-desktop.png",
+    ".release-backup.local/final-analytics-mobile.png"
+  ]
+}
