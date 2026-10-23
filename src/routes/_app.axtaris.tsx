@@ -697,7 +697,7 @@ export function Analytics() {
               </h2>
               {historyQuery.isFetching && <ZirveLoader variant="inline" label="" />}
             </div>
-            <div id="analytics-history" hidden={!historyExpanded} className="mt-2">
+            <div id="analytics-history" hidden={!historyExpanded}>
               {historyQuery.isError ? (
                 <p role="alert" className="text-sm text-destructive">
                   {az.analytics.historyFailed}
