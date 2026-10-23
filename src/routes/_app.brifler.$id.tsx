@@ -155,6 +155,11 @@ function BriefDetail() {
         <Button asChild variant="outline" className="rounded-full">
           <Link to="/">{az.briefs.backToList}</Link>
         </Button>
+
+        <div>
+          <ClassificationBadge classification={brief.classification} />
+        </div>
+
         <p className="label-mono tracking-normal!">
           {date.day} {date.month} · {date.weekday}
         </p>
@@ -165,9 +170,6 @@ function BriefDetail() {
         </p>
       )}
       <div>
-        <div className="mb-4">
-          <ClassificationBadge classification={brief.classification} />
-        </div>
         <article className="rounded-xl border border-border bg-card p-5 text-sm leading-7 sm:p-6">
           <h2 className="mb-5 text-sm font-medium text-muted-foreground">{brief.title}</h2>
           <RichTextContent document={brief.bodyRich} highlight={brief.highlight} />
