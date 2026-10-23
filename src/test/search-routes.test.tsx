@@ -1,3 +1,4 @@
+import { plainTextDocument } from "@/lib/rich-text";
 import { QueryClient } from "@tanstack/react-query";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -51,6 +52,7 @@ const card = {
 const detail = {
   ...card,
   body: "Synthetic saved body",
+  bodyRich: plainTextDocument("Synthetic saved body"),
   ownerId: "test",
   department: null,
   language: "az",
@@ -202,8 +204,12 @@ describe("short catalog and creation route smoke with synthetic services", () =>
     fireEvent.change(await screen.findByPlaceholderText(az.documents.form.titlePlaceholder), {
       target: { value: card.title },
     });
-    fireEvent.change(screen.getByPlaceholderText(az.documents.form.bodyPlaceholder), {
-      target: { value: "Synthetic saved body" },
+    fireEvent.paste(await screen.findByRole("textbox", { name: az.documents.form.body }), {
+      clipboardData: {
+        getData: (type: string) => (type === "text/plain" ? "Synthetic saved body" : ""),
+        files: [],
+        types: ["text/plain"],
+      },
     });
     const direction = document.querySelector('select[name="direction"]')!;
     fireEvent.change(direction, { target: { value: "OSINT" } });

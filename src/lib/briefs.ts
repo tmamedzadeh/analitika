@@ -1,7 +1,10 @@
 import { z } from "zod";
+import { richDocumentSchema, type RichDocument } from "./rich-text";
 
 import { az } from "./i18n/az";
 import { clearanceValues, type Clearance } from "./classification";
+
+export const BRIEF_SYSTEM_TITLE = "İnformasiya bülleteni";
 
 export const MAX_BRIEF_PHOTOS = 10;
 export const MAX_BRIEF_PHOTO_BYTES = 10 * 1024 * 1024;
@@ -20,6 +23,7 @@ export type Brief = {
   date: string;
   title: string;
   body: string;
+  bodyRich: RichDocument;
   classification: Clearance;
   status: BriefStatus;
   indexStatus: BriefIndexStatus;
@@ -28,7 +32,10 @@ export type Brief = {
   publishedAt: string | null;
   highlight: { chunkId: string; start: number; end: number } | null;
 };
-export type BriefListItem = Omit<Brief, "body" | "photos" | "publishedAt" | "highlight"> & {
+export type BriefListItem = Omit<
+  Brief,
+  "body" | "bodyRich" | "photos" | "publishedAt" | "highlight"
+> & {
   excerpt: string;
   photoCount: number;
   coverUrl?: string | null;
@@ -48,8 +55,7 @@ export const briefDateSchema = z
 export const briefInputSchema = z.object({
   classification: z.enum(clearanceValues).default("open"),
   date: briefDateSchema,
-  title: z.string().trim().min(1).max(500),
-  body: z.string().trim().min(1).max(MAX_BRIEF_BODY_LENGTH),
+  bodyRich: richDocumentSchema(MAX_BRIEF_BODY_LENGTH),
   status: z.enum(briefStatuses),
 });
 
@@ -122,20 +128,8 @@ export function getWeekStartDate(date: string): string {
   return value.toISOString().slice(0, 10);
 }
 
-export function briefExcerpt(markdown: string, maxLength = 200): string {
-  const plain = markdown
-    .replace(/```[\s\S]*?```/g, (block) => block.replace(/^```[^\n]*\n?|```$/g, " "))
-    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/^\s*\|.*\|\s*$/gm, " ")
-    .replace(/^\s*>\s?/gm, "")
-    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
-    .replace(/^\s*(?:[-+*]|\d+[.)])\s+/gm, "")
-    .replace(/^\s*[-*_]{3,}\s*$/gm, " ")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/[>*_~`]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+export function briefExcerpt(text: string, maxLength = 200): string {
+  const plain = text.replace(/\s+/g, " ").trim();
   if (plain.length <= maxLength) return plain;
   return `${plain.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }

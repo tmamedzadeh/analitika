@@ -1,3 +1,5 @@
+import { BRIEF_SYSTEM_TITLE } from "../src/lib/briefs";
+import { plainTextDocument } from "../src/lib/rich-text";
 /** Real browser smoke against a local server and the configured DB; only scoped synthetic fixtures are written. */
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
@@ -82,6 +84,7 @@ try {
     ownerId: userId,
     title: "Restricted browser fixture",
     body: "Synthetic restricted marker never rendered to this user.",
+    bodyRich: plainTextDocument("Synthetic restricted marker never rendered to this user."),
     classification: "secret",
     status: "queued",
     direction: "OSINT",
@@ -158,7 +161,7 @@ try {
       await page.getByRole("link", { name: az.documentLibrary.add, exact: true }).click();
       await page.waitForURL((url) => url.pathname === "/senedler/yeni");
       await page.locator('input[name="title"]').fill(title);
-      await page.locator('textarea[name="body"]').fill(body);
+      await page.getByRole("textbox", { name: az.documents.form.body, exact: true }).fill(body);
       await page.locator('select[name="direction"]').selectOption("OSINT");
       await page.locator('input[type="file"]').setInputFiles(photo);
       actionPhase = "document form submit";
@@ -211,13 +214,15 @@ try {
     "brief creation, detail/edit route, lexical AND search and empty search state",
     async () => {
       await page.goto(`${baseUrl}/brifler/yeni`);
-      await page.getByLabel(az.briefs.titleField, { exact: true }).fill(title);
-      await page.locator("textarea").fill(`${token} alfa beta. Synthetic brief with 42 units.`);
+      assert.equal(await page.getByLabel(az.briefs.titleField, { exact: true }).count(), 0);
+      await page
+        .getByRole("textbox", { name: az.briefs.body, exact: true })
+        .fill(`${token} alfa beta. Synthetic brief with 42 units.`);
       await page.locator('input[type="file"]').setInputFiles(photo);
       await page.getByRole("button", { name: az.briefs.save, exact: true }).click();
       await page.waitForURL(/\/brifler\/[0-9a-f-]{36}$/, { timeout: 60_000 });
       createdBriefIds.push(new URL(page.url()).pathname.split("/").at(-1)!);
-      await page.getByRole("heading", { name: title, exact: true }).waitFor();
+      await page.getByRole("heading", { name: BRIEF_SYSTEM_TITLE, exact: true }).waitFor();
       const image = page.locator('img[src^="/api/attachments/brief/"]').first();
       await image.waitFor();
       assert.equal(
@@ -225,10 +230,10 @@ try {
         200,
       );
       await page.goto(`${baseUrl}/brifler/${createdBriefIds[0]}/redakte`);
-      await page.getByLabel(az.briefs.titleField, { exact: true }).waitFor();
+      await page.getByRole("textbox", { name: az.briefs.body, exact: true }).waitFor();
       actionPhase = "brief edit submit";
       await page
-        .locator("textarea")
+        .getByRole("textbox", { name: az.briefs.body, exact: true })
         .fill(`${token} alfa beta. Updated synthetic brief with 43 units.`);
       await page.getByRole("button", { name: az.briefs.save, exact: true }).click();
       await page.waitForURL(/\/brifler\/[0-9a-f-]{36}$/, { timeout: 60_000 });
@@ -241,7 +246,7 @@ try {
       actionPhase = "brief lexical AND search submit";
       await page.getByLabel(az.briefs.searchLabel).fill(`${token} beta alfa`);
       await page.getByLabel(az.briefs.searchLabel).press("Enter");
-      await page.getByRole("link", { name: title, exact: false }).first().waitFor();
+      await page.getByRole("link", { name: token, exact: false }).first().waitFor();
       await page.waitForFunction(
         () =>
           document.querySelectorAll('a[href^="/brifler/"]:not([href="/brifler/yeni"])').length ===

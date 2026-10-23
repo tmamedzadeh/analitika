@@ -1,3 +1,4 @@
+import { plainTextDocument } from "../src/lib/rich-text";
 /** Scoped invented fixtures on the configured project DB. No external AI calls or corpus changes. */
 import assert from "node:assert/strict";
 import { randomUUID, createHash, randomBytes } from "node:crypto";
@@ -48,6 +49,7 @@ const user: SessionUser = {
 };
 const vector = Array.from({ length: 768 }, (_, i) => (i === 0 ? 1 : 0));
 const filters = {
+  includeBriefs: true,
   period: "all" as const,
   directionIds: [...directionIds],
   minSourceReliability: "all" as const,
@@ -68,6 +70,7 @@ const input = (index: number) => ({
   date,
   title: `${token} ${index}`,
   body: `${token} invented bulletin ${index}.`,
+  bodyRich: plainTextDocument(`${token} invented bulletin ${index}.`),
   status: "published" as const,
   classification: clearanceValues[index]!,
   keepAttachmentIds: [attachmentIds[index]!],
@@ -90,6 +93,7 @@ try {
       briefDate: date,
       title: input(index).title,
       body: input(index).body,
+      bodyRich: plainTextDocument(input(index).body),
       classification,
       authorId: userId,
       indexStatus: "ready",

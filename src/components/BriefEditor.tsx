@@ -3,12 +3,14 @@ import { useRef, useState, type FormEvent } from "react";
 import { Upload, X } from "lucide-react";
 
 import { BriefCard } from "@/components/BriefCard";
-import { MarkdownEditor } from "@/components/MarkdownEditor";
+import { RichTextEditor } from "@/components/RichTextEditor";
+import { emptyRichDocument, projectRichText } from "@/lib/rich-text";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader, ZirveActionLabel } from "@/components/ZirveLoader";
 import { Button } from "@/components/ui/button";
 import { discardBriefUploads, prepareBriefUploads, saveBrief } from "@/lib/briefs.functions";
 import {
+  BRIEF_SYSTEM_TITLE,
   briefExcerpt,
   briefInputSchema,
   getBakuDate,
@@ -24,8 +26,7 @@ type PhotoDraft = { id?: string; name: string; url: string; file?: File };
 
 function validationMessage(path: string | undefined): string {
   if (path === "date") return az.briefs.validation.date;
-  if (path === "title") return az.briefs.validation.title;
-  if (path === "body") return az.briefs.validation.body;
+  if (path === "bodyRich") return az.briefs.validation.body;
   return az.briefs.validation.required;
 }
 
@@ -39,8 +40,8 @@ export function BriefEditor({
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [date, setDate] = useState(existing?.date ?? getBakuDate());
-  const [title, setTitle] = useState(existing?.title ?? "");
-  const [body, setBody] = useState(existing?.body ?? "");
+  const [bodyRich, setBodyRich] = useState(existing?.bodyRich ?? emptyRichDocument());
+  const body = projectRichText(bodyRich).text;
   const [classification, setClassification] = useState<Clearance>(
     existing?.classification ?? "open",
   );
@@ -61,7 +62,7 @@ export function BriefEditor({
   const preview: BriefListItem = {
     id: existing?.id ?? "preview",
     date,
-    title: title.trim() || az.briefs.titlePlaceholder,
+    title: BRIEF_SYSTEM_TITLE,
     excerpt: briefExcerpt(body) || az.briefs.bodyPlaceholder,
     status: "published",
     classification,
@@ -102,8 +103,7 @@ export function BriefEditor({
     setError("");
     const parsed = briefInputSchema.safeParse({
       date,
-      title,
-      body,
+      bodyRich,
       classification,
       status: "published",
     });
@@ -205,17 +205,6 @@ export function BriefEditor({
                 onChange={(event) => setDate(event.target.value)}
               />
             </label>
-            <label className="text-sm font-medium">
-              {az.briefs.titleField}
-              <input
-                required
-                className="field mt-2"
-                maxLength={500}
-                placeholder={az.briefs.titlePlaceholder}
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </label>
           </div>
 
           <fieldset className="mt-5 grid gap-2 border-0 p-0">
@@ -242,12 +231,13 @@ export function BriefEditor({
           </fieldset>
           <div className="mt-5 block text-sm font-medium">
             <p>{az.briefs.body}</p>
-            <MarkdownEditor
-              required
+            <RichTextEditor
+              disabled={busy}
+              label={az.briefs.body}
               maxLength={200_000}
               placeholder={az.briefs.bodyPlaceholder}
-              value={body}
-              onChange={setBody}
+              value={bodyRich}
+              onChange={setBodyRich}
             />
           </div>
           <input

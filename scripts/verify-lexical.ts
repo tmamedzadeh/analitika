@@ -1,3 +1,4 @@
+import { plainTextDocument } from "../src/lib/rich-text";
 /** Live lexical/date/pagination/index verification; synthetic rows are always rolled back. */
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
@@ -26,6 +27,7 @@ try {
           briefDate: index % 2 ? today : "2020-01-01",
           title: `${token} ${index === 0 ? "Ə İ I Ş Ç Ğ Ö Ü" : index === 1 ? "İ" : index === 2 ? "I" : "catalogue"}`,
           body: "alfa distant text beta",
+          bodyRich: plainTextDocument("alfa distant text beta"),
           status: "published",
           indexStatus: "none",
         }));

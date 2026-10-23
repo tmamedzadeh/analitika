@@ -91,6 +91,29 @@ vi.mock("@/lib/analytics.functions", async (importOriginal) => {
 });
 
 describe("analytics search layout", () => {
+  it("starts bulletin search OFF and sends its selected value in each request", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
+    const transport = vi.fn(async (_url: unknown, _init?: RequestInit) => response());
+    vi.stubGlobal("fetch", transport);
+    await openAnalytics();
+    const checkbox = screen.getByRole("checkbox", { name: "Bülletenlərdə də axtar" });
+    expect(checkbox).not.toBeChecked();
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Synthetic query" } });
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.sourcesOnly }));
+    await waitFor(() => expect(transport).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(transport.mock.calls[0]![1]!.body as string).filters.includeBriefs).toBe(
+      false,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: az.analytics.sourcesOnly })).toBeEnabled(),
+    );
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.sourcesOnly }));
+    await waitFor(() => expect(transport).toHaveBeenCalledTimes(2));
+    expect(JSON.parse(transport.mock.calls[1]![1]!.body as string).filters.includeBriefs).toBe(
+      true,
+    );
+  });
   it("opens available history sources by exact UUID and counts them without an empty state", async () => {
     const documentId = "00000000-0000-4000-8000-000000000001";
     const briefId = "00000000-0000-4000-8000-000000000002";
@@ -122,6 +145,7 @@ describe("analytics search layout", () => {
       durationMs: 12,
       createdAt: new Date().toISOString(),
       filters: {
+        includeBriefs: false,
         period: "all",
         directionIds: [...directionIds],
         minSourceReliability: "all",
@@ -239,6 +263,7 @@ describe("analytics search layout", () => {
       durationMs: 20,
       createdAt: metadata.createdAt,
       filters: {
+        includeBriefs: false,
         period: "all",
         directionIds: [...directionIds],
         minSourceReliability: "all",
@@ -322,6 +347,7 @@ describe("analytics search layout", () => {
         durationMs: 20,
         createdAt: "2026-10-22T08:00:00Z",
         filters: {
+          includeBriefs: false,
           period: "all",
           directionIds: [...directionIds],
           minSourceReliability: "all",
@@ -462,6 +488,7 @@ describe("analytics regeneration and transport", () => {
   });
   it("regenerates history using its own request without sending an update ID", async () => {
     const historicalFilters = {
+      includeBriefs: false,
       period: "90d" as const,
       directionIds: [...directionIds],
       minSourceReliability: "B" as const,
@@ -604,6 +631,7 @@ describe("phase 2b history and progress lifecycle", () => {
     id,
     query: `Question ${id}`,
     filters: {
+      includeBriefs: false,
       period: "7d" as const,
       directionIds: [...directionIds],
       minSourceReliability: "all" as const,

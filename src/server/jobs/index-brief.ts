@@ -5,7 +5,7 @@ import { systemAccessFilter } from "@/server/db/access";
 import { getDb, type Database } from "@/server/db";
 import { chunks, dailyBriefs } from "@/server/db/schema";
 import { createGeminiProviders } from "@/server/ai/gemini";
-import { chunkDocument } from "@/server/ingest/chunker";
+import { chunkRichDocument } from "@/server/ingest/chunker";
 import { isTemporaryWorkerFailure, nonRetriableJobError } from "./failure-policy";
 import type { EmbeddingProvider } from "../ai/types";
 import {
@@ -64,7 +64,7 @@ export async function indexBriefJob(
   const priorProgress = indexProgress(brief.indexProgress);
 
   try {
-    const sourceChunks = chunkDocument(brief.body, brief.title);
+    const sourceChunks = chunkRichDocument(brief.bodyRich, brief.title);
     if (sourceChunks.length === 0) throw new Error("empty brief");
     await db
       .update(dailyBriefs)

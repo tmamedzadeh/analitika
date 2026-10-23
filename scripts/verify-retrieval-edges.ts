@@ -1,3 +1,4 @@
+import { plainTextDocument } from "../src/lib/rich-text";
 /** Same-project DB, scoped committed fixtures, injected vectors/local reranker; no external AI. */
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
@@ -26,6 +27,7 @@ const briefs = Array.from({ length: 2 }, () => crypto.randomUUID());
 const today = getBakuDate();
 const vector = Array.from({ length: 768 }, (_, i) => (i === 0 ? 1 : 0));
 const filters: AnalyticsFilters = {
+  includeBriefs: true,
   period: "all",
   directionIds: [...directionIds],
   minSourceReliability: "all",
@@ -61,6 +63,7 @@ try {
       ownerId: user.id,
       title: `${token} synthetic ${index}`,
       body: `${token} synthetic retrieval evidence ${index}`,
+      bodyRich: plainTextDocument(`${token} synthetic retrieval evidence ${index}`),
       status: "ready" as const,
       chunkCount: 1,
       step: "ready",
@@ -77,6 +80,7 @@ try {
       authorId: user.id,
       title: `${token} synthetic brief`,
       body: `${token} synthetic brief evidence`,
+      bodyRich: plainTextDocument(`${token} synthetic brief evidence`),
       status: "published",
       briefDate: today,
       indexStatus: index === 0 ? "ready" : "none",
@@ -125,7 +129,8 @@ try {
     stage = "filters";
     const directional = await query({ ...filters, directionIds: ["OSINT"] });
     assert.ok(directional.some((s) => s.documentId === ids[0]));
-    assert.ok(!directional.some((s) => s.documentId === ids[2] || s.sourceKind === "brief"));
+    assert.ok(!directional.some((s) => s.documentId === ids[2]));
+    assert.ok(directional.some((s) => s.briefId === briefs[0]));
     const recent = await query({ ...filters, period: "30d" });
     assert.ok(!recent.some((s) => s.documentId === ids[3]));
     const reliable = await query({
@@ -133,9 +138,12 @@ try {
       minSourceReliability: "A",
       minInfoCredibility: "1",
     });
-    assert.ok(!reliable.some((s) => s.documentId === ids[5] || s.sourceKind === "brief"));
+    assert.ok(!reliable.some((s) => s.documentId === ids[5]));
+    assert.ok(reliable.some((s) => s.briefId === briefs[0]));
+    const documentsOnly = await query({ ...filters, includeBriefs: false });
+    assert.ok(!documentsOnly.some((s) => s.sourceKind === "brief"));
     checks.push(
-      "Real retrieval direction/period/reliability filters and document-only brief exclusion",
+      "Direction/reliability apply only to documents; period applies to both; OFF excludes briefs",
     );
     stage = "fallback";
     const lexical = await query(filters, [1]);

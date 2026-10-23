@@ -1,3 +1,4 @@
+import { plainTextDocument } from "@/lib/rich-text";
 import { QueryClient } from "@tanstack/react-query";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -29,6 +30,7 @@ const detail = {
   id: documentId,
   title: documentTitle,
   body: "Known source text for the selected document.",
+  bodyRich: plainTextDocument("Known source text for the selected document."),
   department: "d3",
   direction: null,
   docDate: "2026-10-18",

@@ -1,6 +1,8 @@
+import { plainTextDocument } from "@/lib/rich-text";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { withCurrentUser, type SessionUser } from "@/server/auth";
 import { prepareBriefUploadUrls, saveBriefRecord } from "./mutations";
+import { BRIEF_SYSTEM_TITLE } from "@/lib/briefs";
 
 const mocks = vi.hoisted(() => ({ query: vi.fn(), commit: vi.fn(async () => []), sign: vi.fn() }));
 vi.mock("@tanstack/react-start/server", () => ({
@@ -37,6 +39,7 @@ const input = {
   date: "2026-10-22",
   title: "Invented",
   body: "Invented fixture",
+  bodyRich: plainTextDocument("Invented fixture"),
   classification: "secret" as const,
   status: "published" as const,
   keepAttachmentIds: [],
@@ -44,6 +47,36 @@ const input = {
 beforeEach(() => vi.clearAllMocks());
 
 describe("bulletin classification at both upload/save stages", () => {
+  it("saves canonical JSON and its server projection together with a system-generated title", async () => {
+    mocks.query.mockResolvedValue({ rows: [] });
+    mocks.query
+      .mockResolvedValueOnce({ rows: [["admin", "special"]] })
+      .mockResolvedValueOnce({ rows: [[user.id, "admin", "special"]] });
+    const dispatch = vi.fn(async () => {});
+    const attempt = {
+      ...input,
+      title: "Untrusted title",
+      body: "Untrusted text",
+      bodyRich: plainTextDocument("Canonical text"),
+      briefId: "00000000-0000-4000-8000-000000000001",
+      isNew: true,
+      uploads: [],
+    };
+    const result = await withCurrentUser(user, () =>
+      saveBriefRecord(attempt, { sendIndexing: dispatch }),
+    );
+    expect(result.ok).toBe(true);
+    const [query, params] = mocks.query.mock.calls.find(([sql]) =>
+      String(sql).startsWith('insert into "daily_briefs"'),
+    )!;
+    expect(query).toContain('"body", "body_rich"');
+    expect(params).toContain(BRIEF_SYSTEM_TITLE);
+    expect(params).toContain("Canonical text");
+    expect(params).toContain(JSON.stringify(plainTextDocument("Canonical text")));
+    expect(params).not.toContain("Untrusted text");
+    expect(params).not.toContain("Untrusted title");
+    expect(dispatch).toHaveBeenCalledWith(attempt.briefId);
+  });
   it("rejects upload preparation above live clearance before issuing any signed URL", async () => {
     mocks.query.mockResolvedValue({ rows: [[user.id, "admin", "open"]] });
     await expect(

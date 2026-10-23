@@ -1,3 +1,4 @@
+import { plainTextDocument } from "@/lib/rich-text";
 import { describe, expect, it } from "vitest";
 
 import { createDocumentSchema, documentUploadMatches } from "./documents.functions";
@@ -7,6 +8,7 @@ import { directionIds } from "./directions";
 const validDocument = {
   title: "Test document",
   body: "Synthetic document text.",
+  bodyRich: plainTextDocument("Synthetic document text."),
   docDate: null,
   direction: "OSINT",
   classification: "open",

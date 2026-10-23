@@ -25,6 +25,7 @@ export function citedSourceNumbers(answer: string): Set<number> {
 }
 
 export const analyticsFiltersSchema = z.object({
+  includeBriefs: z.boolean().default(false),
   period: z.enum(["7d", "30d", "90d", "12m", "all"]),
   directionIds: z
     .array(directionIdSchema)

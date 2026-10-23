@@ -1,3 +1,4 @@
+import { plainTextDocument } from "../src/lib/rich-text";
 /** Real local production HTTP + same live DB/storage; provider transport is synthetic in a separate subprocess. */
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -78,6 +79,7 @@ function search(query: string, mode = "answer", signal?: AbortSignal) {
       query,
       mode,
       filters: {
+        includeBriefs: true,
         period: "all",
         directionIds: ["OSINT"],
         minSourceReliability: "all",
@@ -134,6 +136,7 @@ try {
       ownerId: userId,
       title: `Runtime ${token}`,
       body,
+      bodyRich: plainTextDocument(body),
       direction: "OSINT",
       classification: "open",
       status: "ready",
@@ -145,6 +148,7 @@ try {
       ownerId: userId,
       title: "Restricted synthetic fixture",
       body: `${token} restrictedmarker`,
+      bodyRich: plainTextDocument(`${token} restrictedmarker`),
       direction: "OSINT",
       classification: "secret",
       status: "ready",
@@ -171,6 +175,7 @@ try {
     authorId: userId,
     title: "Synthetic brief",
     body: "Synthetic attachment",
+    bodyRich: plainTextDocument("Synthetic attachment"),
     briefDate: getBakuDate(),
     status: "published",
   });

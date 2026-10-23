@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { z } from "zod";
 
-import { BriefMarkdown } from "@/components/BriefMarkdown";
+import { RichTextContent } from "@/components/RichTextContent";
 import { ClassificationBadge } from "@/components/ClassificationBadge";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
@@ -64,9 +64,12 @@ function BriefDetail() {
   useEffect(() => {
     if (!search.chunk || !data?.brief.highlight) return;
     const frame = requestAnimationFrame(() => {
-      globalThis.document
-        .querySelector('[data-chunk-highlight="true"]')
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      globalThis.document.querySelector('[data-chunk-highlight="true"]')?.scrollIntoView({
+        behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "center",
+      });
     });
     return () => cancelAnimationFrame(frame);
   }, [search.chunk, data?.brief.highlight]);
@@ -101,7 +104,7 @@ function BriefDetail() {
   return (
     <Shell
       crumb={az.briefs.title}
-      title={brief.title}
+      title={`${date.day} ${date.month}`}
       badges={[]}
       actions={
         <div className="flex flex-wrap gap-2">
@@ -166,8 +169,8 @@ function BriefDetail() {
           <ClassificationBadge classification={brief.classification} />
         </div>
         <article className="rounded-xl border border-border bg-card p-5 text-sm leading-7 sm:p-6">
-          <h2 className="sr-only">{az.briefs.markdown}</h2>
-          <BriefMarkdown markdown={brief.body} highlight={brief.highlight} />
+          <h2 className="mb-5 text-sm font-medium text-muted-foreground">{brief.title}</h2>
+          <RichTextContent document={brief.bodyRich} highlight={brief.highlight} />
         </article>
         {brief.photos.length > 0 && (
           <section className="mt-5">

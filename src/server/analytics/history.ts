@@ -97,7 +97,7 @@ export async function createAnalyticsHistoryRecord(input: {
       id: input.id,
       createdBy: input.createdBy,
       query: input.query,
-      filters: input.filters,
+      filters: analyticsFiltersSchema.parse(input.filters),
       status: "running",
       answer: null,
       sources: [],

@@ -4,7 +4,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useRef, useState, type FormEvent } from "react";
 
 import { LocalizedDatePicker } from "@/components/LocalizedDatePicker";
-import { MarkdownEditor } from "@/components/MarkdownEditor";
+import { RichTextEditor } from "@/components/RichTextEditor";
+import { emptyRichDocument } from "@/lib/rich-text";
 import { Shell } from "@/components/Shell";
 import { ZirveActionLabel } from "@/components/ZirveLoader";
 import {
@@ -56,7 +57,7 @@ function AddDoc() {
   const [sourceReliability, setSourceReliability] = useState<SourceReliability>("F");
   const [infoCredibility, setInfoCredibility] = useState<InfoCredibility>(6);
   const [docDate, setDocDate] = useState("");
-  const [body, setBody] = useState("");
+  const [bodyRich, setBodyRich] = useState(emptyRichDocument);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoError, setPhotoError] = useState("");
   const [formError, setFormError] = useState("");
@@ -89,16 +90,11 @@ function AddDoc() {
     setSaved(false);
     setFormError("");
     const formData = new FormData(event.currentTarget);
-    const body = String(formData.get("body") ?? "");
-    if (body.length > 500_000) {
-      setFormError(az.documents.form.maxBody);
-      return;
-    }
     if (photoError) return;
 
     const input = createDocumentSchema.safeParse({
       title: String(formData.get("title") ?? ""),
-      body,
+      bodyRich,
       direction: String(formData.get("direction") ?? ""),
       docDate: String(formData.get("docDate") ?? "") || null,
       classification,
@@ -107,7 +103,11 @@ function AddDoc() {
       photos: photos.map((file) => ({ name: file.name, mime: file.type, size: file.size })),
     });
     if (!input.success) {
-      setFormError(input.error.issues[0]?.message ?? az.documents.form.invalidPhotos);
+      setFormError(
+        input.error.issues[0]?.path[0] === "bodyRich"
+          ? "Mətni daxil edin və ölçüsünü yoxlayın."
+          : "Məcburi sahələri düzgün doldurun.",
+      );
       return;
     }
 
@@ -147,7 +147,7 @@ function AddDoc() {
       setQueuePending(result.queueFailed);
       formRef.current?.reset();
       setDocDate("");
-      setBody("");
+      setBodyRich(emptyRichDocument());
       setPhotos([]);
       setClassification("open");
       setSourceReliability("F");
@@ -188,14 +188,14 @@ function AddDoc() {
           </label>
           <div className="block">
             <span className="block text-sm font-semibold">{az.documents.form.body}</span>
-            <MarkdownEditor
-              name="body"
-              required
+            <RichTextEditor
+              disabled={saving}
+              label={az.documents.form.body}
               maxLength={500_000}
               className="min-h-56"
               placeholder={az.documents.form.bodyPlaceholder}
-              value={body}
-              onChange={setBody}
+              value={bodyRich}
+              onChange={setBodyRich}
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -340,7 +340,7 @@ function AddDoc() {
                 setFormError("");
                 setSaved(false);
                 setDocDate("");
-                setBody("");
+                setBodyRich(emptyRichDocument());
                 setClassification("open");
                 setSourceReliability("F");
                 setInfoCredibility(6);

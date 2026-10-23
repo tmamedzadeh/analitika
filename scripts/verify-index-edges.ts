@@ -1,3 +1,4 @@
+import { plainTextDocument } from "../src/lib/rich-text";
 /** Additional lifecycle races only, using scoped live DB fixtures and local vectors. */
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
@@ -90,6 +91,7 @@ try {
         ownerId: user.id,
         title: "Synthetic lifecycle",
         body: "Synthetic lifecycle has 42 units.",
+        bodyRich: plainTextDocument("Synthetic lifecycle has 42 units."),
         direction: "OSINT",
         status: "queued" as const,
       })),
@@ -102,6 +104,7 @@ try {
         authorId: user.id,
         title: "Synthetic lifecycle",
         body: "Synthetic brief has 42 units.",
+        bodyRich: plainTextDocument("Synthetic brief has 42 units."),
         briefDate: getBakuDate(),
         status: "published",
         indexStatus: "queued",
@@ -163,6 +166,7 @@ try {
               date: getBakuDate(),
               title: "Synthetic edited lifecycle",
               body: "Synthetic edited brief now has 43 units.",
+              bodyRich: plainTextDocument("Synthetic edited brief now has 43 units."),
               status: "published",
               classification: "open",
               keepAttachmentIds: [],

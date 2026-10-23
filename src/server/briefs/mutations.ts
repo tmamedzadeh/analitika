@@ -1,8 +1,10 @@
 import { and, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
+import { projectRichText } from "@/lib/rich-text";
 
 import {
+  BRIEF_SYSTEM_TITLE,
   briefIdSchema,
   briefInputSchema,
   briefPhotoMetadataSchema,
@@ -198,6 +200,8 @@ export async function saveBriefRecord(
   options: { sendIndexing?: (briefId: string) => Promise<unknown> } = {},
 ): Promise<{ ok: true; briefId: string; queueFailed: boolean; cleanupIncomplete: boolean }> {
   const parsed = saveBriefSchema.parse(input);
+  const body = projectRichText(parsed.bodyRich).text;
+  const title = BRIEF_SYSTEM_TITLE;
   const db = getDb();
   const user = getCurrentUser();
   const uploadedKeys = parsed.uploads
@@ -251,7 +255,8 @@ export async function saveBriefRecord(
     const needsIndexing =
       !existingBrief ||
       briefContentHash(existingBrief) !==
-        briefContentHash({ title: parsed.title, body: parsed.body, briefDate: parsed.date });
+        briefContentHash({ title, body, briefDate: parsed.date }) ||
+      JSON.stringify(existingBrief.bodyRich) !== JSON.stringify(parsed.bodyRich);
 
     const existingAttachments = parsed.isNew
       ? []
@@ -302,8 +307,9 @@ export async function saveBriefRecord(
         await transaction.insert(dailyBriefs).values({
           id: parsed.briefId,
           briefDate: parsed.date,
-          title: parsed.title,
-          body: parsed.body,
+          title,
+          body,
+          bodyRich: parsed.bodyRich,
           classification: parsed.classification,
           status: "published",
           authorId: user.id,
@@ -318,8 +324,9 @@ export async function saveBriefRecord(
           .update(dailyBriefs)
           .set({
             briefDate: parsed.date,
-            title: parsed.title,
-            body: parsed.body,
+            title,
+            body,
+            bodyRich: parsed.bodyRich,
             classification: parsed.classification,
             updatedBy: user.id,
             status: "published",

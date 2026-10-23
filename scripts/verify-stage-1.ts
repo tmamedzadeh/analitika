@@ -1,3 +1,4 @@
+import { plainTextDocument } from "../src/lib/rich-text";
 import { eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import process from "node:process";
@@ -56,6 +57,7 @@ async function verifyStage1(): Promise<void> {
       id: createdId,
       title: "Sintetik sənəd · mərhələ 1 yoxlaması",
       body: testBody,
+      bodyRich: plainTextDocument(testBody),
       ownerId,
       status: "queued",
       step: "queued",

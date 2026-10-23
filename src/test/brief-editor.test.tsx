@@ -1,3 +1,4 @@
+import { plainTextDocument } from "@/lib/rich-text";
 import { QueryClient } from "@tanstack/react-query";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -33,6 +34,7 @@ const brief: Brief = {
   date: "2026-10-22",
   title: "Synthetic bulletin",
   body: "Synthetic alfa beta.",
+  bodyRich: plainTextDocument("Synthetic alfa beta."),
   classification: "open",
   status: "published",
   indexStatus: "ready",
@@ -86,11 +88,14 @@ describe("isolated bulletin create/edit navigation", () => {
       });
       await router.load();
       render(<RouterProvider router={router} />);
-      fireEvent.change(await screen.findByLabelText(az.briefs.titleField, { exact: true }), {
-        target: { value: brief.title },
-      });
-      fireEvent.change(screen.getByPlaceholderText(az.briefs.bodyPlaceholder), {
-        target: { value: "Updated synthetic alfa beta." },
+      expect(screen.queryByLabelText(az.briefs.titleField, { exact: true })).toBeNull();
+      const textbox = await screen.findByRole("textbox", { name: az.briefs.body });
+      fireEvent.paste(textbox, {
+        clipboardData: {
+          getData: (type: string) => (type === "text/plain" ? "Updated synthetic alfa beta." : ""),
+          files: [],
+          types: ["text/plain"],
+        },
       });
       fireEvent.click(screen.getByRole("button", { name: az.briefs.save }));
       await waitFor(() => expect(router.state.location.pathname).toBe(`/brifler/${id}`));
@@ -98,7 +103,7 @@ describe("isolated bulletin create/edit navigation", () => {
         expect.objectContaining({
           data: expect.objectContaining({
             classification: "open",
-            body: "Updated synthetic alfa beta.",
+            bodyRich: expect.objectContaining({ type: "doc" }),
             ...(editing ? { briefId: id } : {}),
           }),
         }),
@@ -113,7 +118,7 @@ describe("isolated bulletin create/edit navigation", () => {
           }),
         }),
       );
-      expect(await screen.findByRole("heading", { name: brief.title })).toBeInTheDocument();
+      expect(await screen.findByText(brief.title)).toBeInTheDocument();
       expect(fetch).not.toHaveBeenCalled();
     },
   );

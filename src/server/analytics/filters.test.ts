@@ -8,6 +8,7 @@ import { withCurrentUser, type SessionUser } from "@/server/auth";
 import { documentConditions, hasCommittedDocumentIndex, minimumDocDate } from "./filters";
 
 const baseFilters = {
+  includeBriefs: false,
   period: "all" as const,
   directionIds: [...directionIds],
   minSourceReliability: "all" as const,

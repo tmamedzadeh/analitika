@@ -1,3 +1,4 @@
+import { plainTextDocument } from "../src/lib/rich-text";
 import { eq } from "drizzle-orm";
 import process from "node:process";
 import postgres from "postgres";
@@ -84,6 +85,7 @@ async function verifyStage0(): Promise<void> {
       .values({
         title: "Mərhələ 0 xidmət yoxlaması",
         body: payload,
+        bodyRich: plainTextDocument(payload),
         ownerId,
         status: "queued",
       })

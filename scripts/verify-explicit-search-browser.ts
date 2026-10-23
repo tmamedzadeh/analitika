@@ -1,3 +1,4 @@
+import { plainTextDocument } from "../src/lib/rich-text";
 /** Desktop/mobile smoke of the built local app; invented records and session, no provider calls. */
 import assert from "node:assert/strict";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
@@ -48,6 +49,7 @@ try {
     briefDate: getBakuDate(),
     title: token,
     body: `${token} invented bulletin.`,
+    bodyRich: plainTextDocument(`${token} invented bulletin.`),
     classification: "secret",
     authorId: userId,
     indexStatus: "ready",
@@ -57,6 +59,7 @@ try {
     ownerId: userId,
     title: token,
     body: `${token} invented document.`,
+    bodyRich: plainTextDocument(`${token} invented document.`),
     classification: "open",
     status: "ready",
     chunkCount: 1,

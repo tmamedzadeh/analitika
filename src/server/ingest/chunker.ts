@@ -1,3 +1,5 @@
+import { projectRichText, validateRichDocument, type RichDocument } from "@/lib/rich-text";
+
 export type DocumentChunk = {
   ord: number;
   sectionTitle: string;
@@ -66,6 +68,13 @@ function splitRange(
     const limit = Math.min(cursor + targetChars, end);
     let chunkEnd = limit < end ? findBreak(body, cursor, limit) : end;
     if (chunkEnd <= cursor) chunkEnd = limit;
+    // A citation must never split a UTF-16 surrogate pair in unbroken text.
+    if (
+      chunkEnd < end &&
+      /[\uD800-\uDBFF]/u.test(body[chunkEnd - 1] ?? "") &&
+      /[\uDC00-\uDFFF]/u.test(body[chunkEnd] ?? "")
+    )
+      chunkEnd -= 1;
     const trimmed = trimRange(body, cursor, chunkEnd);
     if (trimmed.end > trimmed.start) {
       chunks.push({
@@ -221,4 +230,48 @@ export function chunkDocument(
   }
 
   return chunks.map((chunk, ord) => ({ ...chunk, ord }));
+}
+/** Rich documents use structural boundaries, never Markdown syntax in the projection. */
+export function chunkRichDocument(
+  document: RichDocument,
+  title: string,
+  options: { targetChars?: number; overlapChars?: number } = {},
+): DocumentChunk[] {
+  const { text, blocks } = projectRichText(validateRichDocument(document));
+  const target = Math.max(128, options.targetChars ?? DEFAULT_TARGET_CHARS);
+  const overlap = Math.min(
+    Math.floor(target * 0.15),
+    Math.max(0, options.overlapChars ?? DEFAULT_OVERLAP_CHARS),
+  );
+  const result: DocumentChunk[] = [];
+  let sectionTitle = "";
+  let start = 0;
+  let end = 0;
+  function flush() {
+    for (const part of splitRange(text, start, end, target, overlap))
+      result.push({
+        ord: result.length,
+        sectionTitle,
+        ...part,
+        embeddingText: `${title} / ${sectionTitle}\n${part.text}`.trim(),
+        isTable: false,
+      });
+  }
+  for (const block of blocks) {
+    if (block.type === "heading") {
+      flush();
+      sectionTitle = block.text;
+      start = block.start;
+      end = block.end;
+    } else {
+      // Prefer whole paragraphs/list items; split a single long block with overlap.
+      if (end > start && block.end - start > target) {
+        flush();
+        start = block.start;
+      }
+      end = block.end;
+    }
+  }
+  flush();
+  return result;
 }

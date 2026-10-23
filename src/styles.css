@@ -649,3 +649,81 @@
     animation: none !important;
   }
 }
+/* Shared typography for the visual editor and canonical JSON reader. */
+.rich-document {
+  font-size: 1rem;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+  color: var(--foreground);
+}
+.rich-document > :first-child {
+  margin-top: 0;
+}
+.rich-document p {
+  margin: 0.7em 0;
+  white-space: pre-wrap;
+}
+.rich-document h1,
+.rich-document h2,
+.rich-document h3 {
+  line-height: 1.35;
+  font-weight: 650;
+  margin: 1.6em 0 0.6em;
+  white-space: pre-wrap;
+}
+.rich-document h1 {
+  font-size: 1.85rem;
+}
+.rich-document h2 {
+  font-size: 1.45rem;
+}
+.rich-document h3 {
+  font-size: 1.15rem;
+}
+.rich-document ul,
+.rich-document ol {
+  padding-left: 1.65em;
+  margin: 0.8em 0;
+}
+.rich-document ul {
+  list-style: disc;
+}
+.rich-document ul ul {
+  list-style: circle;
+}
+.rich-document ol {
+  list-style: decimal;
+}
+.rich-document li {
+  padding-left: 0.3em;
+  margin: 0.35em 0;
+}
+.rich-document li p {
+  margin: 0.25em 0;
+}
+.rich-document blockquote {
+  border-left: 3px solid var(--primary);
+  padding-left: 1.2em;
+  margin: 1.2em 0;
+  color: var(--muted-foreground);
+}
+.rich-document a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.rich-document .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+}
+.rich-document:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+@media (max-width: 640px) {
+  .rich-document {
+    font-size: 0.95rem;
+  }
+  .rich-document h1 {
+    font-size: 1.5rem;
+  }
+}

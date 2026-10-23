@@ -217,6 +217,7 @@ export async function getBriefDetails(
       date: row.briefDate,
       title: row.title,
       body: row.body,
+      bodyRich: row.bodyRich,
       classification: row.classification as Brief["classification"],
       status: row.status as Brief["status"],
       indexStatus: row.indexStatus as Brief["indexStatus"],

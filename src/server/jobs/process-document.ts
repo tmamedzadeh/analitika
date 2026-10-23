@@ -5,7 +5,7 @@ import { getGeminiQuotaKey } from "../ai/gemini-gateway";
 import { chunks, documents } from "../db/schema";
 import { getDb, type Database } from "../db";
 import { systemAccessFilter } from "../db/access";
-import { chunkDocument } from "../ingest/chunker";
+import { chunkRichDocument } from "../ingest/chunker";
 import { az } from "@/lib/i18n/az";
 import { isTemporaryWorkerFailure, nonRetriableJobError } from "./failure-policy";
 import type { EmbeddingProvider } from "../ai/types";
@@ -119,7 +119,7 @@ export async function processDocumentJob(
   const attempts = recoveryAttempts(document.progress);
 
   try {
-    const sourceChunks = chunkDocument(document.body, document.title);
+    const sourceChunks = chunkRichDocument(document.bodyRich, document.title);
     if (sourceChunks.length === 0)
       throw new Error("Sənəd mətnindən emal edilə bilən fraqment tapılmadı.");
 

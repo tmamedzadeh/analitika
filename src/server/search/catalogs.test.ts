@@ -105,7 +105,7 @@ describe("catalog SQL authorization, ordering and pagination", () => {
           "OSINT",
           "open",
           "ready",
-          "# Synthetic preview",
+          "Synthetic preview",
           false,
           false,
           7500,

@@ -18,13 +18,10 @@ describe("daily brief validation and dates", () => {
     expect(getWeekStartDate("2026-10-18")).toBe("2026-10-12");
   });
 
-  it("turns markdown into a short plain-text excerpt", () => {
-    expect(
-      briefExcerpt(
-        "# Başlıq\nMətn **vurğulu** və [link](https://example.com).\n\n| a | b |\n|---|---|\n|1|2|",
-      ),
-    ).toBe("Başlıq Mətn vurğulu və link.");
+  it("creates an excerpt without reinterpreting literal punctuation", () => {
+    expect(briefExcerpt("Başlıq\nMətn vurğulu və link.")).toBe("Başlıq Mətn vurğulu və link.");
     expect(briefExcerpt("söz ".repeat(80), 20)).toHaveLength(20);
+    expect(briefExcerpt("söz ".repeat(80), 20)).toMatch(/…$/u);
   });
 });
 

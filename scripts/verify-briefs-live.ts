@@ -1,3 +1,4 @@
+import { plainTextDocument } from "../src/lib/rich-text";
 import { and, eq } from "drizzle-orm";
 
 import { imageMimeFromSignature } from "../src/lib/briefs";
@@ -36,6 +37,7 @@ try {
     briefDate: date,
     title: "Synthetic brief CRUD verification",
     body: "Synthetic test content only.",
+    bodyRich: plainTextDocument("Synthetic test content only."),
     status: "published",
     authorId,
     indexStatus: "none",

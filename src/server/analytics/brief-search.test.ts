@@ -7,6 +7,7 @@ import { withCurrentUser, type SessionUser } from "@/server/auth";
 import { searchSourceConditions } from "./search";
 
 const defaults: AnalyticsFilters = {
+  includeBriefs: true,
   period: "all",
   directionIds: [...directionIds],
   minSourceReliability: "all",
@@ -29,6 +30,17 @@ function compile(filters: AnalyticsFilters, now = new Date("2026-10-21T12:00:00.
 }
 
 describe("daily brief retrieval filters", () => {
+  it("defaults old filters to OFF and emits document-only conditions", () => {
+    const { includeBriefs: _ignored, ...legacy } = defaults;
+    const filters = analyticsFiltersSchema.parse(legacy);
+    expect(filters.includeBriefs).toBe(false);
+    const query = compile(filters);
+    expect(query.sql).toContain('"documents"."chunk_count" >');
+    expect(query.sql).not.toContain('"daily_briefs"');
+    expect(analyticsFiltersSchema.safeParse({ ...defaults, includeBriefs: "true" }).success).toBe(
+      false,
+    );
+  });
   it("requires a published, ready brief and applies accessFilter before RRF", () => {
     const query = compile(analyticsFiltersSchema.parse(defaults));
     expect(query.sql).toContain('"daily_briefs"."status" =');
@@ -44,7 +56,7 @@ describe("daily brief retrieval filters", () => {
     expect(query.sql).toContain('"daily_briefs"."brief_date" >=');
   });
 
-  it("excludes briefs when a document-only filter is active", () => {
+  it("keeps briefs included when document-only filters are active", () => {
     const variants = [
       { ...defaults, directionIds: ["OSINT"] },
       { ...defaults, minSourceReliability: "C" },
@@ -54,7 +66,7 @@ describe("daily brief retrieval filters", () => {
       const query = compile(analyticsFiltersSchema.parse(value));
       expect(query.sql).toContain('"documents"."chunk_count" >');
       expect(query.sql).toContain('"daily_briefs"."status" =');
-      expect(query.sql).toContain("false");
+      expect(query.sql).not.toContain("false");
     }
   });
 

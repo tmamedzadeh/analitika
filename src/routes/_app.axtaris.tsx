@@ -31,6 +31,7 @@ import { infoCredibilityValues, sourceReliabilityValues } from "@/lib/reliabilit
 
 const initialFilters: AnalyticsFilters = {
   period: "7d",
+  includeBriefs: false,
   directionIds: [...directionIds],
   minSourceReliability: "all",
   minInfoCredibility: "all",
@@ -523,6 +524,17 @@ export function Analytics() {
               </option>
             ))}
           </select>
+        </label>
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="size-4 accent-primary"
+            checked={filters.includeBriefs}
+            onChange={(event) =>
+              setFilters((current) => ({ ...current, includeBriefs: event.target.checked }))
+            }
+          />
+          {az.analytics.includeBriefs}
         </label>
       </section>
       <p className="mt-2 text-sm text-muted-foreground">{az.analytics.briefSearchNote}</p>

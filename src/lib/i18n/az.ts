@@ -184,8 +184,9 @@ export const az = {
     period30d: "Son ay",
     period90d: "Son rüb",
     period12m: "Son il",
+    includeBriefs: "Bülletenlərdə də axtar",
     briefSearchNote:
-      "Gündəlik bülletenlər seçilmiş dövr üzrə axtarışa daxildir; istiqamət və etibarlılıq filtrləri yalnız sənədlərə tətbiq olunur.",
+      "İstiqamət və etibarlılıq filtrləri yalnız məlumat bazasındakı sənədlərə tətbiq olunur.",
     sourceReliabilityFilter: "Mənbə etibarlılığı",
     infoReliabilityFilter: "Məlumat etibarlılığı",
     reliabilityLabel: "Etibarlılıq",

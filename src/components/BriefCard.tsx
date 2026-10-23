@@ -37,14 +37,15 @@ export function BriefCard({
           </p>
           <p className="mt-2 text-xs font-medium capitalize leading-5 text-muted-foreground">
             {date.monthName}
+            <span className="block">{brief.date.slice(0, 4)}</span>
           </p>
         </div>
         <div className="min-w-0 flex-1">
           <h2
             className={
               featured
-                ? "text-lg font-semibold leading-6 tracking-[-0.01em] text-foreground [overflow-wrap:anywhere] sm:text-xl"
-                : "text-base font-semibold leading-6 text-foreground [overflow-wrap:anywhere]"
+                ? "text-sm font-medium leading-6 text-muted-foreground [overflow-wrap:anywhere]"
+                : "text-sm font-medium leading-6 text-muted-foreground [overflow-wrap:anywhere]"
             }
           >
             {brief.title}

@@ -241,6 +241,21 @@ beforeEach(() => {
 });
 
 describe("authorized current history previews", () => {
+  it("loads legacy filters with bulletin search safely OFF", async () => {
+    const record = await read();
+    expect(record?.filters.includeBriefs).toBe(false);
+  });
+
+  it("preserves explicit bulletin selection when reloading history", async () => {
+    const original = mocks.query.getMockImplementation()!;
+    mocks.query.mockImplementation(async (...args) => {
+      const result = await original(...args);
+      if (String(args[0]).includes('inner join "app_users"') && result.rows.length)
+        result.rows[0][3] = { ...filters, includeBriefs: true };
+      return result;
+    });
+    expect((await read())?.filters.includeBriefs).toBe(true);
+  });
   it("preserves sparse citation IDs and reads current title, date, section, excerpt and ratings", async () => {
     const record = await read();
     expect(record?.answer).toBe("Saved answer [8].");

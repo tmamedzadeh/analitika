@@ -16,7 +16,6 @@ import {
 } from "drizzle-orm";
 
 import type { AnalyticsFilters, AnalyticsSource } from "@/lib/analytics";
-import { directions } from "@/lib/directions";
 import { getAppConfig } from "@/server/config";
 import {
   GeminiRerankProvider,
@@ -82,26 +81,13 @@ function sourceProjection() {
 
 export function searchSourceConditions(filters: AnalyticsFilters, now = new Date()) {
   const documentSource = and(isNotNull(chunks.documentId), ...documentConditions(filters, now));
-
+  if (!filters.includeBriefs) return documentSource;
   const briefConditions = [
     isNotNull(chunks.briefId),
     eq(dailyBriefs.status, "published"),
     hasCommittedBriefIndex(),
     briefAccessFilter(),
   ];
-  const selectedDirections = new Set(filters.directionIds);
-  const allDirectionsSelected =
-    selectedDirections.size === directions.length &&
-    directions.every(({ id }) => selectedDirections.has(id));
-  // Briefs have no direction or reliability fields. Exclude them when a
-  // document-only filter is active instead of silently widening the result set.
-  if (
-    !allDirectionsSelected ||
-    filters.minSourceReliability !== "all" ||
-    filters.minInfoCredibility !== "all"
-  ) {
-    briefConditions.push(sql`false`);
-  }
   const fromDate = minimumDocDate(filters.period, now);
   if (fromDate) briefConditions.push(sql`${dailyBriefs.briefDate} >= ${fromDate}`);
   briefConditions.push(lte(dailyBriefs.briefDate, getBakuDate(now)));
@@ -205,7 +191,9 @@ export async function searchDocumentChunks(
     ["brief_trigram", "trigram", "brief"],
   ] as const;
   const activeBranches = branchSpecs.filter(
-    ([, kind]) => kind !== "vector" || Boolean(vectorDistance),
+    ([, kind, sourceKind]) =>
+      (sourceKind !== "brief" || filters.includeBriefs === true) &&
+      (kind !== "vector" || Boolean(vectorDistance)),
   );
   const settled = await settleRetrievalBranches(
     activeBranches.map(([name, kind, sourceKind]) => ({

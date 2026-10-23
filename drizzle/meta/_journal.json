@@ -176,6 +176,13 @@
       "when": 1792666168197,
       "tag": "0024_brief_classification",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792739604495,
+      "tag": "0025_rich_text_documents",
+      "breakpoints": true
     }
   ]
 }

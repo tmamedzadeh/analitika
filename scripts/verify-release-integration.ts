@@ -1,3 +1,4 @@
+import { plainTextDocument } from "../src/lib/rich-text";
 /** Scoped live failure injection in the configured DB. Only new, explicitly tracked fixtures are mutated. */
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
@@ -134,6 +135,7 @@ try {
       id,
       title: "Release probe document",
       body: "Synthetic release evidence with 42 sample units.",
+      bodyRich: plainTextDocument("Synthetic release evidence with 42 sample units."),
       ownerId: owner.id,
       classification: i ? "secret" : "open",
       direction: "OSINT",
@@ -145,6 +147,7 @@ try {
     authorId: owner.id,
     title: "Release probe brief",
     body: "Synthetic release brief with 42 sample units.",
+    bodyRich: plainTextDocument("Synthetic release brief with 42 sample units."),
     briefDate: getBakuDate(),
     indexStatus: "queued",
   });
@@ -307,6 +310,7 @@ try {
             date: getBakuDate(),
             title: "Release probe brief",
             body: "Changed synthetic release content.",
+            bodyRich: plainTextDocument("Changed synthetic release content."),
             keepAttachmentIds: [],
             uploads: [],
           },
@@ -417,6 +421,7 @@ try {
         .set({
           title: "Ə İ I Ş Ç Ğ Ö Ü",
           body: "mətn ayrı hissələrdə sınaq alfa beta",
+          bodyRich: plainTextDocument("mətn ayrı hissələrdə sınaq alfa beta"),
           indexStatus: "queued",
         })
         .where(eq(dailyBriefs.id, briefId));
@@ -519,6 +524,7 @@ try {
                 classification: "open",
                 title: "Demoted actor must not change this",
                 body: "Synthetic",
+                bodyRich: plainTextDocument("Synthetic"),
                 date: getBakuDate(),
                 keepAttachmentIds: [],
                 uploads: [],

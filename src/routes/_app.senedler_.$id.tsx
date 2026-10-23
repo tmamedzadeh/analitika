@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { Shell } from "@/components/Shell";
 import { ZirveLoader, ZirveSkeleton, ZirveActionLabel } from "@/components/ZirveLoader";
-import { BriefMarkdown } from "@/components/BriefMarkdown";
+import { RichTextContent } from "@/components/RichTextContent";
 import { directionLabel } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
 import {
@@ -55,9 +55,12 @@ function DocumentPage() {
   useEffect(() => {
     if (!selectedChunkId || !document) return;
     const frame = requestAnimationFrame(() => {
-      globalThis.document
-        .querySelector('[data-chunk-highlight="true"]')
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      globalThis.document.querySelector('[data-chunk-highlight="true"]')?.scrollIntoView({
+        behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "center",
+      });
     });
     return () => cancelAnimationFrame(frame);
   }, [document, selectedChunkId]);
@@ -234,8 +237,8 @@ function DocumentPage() {
       <section className="panel p-6">
         <h2 className="mb-4 text-lg font-semibold">{az.documents.form.body}</h2>
         {document.body.trim() ? (
-          <BriefMarkdown
-            markdown={document.body}
+          <RichTextContent
+            document={document.bodyRich}
             highlight={
               selectedChunk ? { start: selectedChunk.charStart, end: selectedChunk.charEnd } : null
             }

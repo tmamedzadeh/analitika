@@ -25,6 +25,7 @@ type SearchEvent = {
 };
 
 const filteredDemoFilters: AnalyticsFilters = {
+  includeBriefs: false,
   period: "all",
   directionIds: directions.map(({ id }) => id),
   minSourceReliability: "all",

@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { richDocumentSchema, projectRichText } from "./rich-text";
 import { getRequest } from "@tanstack/react-start/server";
 
 import { directionIdSchema } from "./directions";
@@ -62,11 +63,7 @@ const imageInputSchema = z.object({
 
 export const createDocumentSchema = z.object({
   title: z.string().trim().min(1).max(300),
-  body: z
-    .string()
-    .min(1)
-    .max(500_000)
-    .refine((value) => value.trim().length > 0),
+  bodyRich: richDocumentSchema(500_000),
   docDate: documentDateSchema.nullable().optional(),
   direction: directionIdSchema,
   classification: z.enum(["open", "secret", "top_secret", "special"]),
@@ -260,7 +257,8 @@ export const saveDocument = createServerFn({ method: "POST" })
         await transaction.insert(documents).values({
           id: data.documentId,
           title: data.title,
-          body: data.body,
+          body: projectRichText(data.bodyRich).text,
+          bodyRich: data.bodyRich,
           docDate: data.docDate || null,
           direction: data.direction,
           classification: data.classification,

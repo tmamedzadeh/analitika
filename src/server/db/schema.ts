@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { RichDocument } from "@/lib/rich-text";
 import {
   boolean,
   char,
@@ -96,6 +97,7 @@ export const documents = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     title: text("title").notNull(),
     body: text("body").notNull(),
+    bodyRich: jsonb("body_rich").$type<RichDocument>().notNull(),
     department: text("department"),
     direction: text("direction"),
     docDate: date("doc_date"),
@@ -116,6 +118,12 @@ export const documents = pgTable(
   },
   (table) => [
     index("documents_status_created_idx").on(table.status, table.createdAt),
+    check(
+      "documents_rich_projection_check",
+      sql.raw(
+        "body = public.rich_text_plain(body_rich) AND jsonb_typeof(body_rich) = 'object' AND body_rich->>'type' = 'doc' AND octet_length(body_rich::text) <= 4000000",
+      ),
+    ),
     index("documents_doc_date_idx").on(table.docDate),
     index("documents_department_idx").on(table.department),
     index("documents_direction_idx").on(table.direction),
@@ -149,6 +157,7 @@ export const dailyBriefs = pgTable(
     briefDate: date("brief_date").notNull(),
     title: text("title").notNull(),
     body: text("body").notNull(),
+    bodyRich: jsonb("body_rich").$type<RichDocument>().notNull(),
     classification: text("classification").notNull().default("open"),
     status: text("status").notNull().default("published"),
     authorId: text("author_id")
@@ -163,6 +172,12 @@ export const dailyBriefs = pgTable(
   },
   (table) => [
     index("daily_briefs_status_date_idx").on(table.status, table.briefDate),
+    check(
+      "daily_briefs_rich_projection_check",
+      sql.raw(
+        "body = public.rich_text_plain(body_rich) AND jsonb_typeof(body_rich) = 'object' AND body_rich->>'type' = 'doc' AND octet_length(body_rich::text) <= 4000000",
+      ),
+    ),
     index("daily_briefs_title_trgm_idx").using("gin", table.title.op("gin_trgm_ops")),
     index("daily_briefs_body_trgm_idx").using("gin", table.body.op("gin_trgm_ops")),
     index("daily_briefs_search_gin_idx").using(
