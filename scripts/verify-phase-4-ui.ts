@@ -248,9 +248,9 @@ try {
           }
         : {
             id: "synthetic-brief",
-            title: "Sintetik bülleten QA",
+            title: "İnformasiya bülleteni",
             date: "2026-10-22",
-            excerpt: "Təcrid edilmiş sınaq mətni.",
+            summary: "Təcrid edilmiş sınaq xülasəsi.",
             classification: "open",
           };
       const payload = {

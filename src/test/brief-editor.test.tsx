@@ -33,6 +33,7 @@ const brief: Brief = {
   id,
   date: "2026-10-22",
   title: "Synthetic bulletin",
+  summary: "Mövcud sintetik xülasə.",
   body: "Synthetic alfa beta.",
   bodyRich: plainTextDocument("Synthetic alfa beta."),
   classification: "open",
@@ -89,6 +90,12 @@ describe("isolated bulletin create/edit navigation", () => {
       await router.load();
       render(<RouterProvider router={router} />);
       expect(screen.queryByLabelText(az.briefs.titleField, { exact: true })).toBeNull();
+      const summary = await screen.findByRole("textbox", { name: az.briefs.summary });
+      expect(summary).toHaveValue(editing ? brief.summary : "");
+      expect(summary.tagName).toBe("TEXTAREA");
+      expect(summary).toHaveAttribute("maxlength", "400");
+      expect(summary).toHaveAttribute("placeholder", az.briefs.summaryPlaceholder);
+      fireEvent.change(summary, { target: { value: "Yeni sintetik xülasə." } });
       const textbox = await screen.findByRole("textbox", { name: az.briefs.body });
       fireEvent.paste(textbox, {
         clipboardData: {
@@ -103,6 +110,7 @@ describe("isolated bulletin create/edit navigation", () => {
         expect.objectContaining({
           data: expect.objectContaining({
             classification: "open",
+            summary: "Yeni sintetik xülasə.",
             bodyRich: expect.objectContaining({ type: "doc" }),
             ...(editing ? { briefId: id } : {}),
           }),
@@ -113,6 +121,7 @@ describe("isolated bulletin create/edit navigation", () => {
           data: expect.objectContaining({
             briefId: id,
             isNew: !editing,
+            summary: "Yeni sintetik xülasə.",
             classification: "open",
             uploads: [],
           }),

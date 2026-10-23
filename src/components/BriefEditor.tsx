@@ -4,14 +4,14 @@ import { Upload, X } from "lucide-react";
 
 import { BriefCard } from "@/components/BriefCard";
 import { RichTextEditor } from "@/components/RichTextEditor";
-import { emptyRichDocument, projectRichText } from "@/lib/rich-text";
+import { emptyRichDocument } from "@/lib/rich-text";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader, ZirveActionLabel } from "@/components/ZirveLoader";
 import { Button } from "@/components/ui/button";
 import { discardBriefUploads, prepareBriefUploads, saveBrief } from "@/lib/briefs.functions";
 import {
   BRIEF_SYSTEM_TITLE,
-  briefExcerpt,
+  MAX_BRIEF_SUMMARY_LENGTH,
   briefInputSchema,
   getBakuDate,
   inspectBriefPhoto,
@@ -27,6 +27,7 @@ type PhotoDraft = { id?: string; name: string; url: string; file?: File };
 function validationMessage(path: string | undefined): string {
   if (path === "date") return az.briefs.validation.date;
   if (path === "bodyRich") return az.briefs.validation.body;
+  if (path === "summary") return az.briefs.validation.summaryTooLong;
   return az.briefs.validation.required;
 }
 
@@ -40,8 +41,8 @@ export function BriefEditor({
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [date, setDate] = useState(existing?.date ?? getBakuDate());
+  const [summary, setSummary] = useState(existing?.summary ?? "");
   const [bodyRich, setBodyRich] = useState(existing?.bodyRich ?? emptyRichDocument());
-  const body = projectRichText(bodyRich).text;
   const [classification, setClassification] = useState<Clearance>(
     existing?.classification ?? "open",
   );
@@ -63,7 +64,7 @@ export function BriefEditor({
     id: existing?.id ?? "preview",
     date,
     title: BRIEF_SYSTEM_TITLE,
-    excerpt: briefExcerpt(body) || az.briefs.bodyPlaceholder,
+    summary,
     status: "published",
     classification,
     indexStatus: "none",
@@ -103,6 +104,7 @@ export function BriefEditor({
     setError("");
     const parsed = briefInputSchema.safeParse({
       date,
+      summary,
       bodyRich,
       classification,
       status: "published",
@@ -229,6 +231,18 @@ export function BriefEditor({
               ))}
             </div>
           </fieldset>
+          <label className="mt-5 block text-sm font-medium">
+            {az.briefs.summary}
+            <textarea
+              className="field mt-2 min-h-24 resize-y text-sm leading-relaxed"
+              rows={3}
+              maxLength={MAX_BRIEF_SUMMARY_LENGTH}
+              placeholder={az.briefs.summaryPlaceholder}
+              value={summary}
+              disabled={busy}
+              onChange={(event) => setSummary(event.target.value)}
+            />
+          </label>
           <div className="mt-5 block text-sm font-medium">
             <p>{az.briefs.body}</p>
             <RichTextEditor

@@ -71,6 +71,41 @@ function renderGroup(
 }
 
 describe("grouped analytics source card", () => {
+  it.each(["brief", "document"] as const)(
+    "opens a %s with one icon beside its heading and no duplicate destination",
+    (sourceKind) => {
+      renderGroup([source({ n: 1, sourceKind })]);
+      const label = sourceKind === "brief" ? az.analytics.openBrief : az.analytics.openDocument;
+      const link = screen.getByRole("link", { name: label });
+      expect(link).toHaveTextContent("");
+      expect(link.querySelector("svg")).toBeInTheDocument();
+      expect(link).toHaveClass("size-10", "focus-visible:ring-2");
+      expect(link.parentElement).toContainElement(screen.getByRole("heading", { level: 3 }));
+      const destinations = [
+        ...document.querySelectorAll('a[href^="/brifler/"], a[href^="/senedler/"]'),
+      ];
+      expect(destinations).toHaveLength(1);
+      expect(link).toHaveAttribute("target", "_blank");
+    },
+  );
+
+  it("retains distinct chunk links in expanded groups without duplicating the header destination", () => {
+    renderGroup([source({ n: 1 }), source({ n: 3 })]);
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.toggleFragments }));
+    const links = [...document.querySelectorAll('a[href^="/senedler/"]')];
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/senedler/document-a?chunk=chunk-1",
+      "/senedler/document-a?chunk=chunk-3",
+    ]);
+  });
+
+  it("supports legacy material links without a chunk", () => {
+    renderGroup([source({ n: 1, sourceKind: "brief", chunkId: "" })]);
+    expect(screen.getByRole("link", { name: az.analytics.openBrief })).toHaveAttribute(
+      "href",
+      "/brifler/brief-b",
+    );
+  });
   it("shows one card for three chunks of one material with stable numbers", () => {
     renderGroup([source({ n: 1 }), source({ n: 3 }), source({ n: 6 })]);
     expect(screen.getAllByRole("article")).toHaveLength(1);

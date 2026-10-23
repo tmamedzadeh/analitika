@@ -156,6 +156,7 @@ export const dailyBriefs = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     briefDate: date("brief_date").notNull(),
     title: text("title").notNull(),
+    summary: text("summary"),
     body: text("body").notNull(),
     bodyRich: jsonb("body_rich").$type<RichDocument>().notNull(),
     classification: text("classification").notNull().default("open"),
@@ -185,6 +186,7 @@ export const dailyBriefs = pgTable(
       sql`to_tsvector('simple'::regconfig, lower(translate(normalize(${table.title} || ' || ' || ${table.body}, NFC), 'ƏİIŞÇĞÖÜ', 'əiışçğöü')))`,
     ),
     check("daily_briefs_body_length_check", sql.raw("char_length(body) <= 200000")),
+    check("daily_briefs_summary_length_check", sql.raw("char_length(summary) <= 400")),
     check("daily_briefs_status_check", sql.raw("status = 'published'")),
     check(
       "daily_briefs_classification_check",

@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RichTextEditor } from "../../src/components/RichTextEditor";
 import { RichTextContent } from "../../src/components/RichTextContent";
 import { BriefCard } from "../../src/components/BriefCard";
-import { BRIEF_SYSTEM_TITLE, briefExcerpt } from "../../src/lib/briefs";
+import { BRIEF_SYSTEM_TITLE } from "../../src/lib/briefs";
 import { projectRichText, validateRichDocument, type RichDocument } from "../../src/lib/rich-text";
 import "../../src/styles.css";
 
@@ -119,7 +119,7 @@ export function Preview() {
                 id: "preview",
                 title: BRIEF_SYSTEM_TITLE,
                 date: "2026-10-01",
-                excerpt: briefExcerpt(text),
+                summary: null,
                 classification: "open",
                 status: "published",
                 indexStatus: "none",

@@ -201,7 +201,6 @@ export async function saveBriefRecord(
 ): Promise<{ ok: true; briefId: string; queueFailed: boolean; cleanupIncomplete: boolean }> {
   const parsed = saveBriefSchema.parse(input);
   const body = projectRichText(parsed.bodyRich).text;
-  const title = BRIEF_SYSTEM_TITLE;
   const db = getDb();
   const user = getCurrentUser();
   const uploadedKeys = parsed.uploads
@@ -229,6 +228,7 @@ export async function saveBriefRecord(
           .limit(1);
     if (parsed.isNew && existingBrief) throw new Error(az.briefs.saveFailed);
     if (!parsed.isNew && !existingBrief) throw new Error(az.briefs.missing);
+    const title = existingBrief?.title ?? BRIEF_SYSTEM_TITLE;
     if (!parsed.isNew && !canEditBrief(user, existingBrief!.authorId)) {
       throw new Error(az.briefs.missing);
     }
@@ -308,6 +308,7 @@ export async function saveBriefRecord(
           id: parsed.briefId,
           briefDate: parsed.date,
           title,
+          summary: parsed.summary || null,
           body,
           bodyRich: parsed.bodyRich,
           classification: parsed.classification,
@@ -325,6 +326,7 @@ export async function saveBriefRecord(
           .set({
             briefDate: parsed.date,
             title,
+            ...(parsed.summary !== undefined ? { summary: parsed.summary || null } : {}),
             body,
             bodyRich: parsed.bodyRich,
             classification: parsed.classification,

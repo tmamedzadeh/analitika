@@ -183,6 +183,13 @@
       "when": 1792739604495,
       "tag": "0025_rich_text_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792746465889,
+      "tag": "0026_brief_summary",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-import { briefDate, type BriefListItem } from "@/lib/briefs";
+import { BRIEF_SYSTEM_TITLE, briefDate, type BriefListItem } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
 
 export function BriefCard({
@@ -40,17 +40,11 @@ export function BriefCard({
           </p>
         </div>
         <div className="min-w-0 flex-1">
-          <h2
-            className={
-              featured
-                ? "text-sm font-medium leading-6 text-muted-foreground [overflow-wrap:anywhere]"
-                : "text-sm font-medium leading-6 text-muted-foreground [overflow-wrap:anywhere]"
-            }
-          >
-            {brief.title}
+          <h2 className="text-sm font-medium leading-6 text-foreground [overflow-wrap:anywhere]">
+            {BRIEF_SYSTEM_TITLE}
           </h2>
-          <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">
-            {brief.excerpt}
+          <p className="mt-2 line-clamp-3 text-sm leading-[1.6] text-neutral-600 [overflow-wrap:anywhere]">
+            {brief.summary?.trim() || az.briefs.summaryEmpty}
           </p>
         </div>
       </div>

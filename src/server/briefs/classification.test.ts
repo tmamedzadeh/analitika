@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { withCurrentUser, type SessionUser } from "@/server/auth";
 import { prepareBriefUploadUrls, saveBriefRecord } from "./mutations";
 import { BRIEF_SYSTEM_TITLE } from "@/lib/briefs";
+import { getTableColumns } from "drizzle-orm";
+import { dailyBriefs } from "@/server/db/schema";
 
 const mocks = vi.hoisted(() => ({ query: vi.fn(), commit: vi.fn(async () => []), sign: vi.fn() }));
 vi.mock("@tanstack/react-start/server", () => ({
@@ -58,6 +60,7 @@ describe("bulletin classification at both upload/save stages", () => {
       title: "Untrusted title",
       body: "Untrusted text",
       bodyRich: plainTextDocument("Canonical text"),
+      summary: "Əməkdaşın yazdığı xülasə.",
       briefId: "00000000-0000-4000-8000-000000000001",
       isNew: true,
       uploads: [],
@@ -72,11 +75,68 @@ describe("bulletin classification at both upload/save stages", () => {
     expect(query).toContain('"body", "body_rich"');
     expect(params).toContain(BRIEF_SYSTEM_TITLE);
     expect(params).toContain("Canonical text");
+    expect(params).toContain(attempt.summary);
     expect(params).toContain(JSON.stringify(plainTextDocument("Canonical text")));
     expect(params).not.toContain("Untrusted text");
     expect(params).not.toContain("Untrusted title");
     expect(dispatch).toHaveBeenCalledWith(attempt.briefId);
   });
+  it.each(["ready", "processing", "queued", "failed"])(
+    "saves only a summary without reindexing or changing the %s index",
+    async (indexStatus) => {
+      const timestamp = "2026-10-22T12:00:00.000Z";
+      const existing = {
+        id: "00000000-0000-4000-8000-000000000001",
+        briefDate: input.date,
+        title: "Legacy bulletin title",
+        summary: "Köhnə xülasə.",
+        body: input.body,
+        bodyRich: JSON.stringify(input.bodyRich),
+        classification: input.classification,
+        status: input.status,
+        authorId: user.id,
+        updatedBy: user.id,
+        indexStatus,
+        indexProgress: JSON.stringify({ percent: 100, totalChunks: 1, completedChunks: 1 }),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        publishedAt: timestamp,
+      };
+      const row = Object.keys(getTableColumns(dailyBriefs)).map(
+        (key) => existing[key as keyof typeof existing],
+      );
+      mocks.query.mockResolvedValue({ rows: [] });
+      mocks.query
+        .mockResolvedValueOnce({ rows: [[...row, timestamp]] })
+        .mockResolvedValueOnce({ rows: [["admin", "special"]] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [[user.id, "admin", "special"]] })
+        .mockResolvedValueOnce({ rows: [[user.id, "secret", timestamp]] });
+      const dispatch = vi.fn(async () => {});
+      await withCurrentUser(user, () =>
+        saveBriefRecord(
+          { ...input, summary: "Yeni xülasə.", briefId: existing.id, isNew: false, uploads: [] },
+          { sendIndexing: dispatch },
+        ),
+      );
+      const [query, params] = mocks.query.mock.calls.find(([sql]) =>
+        String(sql).startsWith('update "daily_briefs"'),
+      )!;
+      expect(query).toContain('"summary" =');
+      expect(params).toContain("Yeni xülasə.");
+      expect(params).toContain(existing.title);
+      expect(params).toContain(existing.body);
+      expect(params).toContain(existing.bodyRich);
+      expect(query).not.toContain('"index_status" =');
+      expect(query).not.toContain('"index_progress" =');
+      expect(dispatch).not.toHaveBeenCalled();
+      expect(
+        mocks.query.mock.calls.some(([sql]) =>
+          /(?:update|delete from|insert into) "chunks"/.test(String(sql)),
+        ),
+      ).toBe(false);
+    },
+  );
   it("rejects upload preparation above live clearance before issuing any signed URL", async () => {
     mocks.query.mockResolvedValue({ rows: [[user.id, "admin", "open"]] });
     await expect(

@@ -9,6 +9,7 @@ export const BRIEF_SYSTEM_TITLE = "İnformasiya bülleteni";
 export const MAX_BRIEF_PHOTOS = 10;
 export const MAX_BRIEF_PHOTO_BYTES = 10 * 1024 * 1024;
 export const MAX_BRIEF_BODY_LENGTH = 200_000;
+export const MAX_BRIEF_SUMMARY_LENGTH = 400;
 export const BRIEF_PAGE_SIZE = 12;
 
 export const briefStatuses = ["published"] as const;
@@ -22,6 +23,7 @@ export type Brief = {
   id: string;
   date: string;
   title: string;
+  summary: string | null;
   body: string;
   bodyRich: RichDocument;
   classification: Clearance;
@@ -36,7 +38,6 @@ export type BriefListItem = Omit<
   Brief,
   "body" | "bodyRich" | "photos" | "publishedAt" | "highlight"
 > & {
-  excerpt: string;
   photoCount: number;
   coverUrl?: string | null;
 };
@@ -55,6 +56,7 @@ export const briefDateSchema = z
 export const briefInputSchema = z.object({
   classification: z.enum(clearanceValues).default("open"),
   date: briefDateSchema,
+  summary: z.string().max(MAX_BRIEF_SUMMARY_LENGTH).trim().nullable().optional(),
   bodyRich: richDocumentSchema(MAX_BRIEF_BODY_LENGTH),
   status: z.enum(briefStatuses),
 });

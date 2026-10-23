@@ -6,7 +6,6 @@ export {
 } from "@/server/search/lexical";
 
 import {
-  briefExcerpt,
   BRIEF_PAGE_SIZE,
   getBakuDate,
   getWeekStartDate,
@@ -82,7 +81,7 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
       id: dailyBriefs.id,
       date: dailyBriefs.briefDate,
       title: dailyBriefs.title,
-      body: dailyBriefs.body,
+      summary: dailyBriefs.summary,
       classification: dailyBriefs.classification,
       status: dailyBriefs.status,
       indexStatus: dailyBriefs.indexStatus,
@@ -128,7 +127,7 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
     date: row.date,
     title: row.title,
     classification: row.classification as BriefListItem["classification"],
-    excerpt: briefExcerpt(row.body),
+    summary: row.summary,
     status: row.status as BriefListItem["status"],
     indexStatus: row.indexStatus as BriefListItem["indexStatus"],
     indexProgress: briefProgress(row.indexProgress),
@@ -216,6 +215,7 @@ export async function getBriefDetails(
       id: row.id,
       date: row.briefDate,
       title: row.title,
+      summary: row.summary,
       body: row.body,
       bodyRich: row.bodyRich,
       classification: row.classification as Brief["classification"],

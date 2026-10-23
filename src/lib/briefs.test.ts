@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   briefExcerpt,
+  briefInputSchema,
   briefStatuses,
   briefRouteForSearchSource,
   formatBriefEmbeddingText,
@@ -11,8 +12,21 @@ import {
   inspectBriefPhoto,
   photoError,
 } from "./briefs";
+import { plainTextDocument } from "./rich-text";
 
 describe("daily brief validation and dates", () => {
+  it("accepts optional plain summaries, trims whitespace and rejects more than 400 characters", () => {
+    const input = {
+      date: "2026-10-23",
+      bodyRich: plainTextDocument("Sintetik mətn."),
+      status: "published",
+    };
+    for (const summary of [undefined, null, "", "ə".repeat(400)]) {
+      expect(briefInputSchema.safeParse({ ...input, summary }).success).toBe(true);
+    }
+    expect(briefInputSchema.parse({ ...input, summary: "  Xülasə  " }).summary).toBe("Xülasə");
+    expect(briefInputSchema.safeParse({ ...input, summary: "ə".repeat(401) }).success).toBe(false);
+  });
   it("calculates today and week boundaries in Asia/Baku calendar dates", () => {
     expect(getBakuDate(new Date("2026-10-17T20:30:00.000Z"))).toBe("2026-10-18");
     expect(getWeekStartDate("2026-10-18")).toBe("2026-10-12");

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ExternalLink } from "lucide-react";
 
 import { ClassificationBadge } from "./ClassificationBadge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import {
   analyticsFragmentAnchor,
   analyticsFragmentId,
@@ -36,7 +37,7 @@ export function AnalyticsSourceCard({
   const [expanded, setExpanded] = useState(false);
   const article = useRef<HTMLElement>(null);
   const numbers = group.citedNumbers;
-  const resolvedOpenLabel = group.sourceKind;
+  const headerHref = head ? chunkRoute(head) : null;
   const fragmentsId = `${analyticsFragmentId(group.key, 0, navigationScope)}-list`;
   const titleId = `${analyticsFragmentId(group.key, 0, navigationScope)}-title`;
   const fragmentIds = group.citedNumbers
@@ -79,36 +80,42 @@ export function AnalyticsSourceCard({
       className="panel scroll-mt-24 p-4 sm:p-5"
       aria-labelledby={titleId}
     >
-      <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between">
-        <div className="w-full min-w-0 sm:w-auto sm:flex-1">
-          <h3 id={titleId} className="font-semibold break-words [overflow-wrap:anywhere]">
+      <div>
+        <div className="flex items-start justify-between gap-3">
+          <h3
+            id={titleId}
+            className="min-w-0 flex-1 pt-2 text-base font-semibold leading-6 text-foreground break-words [overflow-wrap:anywhere]"
+          >
             {head?.title || az.analytics.sourceUnavailable}
           </h3>
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            <span className="rounded-full border border-border px-2 py-0.5">
-              {group.sourceKind === "brief"
-                ? az.analytics.materialBrief
-                : az.analytics.materialDocument}
-            </span>
-            <span>{head?.docDate ?? head?.briefDate}</span>
-            {head?.classification && <ClassificationBadge classification={head.classification} />}
-          </div>
+          {head && <SourceLink head={head} openLabel={group.sourceKind} />}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500">
+          <span className="rounded-full border border-border px-2 py-0.5">
+            {group.sourceKind === "brief"
+              ? az.analytics.materialBrief
+              : az.analytics.materialDocument}
+          </span>
+          <span>{head?.docDate ?? head?.briefDate}</span>
+          {head?.classification && <ClassificationBadge classification={head.classification} />}
           {group.sourceKind === "document" && head && (
-            <p className="label-mono mt-2">
-              {directionLabel(head.direction) ?? az.directions.unassigned}
-            </p>
+            <div className="ml-auto">
+              <ReliabilityBadges
+                sourceReliability={head.sourceReliability}
+                infoCredibility={head.infoCredibility}
+              />
+            </div>
           )}
         </div>
         {group.sourceKind === "document" && head && (
-          <ReliabilityBadges
-            sourceReliability={head.sourceReliability}
-            infoCredibility={head.infoCredibility}
-          />
+          <p className="label-mono mt-2">
+            {directionLabel(head.direction) ?? az.directions.unassigned}
+          </p>
         )}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs text-neutral-500">
           {fragmentLabel.replace("{count}", String(group.displayedChunkCount))}
         </p>
         <p
@@ -163,11 +170,10 @@ export function AnalyticsSourceCard({
             groupKey={group.key}
             numbers={numbers.filter((n) => group.citationChunks.get(n) === chunk)}
             navigationScope={navigationScope}
+            headerHref={headerHref}
           />
         ))}
       </ul>
-
-      {head && <SourceLinks head={head} openLabel={resolvedOpenLabel} />}
     </article>
   );
 }
@@ -177,20 +183,22 @@ function FragmentRow({
   groupKey,
   numbers,
   navigationScope,
+  headerHref,
 }: {
   chunk: AnalyticsSourcePreview;
   groupKey: string;
   numbers: number[];
   navigationScope: string;
+  headerHref: string | null;
 }) {
   const href = chunkRoute(chunk);
   return (
     <li
       id={analyticsFragmentId(groupKey, chunk.n, navigationScope)}
       tabIndex={-1}
-      className="scroll-mt-24 py-3 focus-visible:outline-2"
+      className="scroll-mt-24 py-2.5 focus-visible:outline-2"
     >
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-500">
         {numbers.map((n) => (
           <span
             key={n}
@@ -208,11 +216,11 @@ function FragmentRow({
       </div>
       <div className="mt-1 flex flex-wrap items-start gap-x-3 gap-y-1">
         {chunk.quote && (
-          <p className="min-w-0 flex-1 text-sm leading-relaxed [overflow-wrap:anywhere]">
+          <p className="min-w-0 flex-1 text-sm leading-relaxed text-neutral-700 [overflow-wrap:anywhere]">
             «{chunk.quote}»
           </p>
         )}
-        {href && (
+        {href && href !== headerHref && (
           <a
             className="inline-flex min-h-10 items-center text-sm font-medium text-primary hover:underline focus-visible:outline-2"
             href={href}
@@ -242,7 +250,7 @@ function chunkRoute(source: AnalyticsSourcePreview): string | null {
   return source.documentId ? `/senedler/${encodeURIComponent(source.documentId)}` : null;
 }
 
-function SourceLinks({
+function SourceLink({
   head,
   openLabel,
 }: {
@@ -252,18 +260,24 @@ function SourceLinks({
   // History entries without a resolved chunk (legacy/partial access) open the material itself.
   const href = chunkRoute(head);
   if (!href) return null;
+  const label = openLabel === "brief" ? az.analytics.openBrief : az.analytics.openDocument;
   return (
-    <a
-      className="pill mt-3 inline-flex min-h-10 items-center"
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={openLabel === "brief" ? az.analytics.openBrief : az.analytics.openDocument}
-    >
-      {openLabel === "brief" ? az.analytics.openBrief : az.analytics.openDocument}
-      {head.attachmentCount > 0 ? " · " + head.attachmentCount + " " + az.analytics.photos : ""}
-      <ExternalLink size={12} className="ml-1.5" aria-hidden="true" />
-    </a>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <a
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-primary transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+          >
+            <ExternalLink size={16} aria-hidden="true" />
+          </a>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
