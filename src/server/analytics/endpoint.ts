@@ -28,6 +28,7 @@ import {
 import { consumeAnalyticsRateLimit } from "./rate-limit";
 import { withAnalyticsAbort } from "./abort";
 import { searchDocumentChunks } from "./search";
+import { EvidenceContextBudgetError, fitsEvidenceContext } from "./evidence-selection";
 import { prepareAnalyticsContext } from "./context-expansion";
 import { contextChunks, type AnalyticsContext } from "./context-identity";
 import { buildAnalyticsPrompt } from "../prompts/analytics";
@@ -282,7 +283,17 @@ async function handleAnalyticsSearch(
               providerStatus: getGeminiFailureInfo(error).statusCode,
               errorCategory: getGeminiErrorCategory(error),
             });
-            send({ type: "error", message: az.analytics.searchFailed, requestId });
+            send({
+              type: "error",
+              message:
+                error instanceof EvidenceContextBudgetError
+                  ? az.analytics.evidenceTooLarge
+                  : az.analytics.searchFailed,
+              ...(error instanceof EvidenceContextBudgetError
+                ? { code: "evidence_context_budget_exceeded" }
+                : {}),
+              requestId,
+            });
           }
           await saveHistory({
             status: aborter.signal.aborted ? abortedHistoryStatus() : "failed",
@@ -306,6 +317,9 @@ async function handleAnalyticsSearch(
                 aborter.signal.throwIfAborted();
                 if (!canUseQuestion(liveClearance)) throw new AuthorizationError();
                 sources = available;
+                // Removing a duplicate's text owner can make another full body
+                // take its place. Recheck the actual authorized prompt payload.
+                if (!fitsEvidenceContext(sources)) throw new EvidenceContextBudgetError();
                 const sourcePreviews: AnalyticsSourcePreview[] = sources.map(
                   ({ text: _text, charStart: _charStart, charEnd: _charEnd, ...source }) => source,
                 );
@@ -334,7 +348,17 @@ async function handleAnalyticsSearch(
             answer: "",
             maxClassification: "open",
           });
-          send({ type: "error", message: az.analytics.answerFailed, requestId });
+          send({
+            type: "error",
+            message:
+              error instanceof EvidenceContextBudgetError
+                ? az.analytics.evidenceTooLarge
+                : az.analytics.answerFailed,
+            ...(error instanceof EvidenceContextBudgetError
+              ? { code: "evidence_context_budget_exceeded" }
+              : {}),
+            requestId,
+          });
           close();
           return;
         }

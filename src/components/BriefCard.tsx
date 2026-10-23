@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { ClassificationBadge } from "./ClassificationBadge";
 
 import { briefDate, type BriefListItem } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
@@ -53,9 +52,6 @@ export function BriefCard({
           <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">
             {brief.excerpt}
           </p>
-          <div className="mt-3">
-            <ClassificationBadge classification={brief.classification} />
-          </div>
         </div>
       </div>
     </>
@@ -63,7 +59,7 @@ export function BriefCard({
   const className = `panel flex h-full flex-col gap-5 p-4 sm:p-5 ${
     featured
       ? "panel-glow sm:flex-row sm:items-stretch sm:gap-6 sm:p-6"
-      : "min-h-48 transition-colors hover:border-primary/25 hover:shadow-sm"
+      : "transition-colors hover:border-primary/25 hover:shadow-sm"
   }`;
 
   return preview ? (

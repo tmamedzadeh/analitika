@@ -1,5 +1,6 @@
 import type { AnalyticsSource } from "@/lib/analytics";
 import type { AnalyticsAuxiliaryContext, AnalyticsContextChunk } from "./context-identity";
+import { fitsEvidenceContext } from "./evidence-selection";
 
 export const CONTEXT_ANCHOR_LIMIT = 3;
 export const CONTEXT_NEIGHBOR_LIMIT = 3;
@@ -161,6 +162,7 @@ export function selectAuxiliaryContext(
       // Include all additional instructions/labels, not just the extracted prose, in the budget.
       const payload = additionalContextPayload(sources, next);
       if (
+        !fitsEvidenceContext(sources, payload) ||
         payload.length > Math.floor(base.length * 0.2) ||
         textBytes(payload) > Math.min(2400, Math.floor(textBytes(base) * 0.2))
       )

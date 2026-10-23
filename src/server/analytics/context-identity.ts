@@ -5,6 +5,10 @@ import type { AnalyticsSource } from "@/lib/analytics";
 import { AuthorizationError } from "@/server/auth";
 import { chunks } from "@/server/db/schema";
 import type { AnalyticsTransaction } from "./source-access";
+import { EVIDENCE_CHUNK_LIMIT } from "./evidence-limits";
+import { CONTEXT_NEIGHBOR_LIMIT } from "./context-selection";
+
+export const CONTEXT_FINGERPRINT_LIMIT = EVIDENCE_CHUNK_LIMIT + CONTEXT_NEIGHBOR_LIMIT;
 
 export const contextChunkProjection = {
   id: chunks.id,
@@ -100,7 +104,7 @@ export async function assertLockedAnalyticsContext(
   expected: readonly AnalyticsContextChunk[],
 ): Promise<void> {
   if (
-    expected.length > 13 ||
+    expected.length > CONTEXT_FINGERPRINT_LIMIT ||
     new Set(expected.map((item) => item.id)).size !== expected.length ||
     sources.some((source) => !expected.some((chunk) => matchesPrimary(source, chunk))) ||
     expected.some(

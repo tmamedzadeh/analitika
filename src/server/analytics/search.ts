@@ -37,9 +37,9 @@ import {
 import { hasCommittedBriefIndex } from "../briefs/index-state";
 import { getBakuDate } from "@/lib/briefs";
 import { withAiDiagnostics } from "@/server/ai/diagnostics";
+import { selectAnalyticsEvidence } from "./evidence-selection";
 
 const CANDIDATE_LIMIT = 50;
-const RESULT_LIMIT = 10;
 const RERANK_CANDIDATE_LIMIT = 30;
 const MAX_VECTOR_DISTANCE = 0.4;
 export function buildFullTextQuery(query: string): string {
@@ -195,10 +195,16 @@ export async function searchDocumentChunks(
       (sourceKind !== "brief" || filters.includeBriefs === true) &&
       (kind !== "vector" || Boolean(vectorDistance)),
   );
+  const semanticChunkIds = new Set<string>();
   const settled = await settleRetrievalBranches(
     activeBranches.map(([name, kind, sourceKind]) => ({
       name,
-      run: async () => queryCandidates(kind, sourceKind),
+      run: async () => {
+        const found = await queryCandidates(kind, sourceKind);
+        if (kind === "vector")
+          for (const source of found ?? []) semanticChunkIds.add(source.chunkId);
+        return found;
+      },
     })),
   );
   const successfulLists = settled.results.filter(
@@ -260,15 +266,15 @@ export async function searchDocumentChunks(
       },
     ),
   );
-  // Include every excerpt sent to rerank, even if it falls outside the final ten.
+  // Include every excerpt sent to rerank, even if evidence selection omits it.
   options.signal?.throwIfAborted();
   await requireAnalyticsSourceAccess(accessibleCandidates, currentUser);
   const candidateById = new Map(accessibleCandidates.map((source) => [source.chunkId, source]));
   options.signal?.throwIfAborted();
-  const fused = ids
+  const ranked = ids
     .map((id) => candidateById.get(id))
-    .filter((candidate): candidate is AnalyticsSource => candidate !== undefined)
-    .slice(0, RESULT_LIMIT);
+    .filter((candidate): candidate is AnalyticsSource => candidate !== undefined);
+  const fused = selectAnalyticsEvidence(query, ranked, semanticChunkIds);
 
   const documentIds = [
     ...new Set(fused.flatMap((item) => (item.documentId ? [item.documentId] : []))),

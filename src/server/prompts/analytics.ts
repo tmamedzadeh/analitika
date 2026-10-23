@@ -1,4 +1,5 @@
-import { analyticsSourceGroupKey, type AnalyticsSource } from "@/lib/analytics";
+import type { AnalyticsSource } from "@/lib/analytics";
+import { formatAnalyticsEvidence } from "./analytics-evidence";
 import { az } from "@/lib/i18n/az";
 import type { AnalyticsAuxiliaryContext } from "../analytics/context-identity";
 import {
@@ -13,46 +14,7 @@ export function buildAnalyticsPrompt(
   thinkingLevel: "low" | "medium" | "high" = "medium",
   auxiliary: readonly AnalyticsAuxiliaryContext[] = [],
 ) {
-  const materials = new Map<string, number[]>();
-  for (const source of sources) {
-    const key = analyticsSourceGroupKey(source);
-    materials.set(key, [...(materials.get(key) ?? []), source.n]);
-  }
-  const context = sources
-    .map((source) => {
-      const materialKey = analyticsSourceGroupKey(source);
-      const date =
-        source.sourceKind === "brief"
-          ? (source.briefDate ?? "tarix göstərilməyib")
-          : (source.docDate ?? "tarix göstərilməyib");
-      const section = source.sectionTitle || "bölmə göstərilməyib";
-      const label = source.sourceKind === "brief" ? "Gündəlik xülasə" : "Sənəd";
-      const ratings =
-        source.sourceKind === "document"
-          ? [
-              source.sourceReliability
-                ? `Mənbə etibarlılığı: ${source.sourceReliability} (${az.reliability.source[source.sourceReliability]}).`
-                : null,
-              source.infoCredibility
-                ? `Məlumat etibarlılığı: ${source.infoCredibility} (${az.reliability.information[source.infoCredibility]}).`
-                : null,
-            ].filter(Boolean)
-          : [];
-      return [
-        "[" + source.n + "] " + label + " · " + source.title + " · " + section + " · " + date,
-        `Eyni ilkin materialın fraqmentləri: ${materials
-          .get(materialKey)!
-          .map((n) => `[${n}]`)
-          .join(", ")}.`,
-        ratings.length
-          ? ratings.join(" ")
-          : "Etibarlılıq qiymətləndirilməyib; bu, aşağı etibarlılıq demək deyil.",
-        source.text,
-      ]
-        .filter(Boolean)
-        .join("\n");
-    })
-    .join("\n\n---\n\n");
+  const context = formatAnalyticsEvidence(sources);
 
   return {
     system: [

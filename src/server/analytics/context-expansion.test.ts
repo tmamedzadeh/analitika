@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { contextFixture } from "@/test/fixtures/analytics-context";
+import { asSource, contextFixture, contextId } from "@/test/fixtures/analytics-context";
 import { AuthorizationError } from "@/server/auth";
 import { prepareAnalyticsContext } from "./context-expansion";
 import { requireAnalyticsSourceAccess, withAnalyticsSourceAccess } from "./source-access";
@@ -91,6 +91,39 @@ const prepare = (signal = new AbortController().signal, enabled = true) =>
   });
 
 describe("batched context capture and publication revalidation", () => {
+  it("validates 20 primary plus 3 auxiliary identities and rejects overflow or duplicate fingerprints", async () => {
+    const anchor = fixture.primary[0]!;
+    fixture.primary = Array.from({ length: 20 }, (_, index) => ({
+      ...anchor,
+      id: contextId(200 + index),
+    }));
+    fixture.sources = fixture.primary.map((chunk, index) => asSource(chunk, index + 1));
+    const extra = Array.from({ length: 4 }, (_, index) => ({
+      ...anchor,
+      id: contextId(300 + index),
+    }));
+    current = [...fixture.primary, ...extra];
+    const expected = [...fixture.primary, ...extra.slice(0, 3)];
+    await expect(
+      requireAnalyticsSourceAccess(fixture.sources, user, expected),
+    ).resolves.toHaveLength(20);
+    await expect(
+      requireAnalyticsSourceAccess(fixture.sources, user, [...expected, extra[3]!]),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    await expect(
+      requireAnalyticsSourceAccess(fixture.sources, user, [
+        ...fixture.primary,
+        extra[0]!,
+        extra[0]!,
+      ]),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    const publish = vi.fn();
+    current = current.filter((chunk) => chunk.id !== expected[22]!.id);
+    await expect(
+      withAnalyticsSourceAccess(fixture.sources, user.id, publish, expected),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    expect(publish).not.toHaveBeenCalled();
+  });
   it("does no DB work with the flag OFF and logs only bounded operational fields", async () => {
     expect(await prepare(undefined, false)).toBeUndefined();
     expect(state.getDb).not.toHaveBeenCalled();

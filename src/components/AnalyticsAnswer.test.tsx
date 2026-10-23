@@ -34,6 +34,46 @@ afterEach(() => {
 });
 
 describe("analytics citation links", () => {
+  it.each(["document", "brief"] as const)(
+    "renders citations 1–20 and opens the exact twentieth %s fragment and parent",
+    async (kind) => {
+      const sources = Array.from({ length: 20 }, (_, index) => {
+        const n = index + 1;
+        const item: AnalyticsSourcePreview = {
+          ...preview,
+          n,
+          sourceKind: kind,
+          documentId: kind === "document" ? "trusted-parent" : null,
+          briefId: kind === "brief" ? "trusted-parent" : null,
+          chunkId: `trusted-chunk-${n}`,
+          quote: `Authorized fragment ${n}`,
+        };
+        return { ...item, preview: item, available: true };
+      });
+      render(
+        <AnalyticsAnswer
+          answer={sources.map(({ n }) => `Fact [${n}].`).join(" ")}
+          sources={sources}
+        />,
+      );
+      for (const { n } of sources)
+        expect(
+          screen.getByRole("link", { name: az.analytics.openSource.replace("{n}", String(n)) }),
+        ).toHaveAttribute("href", `#fragment-${kind}%3Atrusted-parent-${n}`);
+      fireEvent.focus(
+        screen.getByRole("link", { name: az.analytics.openSource.replace("{n}", "20") }),
+      );
+      expect(await screen.findByText("Authorized fragment 20")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: az.analytics.openFullSource })).toHaveAttribute(
+        "href",
+        `/${kind === "brief" ? "brifler" : "senedler"}/trusted-parent?chunk=trusted-chunk-20`,
+      );
+      expect(screen.getByRole("link", { name: az.analytics.sourceCard })).toHaveAttribute(
+        "href",
+        `#fragment-${kind}%3Atrusted-parent-20`,
+      );
+    },
+  );
   it("attributes the actual model and omits attribution for non-generated answers", () => {
     const { rerender } = render(
       <AnalyticsAnswer answer="Nəticə [1]" sources={[{ n: 1 }]} model="gemini-3.1-flash-lite" />,

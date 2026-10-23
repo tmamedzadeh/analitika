@@ -225,6 +225,8 @@ export const az = {
     sourceCard: "Mənbə kartına keç",
     sources: "Mənbələr",
     noSources: "Mənbələrdə məlumat tapılmadı.",
+    evidenceTooLarge:
+      "Uyğun mənbələr tapıldı, lakin fraqmentlər cavab üçün nəzərdə tutulmuş həcmə sığmır. Sualı və ya axtarış filtrlərini dəqiqləşdirin.",
     emptyState: "Sual verin; cavab tapılmış sənəd fraqmentlərinə əsaslanacaq.",
     sourcesHint: "Axtarış nəticəsində uyğun sənəd fraqmentləri burada görünəcək.",
     sectionUnknown: "Bölmə göstərilməyib",

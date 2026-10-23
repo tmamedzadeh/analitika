@@ -62,6 +62,7 @@ import { AuthorizationError, withCurrentUser, type SessionUser } from "@/server/
 import type { TextGenerationInput } from "@/server/ai/types";
 import { handleAnalyticsSearchRequest } from "./endpoint";
 import { consumeAnalyticsRateLimit } from "./rate-limit";
+import { EvidenceContextBudgetError } from "./evidence-selection";
 
 const user: SessionUser = {
   id: "analytics-user",
@@ -109,6 +110,67 @@ function request(signal?: AbortSignal, mode: "answer" | "sources" = "answer") {
 }
 
 describe("analytics stream access and cancellation", () => {
+  it("rechecks the budget if authorization removes the original owner of duplicated text", async () => {
+    const text = source.text.replace(" ", " ".repeat(25_000));
+    const copy = {
+      ...source,
+      n: 2,
+      chunkId: "chunk-2",
+      documentId: "00000000-0000-4000-8000-000000000002",
+      text,
+      charEnd: text.length,
+    };
+    mocks.search.mockResolvedValueOnce([source, copy]);
+    mocks.withSourceAccess.mockImplementationOnce(async (_sources, _userId, publish) => {
+      const available = [{ ...copy, n: 1 }];
+      return { sources: available, value: await publish(available, "secret") };
+    });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = await response.text();
+    expect(output).toContain('"code":"evidence_context_budget_exceeded"');
+    expect(output).not.toContain('"type":"sources"');
+    expect(output).not.toContain('"type":"final"');
+    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed", sources: [], answer: "" }),
+    );
+  });
+  it.each(["answer", "sources"] as const)(
+    "reports oversized evidence safely in %s mode without generation or a no-sources answer",
+    async (mode) => {
+      mocks.search.mockRejectedValueOnce(new EvidenceContextBudgetError());
+      const response = await withCurrentUser(user, () =>
+        handleAnalyticsSearchRequest(request(undefined, mode)),
+      );
+      const output = await response.text();
+      expect(output).toContain('"code":"evidence_context_budget_exceeded"');
+      expect(output).toContain(az.analytics.evidenceTooLarge);
+      expect(output).not.toContain(az.analytics.noSources);
+      expect(output).not.toContain('"type":"final"');
+      expect(output).not.toContain('"type":"sources"');
+      expect(mocks.generate).not.toHaveBeenCalled();
+      expect(mocks.buildPrompt).not.toHaveBeenCalled();
+      expect(mocks.updateHistory).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ status: "failed" }),
+      );
+    },
+  );
+
+  it("retains the normal no-sources response for an actually empty authorized search", async () => {
+    mocks.search.mockResolvedValueOnce([]);
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = await response.text();
+    expect(output).toContain(az.analytics.noSources);
+    expect(output).toContain('"type":"final"');
+    expect(output).not.toContain("evidence_context_budget_exceeded");
+    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "done", answer: az.analytics.noSources }),
+    );
+  });
   it("returns a localized unavailable error and failed history when the provider route fails with 503", async () => {
     mocks.generate.mockRejectedValueOnce(
       Object.assign(new Error("private provider details"), { statusCode: 503 }),

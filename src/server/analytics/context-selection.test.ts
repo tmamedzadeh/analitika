@@ -3,8 +3,21 @@ import { asSource, contextFixture, contextId } from "@/test/fixtures/analytics-c
 import { additionalContextPayload, selectAuxiliaryContext, textBytes } from "./context-selection";
 import { buildAnalyticsPrompt } from "../prompts/analytics";
 import { analyticsSourceCounts } from "@/lib/analytics";
+import { fitsEvidenceContext } from "./evidence-selection";
+import { EVIDENCE_CONTEXT_CHAR_LIMIT } from "./evidence-limits";
+import { formatAnalyticsEvidence } from "../prompts/analytics-evidence";
 
 describe("conservative boundary context selection", () => {
+  it("shares the total evidence budget with primary text, labels and auxiliary instructions", () => {
+    const { sources, primary, neighbors } = contextFixture();
+    const initial = selectAuxiliaryContext(sources, primary, neighbors);
+    expect(initial).toHaveLength(2);
+    const base = "Mənbə fraqmentləri:\n" + formatAnalyticsEvidence(sources);
+    sources[1]!.title += "x".repeat(EVIDENCE_CONTEXT_CHAR_LIMIT - base.length - 10);
+    expect(fitsEvidenceContext(sources)).toBe(true);
+    expect(fitsEvidenceContext(sources, additionalContextPayload(sources, initial))).toBe(false);
+    expect(selectAuxiliaryContext(sources, primary, neighbors)).toEqual([]);
+  });
   it("selects before/after boundary continuations, strips overlap and independent sentences", () => {
     const { sources, primary, neighbors } = contextFixture();
     const auxiliary = selectAuxiliaryContext(sources, primary, neighbors);

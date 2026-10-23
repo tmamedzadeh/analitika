@@ -4,7 +4,7 @@ import { directionIds } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
 import { buildAnalyticsHistorySnapshot, getAnalyticsHistoryRecord } from "./history";
 import type { AnalyticsSource } from "@/lib/analytics";
-import { contextFixture } from "@/test/fixtures/analytics-context";
+import { asSource, contextFixture, contextId } from "@/test/fixtures/analytics-context";
 import { contextFingerprint, type AnalyticsContext } from "./context-identity";
 
 const mocks = vi.hoisted(() => ({ query: vi.fn() }));
@@ -16,6 +16,97 @@ vi.mock("@/server/db", async () => {
 });
 
 describe("private expansion provenance in history", () => {
+  it.each(["unchanged", "deleted_neighbor", "changed_twentieth", "overflow", "duplicate"])(
+    "reopens 20 citations with 23 bounded fingerprints and fails closed on %s",
+    async (change) => {
+      const anchor = contextFixture().primary[0]!;
+      const primary = Array.from({ length: 20 }, (_, index) => ({
+        ...anchor,
+        id: contextId(200 + index),
+        documentId: id,
+      }));
+      const neighbors = Array.from({ length: 3 }, (_, index) => ({
+        ...anchor,
+        id: contextId(300 + index),
+        documentId: id,
+      }));
+      const context: AnalyticsContext = {
+        primary,
+        auxiliary: neighbors.map((chunk) => ({
+          anchorChunkId: primary[0]!.id,
+          position: "before",
+          chunk,
+          text: "boundary",
+        })),
+      };
+      const answer = primary.map((_, index) => `Fact [${index + 1}].`).join(" ");
+      const saved = buildAnalyticsHistorySnapshot(
+        primary.map((chunk, index) => asSource(chunk, index + 1)),
+        answer,
+        "synthetic",
+        0,
+        new Date(snapshot.createdAt),
+        context,
+      );
+      expect(saved.snapshots[0]!.contextChunks).toHaveLength(23);
+      if (change === "overflow")
+        saved.snapshots[0]!.contextChunks!.push(
+          contextFingerprint({ ...anchor, id: contextId(400), documentId: id }),
+        );
+      if (change === "duplicate")
+        saved.snapshots[0]!.contextChunks![22] = saved.snapshots[0]!.contextChunks![21]!;
+      const current = [...primary, ...neighbors]
+        .filter((chunk) => change !== "deleted_neighbor" || chunk.id !== neighbors[2]!.id)
+        .map((chunk) =>
+          change === "changed_twentieth" && chunk.id === primary[19]!.id
+            ? { ...chunk, text: "changed" }
+            : chunk,
+        );
+      const original = mocks.query.getMockImplementation()!;
+      mocks.query.mockImplementation(async (...args) => {
+        const query = String(args[0]);
+        if (query.includes('from "chunks"') && query.includes('"embedding_model"'))
+          return {
+            rows: current.map((chunk) => [
+              chunk.id,
+              chunk.documentId,
+              chunk.briefId,
+              chunk.text,
+              chunk.charStart,
+              chunk.charEnd,
+              chunk.ord,
+              chunk.sectionTitle,
+              chunk.isTable,
+              chunk.embeddingModel,
+            ]),
+          };
+        if (query.includes('from "chunks"')) {
+          const params = args[1] as unknown[];
+          const chunk = primary.find((item) => params.includes(item.id));
+          return {
+            rows: chunk ? [[chunk.id, chunk.sectionTitle, "Authorized excerpt", false]] : [],
+          };
+        }
+        const result = await original(...args);
+        if (query.includes('inner join "app_users"') && result.rows.length) {
+          result.rows[0][5] = answer;
+          result.rows[0][6] = saved.snapshots;
+        }
+        return result;
+      });
+      const record = await read();
+      if (change === "overflow") {
+        expect(record).toBeNull();
+        return;
+      }
+      expect(record?.status).toBe(change === "unchanged" ? "done" : "incomplete");
+      expect(record?.answer).toBe(change === "unchanged" ? answer : az.analytics.sourceUnavailable);
+      expect(record?.sources.map((source) => [source.n, source.chunkId])).toEqual(
+        primary.map((chunk, index) => [index + 1, chunk.id]),
+      );
+      expect(record?.sources.every((source) => !Object.hasOwn(source, "contextChunks"))).toBe(true);
+    },
+  );
   function arrangeContext(change?: string) {
     const fixture = contextFixture();
     const primary = { ...fixture.primary[0]!, id: chunkId, documentId: id };

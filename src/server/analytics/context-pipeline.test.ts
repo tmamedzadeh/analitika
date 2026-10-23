@@ -141,38 +141,46 @@ const run = (mode = "answer") =>
   );
 
 describe("context expansion through verified SSE pipeline", () => {
-  it("preserves all ten retrieved citations when auxiliary context is present", async () => {
-    const anchor = fixture.primary[0]!;
-    fixture.primary = Array.from({ length: 10 }, (_, index) => ({
-      ...anchor,
-      id: index === 0 ? anchor.id : contextId(20 + index),
-      documentId: index === 0 ? anchor.documentId : contextId(120 + index),
-    }));
-    fixture.sources = fixture.primary.map((chunk, index) => asSource(chunk, index + 1));
-    current = [...fixture.primary, ...fixture.neighbors];
-    state.search.mockResolvedValue(fixture.sources);
-    const output = await (await run()).text();
-    const events = output
-      .trim()
-      .split("\n\n")
-      .map((frame) => JSON.parse(frame.slice(6)));
-    const sources = events.find((event) => event.type === "sources").sources;
-    expect(sources.map((source: { n: number }) => source.n)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    ]);
-    expect(sources.map((source: { chunkId: string }) => source.chunkId)).toEqual(
-      fixture.primary.map((chunk) => chunk.id),
-    );
-    expect(events.at(-1).type).toBe("final");
-    expect(state.dispatch).toHaveBeenCalledOnce();
-    expect(state.dispatch.mock.calls[0]![0].prompt).toContain("Auxiliary Context");
-    const saved = state.save.mock.calls.at(-1)![1];
-    expect(saved.sources).toHaveLength(10);
-    expect(saved.sources[0].contextChunks).toHaveLength(12);
-    expect(saved.sources[0].contextChunks.every((item: object) => !Object.hasOwn(item, "n"))).toBe(
-      true,
-    );
-  });
+  it.each([10, 20])(
+    "preserves all %i retrieved citations when auxiliary context is present",
+    async (count) => {
+      const anchor = fixture.primary[0]!;
+      fixture.primary = Array.from({ length: count }, (_, index) => {
+        const text = index ? `plant detail for district ${index} `.repeat(24) : anchor.text;
+        return {
+          ...anchor,
+          id: index === 0 ? anchor.id : contextId(20 + index),
+          documentId: index === 0 ? anchor.documentId : contextId(120 + index),
+          text,
+          charEnd: anchor.charStart + text.length,
+        };
+      });
+      fixture.sources = fixture.primary.map((chunk, index) => asSource(chunk, index + 1));
+      current = [...fixture.primary, ...fixture.neighbors];
+      state.search.mockResolvedValue(fixture.sources);
+      const output = await (await run()).text();
+      const events = output
+        .trim()
+        .split("\n\n")
+        .map((frame) => JSON.parse(frame.slice(6)));
+      const sources = events.find((event) => event.type === "sources").sources;
+      expect(sources.map((source: { n: number }) => source.n)).toEqual(
+        Array.from({ length: count }, (_, index) => index + 1),
+      );
+      expect(sources.map((source: { chunkId: string }) => source.chunkId)).toEqual(
+        fixture.primary.map((chunk) => chunk.id),
+      );
+      expect(events.at(-1).type).toBe("final");
+      expect(state.dispatch).toHaveBeenCalledOnce();
+      expect(state.dispatch.mock.calls[0]![0].prompt).toContain("Auxiliary Context");
+      const saved = state.save.mock.calls.at(-1)![1];
+      expect(saved.sources).toHaveLength(count);
+      expect(saved.sources[0].contextChunks).toHaveLength(count + 2);
+      expect(
+        saved.sources[0].contextChunks.every((item: object) => !Object.hasOwn(item, "n")),
+      ).toBe(true);
+    },
+  );
   it("adds only boundary context, keeps numbers/counts/history and makes one generation call outside transactions", async () => {
     const output = await (await run()).text();
     const events = output

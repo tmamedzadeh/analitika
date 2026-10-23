@@ -22,6 +22,7 @@ import {
   contextChunks,
   contextFingerprint,
   contextFingerprintSchema,
+  CONTEXT_FINGERPRINT_LIMIT,
   type AnalyticsContext,
 } from "./context-identity";
 
@@ -41,7 +42,7 @@ const sourceSnapshotSchema = z.object({
   durationMs: z.number().int().nonnegative().default(0),
   createdAt: z.string().default(""),
   // Private provenance only: no text, citation number or standalone source entry.
-  contextChunks: z.array(contextFingerprintSchema).min(1).max(13).optional(),
+  contextChunks: z.array(contextFingerprintSchema).min(1).max(CONTEXT_FINGERPRINT_LIMIT).optional(),
 });
 
 export type AnalyticsHistorySource = Omit<z.infer<typeof sourceSnapshotSchema>, "contextChunks"> & {
@@ -359,7 +360,7 @@ export async function getAnalyticsHistoryRecord(id: string) {
     let unavailableContext = false;
     if (fingerprints.length) {
       unavailableContext =
-        fingerprints.length > 13 ||
+        fingerprints.length > CONTEXT_FINGERPRINT_LIMIT ||
         new Set(fingerprints.map((item) => item.id)).size !== fingerprints.length ||
         resolved.some((source) => !source.available) ||
         fingerprints.some(
