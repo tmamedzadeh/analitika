@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { GeminiLLMProvider } from "./gemini";
+import type { ProviderRequestOptions } from "./types";
 
 export const RERANK_TIMEOUT_MS = 4_000;
 export const RERANK_INPUT_LIMIT = 30;
@@ -15,7 +16,7 @@ export interface RerankProvider {
   rerank(
     query: string,
     candidates: readonly RerankCandidate[],
-    options?: { timeoutMs?: number; signal?: AbortSignal },
+    options?: ProviderRequestOptions & { timeoutMs?: number },
   ): Promise<readonly string[]>;
 }
 
@@ -62,6 +63,7 @@ export async function rerankOrderOrOriginal(
   enabled: boolean,
   timeoutMs = RERANK_TIMEOUT_MS,
   signal?: AbortSignal,
+  beforeRequest?: () => Promise<void>,
 ): Promise<string[]> {
   const expectedIds = candidates.slice(0, RERANK_INPUT_LIMIT).map(({ id }) => id);
   if (!enabled || !provider || expectedIds.length === 0) return expectedIds;
@@ -83,6 +85,7 @@ export async function rerankOrderOrOriginal(
       provider.rerank(query, input, {
         timeoutMs,
         signal: signal ? AbortSignal.any([controller.signal, signal]) : controller.signal,
+        ...(beforeRequest ? { beforeRequest } : {}),
       }),
       timeout,
     ]);
@@ -102,7 +105,7 @@ export class GeminiRerankProvider implements RerankProvider {
   async rerank(
     query: string,
     candidates: readonly RerankCandidate[],
-    options: { timeoutMs?: number; signal?: AbortSignal } = {},
+    options: ProviderRequestOptions & { timeoutMs?: number } = {},
   ): Promise<readonly string[]> {
     const input = candidates.slice(0, RERANK_INPUT_LIMIT).map(({ id, excerpt }) => ({
       id,
@@ -116,6 +119,7 @@ export class GeminiRerankProvider implements RerankProvider {
         temperature: 0,
         timeoutMs: options.timeoutMs ?? RERANK_TIMEOUT_MS,
         ...(options.signal ? { signal: options.signal } : {}),
+        ...(options.beforeRequest ? { beforeRequest: options.beforeRequest } : {}),
         maxAttempts: 1,
       },
       rerankOutputSchema,

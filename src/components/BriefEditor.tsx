@@ -5,7 +5,7 @@ import { Upload, X } from "lucide-react";
 import { BriefCard } from "@/components/BriefCard";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Shell } from "@/components/Shell";
-import { ZirveLoader } from "@/components/ZirveLoader";
+import { ZirveLoader, ZirveActionLabel } from "@/components/ZirveLoader";
 import { Button } from "@/components/ui/button";
 import { discardBriefUploads, prepareBriefUploads, saveBrief } from "@/lib/briefs.functions";
 import {
@@ -317,9 +317,12 @@ export function BriefEditor({
             </p>
           )}
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button type="submit" disabled={busy}>
-              {busy && <ZirveLoader variant="inline" label="" />}
-              {busy ? az.briefs.loading : az.briefs.save}
+            <Button type="submit" disabled={busy} aria-busy={busy}>
+              <ZirveActionLabel
+                busy={busy}
+                label={az.briefs.save}
+                pendingLabel={az.briefs.loading}
+              />
             </Button>
             <Button asChild variant="outline" className="rounded-full" disabled={busy}>
               <Link

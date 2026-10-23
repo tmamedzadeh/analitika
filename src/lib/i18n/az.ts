@@ -17,6 +17,7 @@ export const az = {
     noMatches: "Axtarışa uyğun sənəd tapılmadı.",
   },
   loader: {
+    updating: "Məlumat yenilənir…",
     loading: "Məlumat yüklənir…",
     processing: "Məlumatlar emal olunur…",
     pageTitle: "Səhifə açılır",
@@ -145,6 +146,18 @@ export const az = {
     },
   },
   analytics: {
+    progress: {
+      label: "Sorğunun mərhələləri",
+      starting: "Sorğu qəbul edilir…",
+      retrieval: "Mənbələr axtarılır…",
+      sources: "Mənbələr hazırlanır…",
+      generation: "Analitik cavab hazırlanır…",
+      validation: "Cavab və istinadlar yoxlanılır…",
+      validatedOnly: "Cavab yoxlama tamamlandıqdan sonra göstəriləcək.",
+    },
+    historyLoading: "Sorğunun nəticəsi yüklənir…",
+    historyRunningBody:
+      "Bu sorğu hələ emal olunur. Nəticəni görmək üçün bir qədər sonra yenidən açın.",
     historyTitle: "Son sor\u011fular",
     historyEmpty: "Yadda saxlanm\u0131\u015f sor\u011fu yoxdur.",
     historyFailed:

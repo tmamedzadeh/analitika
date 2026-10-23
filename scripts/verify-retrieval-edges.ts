@@ -170,9 +170,9 @@ try {
       },
     });
     assert.ok(restricted.some((s) => s.documentId === ids[1]));
-    assert.equal(rerankCalls, 0);
+    assert.equal(rerankCalls, 1);
     checks.push(
-      "Higher-clearance local retrieval remains available; query classification prevents external rerank dispatch",
+      "Higher-clearance authorized retrieval uses enabled reranking without classification-based AI gates",
     );
     const controller = new AbortController();
     controller.abort();

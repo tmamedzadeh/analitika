@@ -21,7 +21,7 @@
 
 ## Accepted risks and deferred work
 
-- Current runtime does not read/enforce `AI_EXTERNAL_ALLOWED_CLASSIFICATIONS` or `AI_EXTERNAL_POLICY_REFERENCE`. Active-account/clearance/source checks protect application access but do not prohibit external AI for authorized text at a higher classification. Owner authorization covers the current test corpus, not future real classified data. An appropriate separately approved processing environment is required before introducing that data.
+- The owner authorizes Gemini for user-accessible material at every classification. Runtime does not read/enforce `AI_EXTERNAL_ALLOWED_CLASSIFICATIONS` or `AI_EXTERNAL_POLICY_REFERENCE`. Active-account, role, clearance and source checks still protect read access. Query embeddings, configured reranking and generation run outside DB transactions; short authorization checks precede actual dispatches/retries/fallback and final publication. A later revocation suppresses publication but cannot recall already dispatched provider input. Live verification still needs separate authorization and corpus-preserving test isolation.
 - Gemini gateway owns quota/Retry-After attempts; SDK automatic retries are disabled. A generation timeout includes queueing, retries and waits. Concurrency remains process-local.
 - Real production revision, cloud event processing and scheduled recovery require post-deployment evidence. Local HTTP/controlled provider checks cannot establish those facts.
 - Detailed operational logging remains deferred. Error details are currently redacted in worker logs to avoid exposing user content.

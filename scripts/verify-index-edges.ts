@@ -164,6 +164,7 @@ try {
               title: "Synthetic edited lifecycle",
               body: "Synthetic edited brief now has 43 units.",
               status: "published",
+              classification: "open",
               keepAttachmentIds: [],
               uploads: [],
             },

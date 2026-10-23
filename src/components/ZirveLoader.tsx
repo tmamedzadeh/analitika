@@ -58,7 +58,7 @@ export function ZirveLoader({
 
   if (variant === "button") {
     return (
-      <span aria-hidden="true" className="zirve-loader-button">
+      <span aria-hidden="true" className={`zirve-loader-button ${visible ? "is-visible" : ""}`}>
         <span className="zirve-loader-button-core" />
       </span>
     );
@@ -83,18 +83,31 @@ export function ZirveLoader({
 export function ZirveSkeleton({
   label = az.loader.loading,
   rows = 3,
+  delayMs = 180,
   className = "",
 }: {
   label?: string;
   rows?: number;
+  delayMs?: number;
   className?: string;
 }) {
+  const [visible, setVisible] = useState(delayMs <= 0);
+  useEffect(() => {
+    if (delayMs <= 0) {
+      setVisible(true);
+      return;
+    }
+    const timeout = window.setTimeout(() => setVisible(true), delayMs);
+    return () => window.clearTimeout(timeout);
+  }, [delayMs]);
   return (
     <div
       role="status"
       aria-live="polite"
       aria-busy="true"
       aria-label={label}
+      data-visible={visible}
+      style={{ opacity: visible ? 1 : 0 }}
       className={`zirve-skeleton ${className}`.trim()}
     >
       {Array.from({ length: Math.max(1, Math.min(rows, 8)) }, (_, index) => (
@@ -104,6 +117,50 @@ export function ZirveSkeleton({
           className={`zirve-skeleton-line ${index === 0 ? "zirve-skeleton-line-heading" : ""}`}
         />
       ))}
+    </div>
+  );
+}
+
+/** Both labels occupy the same grid cell so pending actions keep their width. */
+export function ZirveActionLabel({
+  busy,
+  label,
+  pendingLabel,
+}: {
+  busy: boolean;
+  label: string;
+  pendingLabel: string;
+}) {
+  return (
+    <span className="zirve-action-label">
+      <span className="zirve-action-text">
+        <span aria-hidden={busy} style={{ visibility: busy ? "hidden" : "visible" }}>
+          {label}
+        </span>
+        <span aria-hidden={!busy} style={{ visibility: busy ? "visible" : "hidden" }}>
+          {pendingLabel}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+export function ZirveQueryIndicator({ fetching }: { fetching: boolean }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    setVisible(false);
+    if (!fetching) return;
+    const timer = window.setTimeout(() => setVisible(true), 180);
+    return () => window.clearTimeout(timer);
+  }, [fetching]);
+  return (
+    <div className="flex min-h-8 items-center gap-2 text-xs text-muted-foreground" role="status">
+      {fetching && visible && (
+        <>
+          <ZirveLoader variant="inline" delayMs={0} />
+          {az.loader.updating}
+        </>
+      )}
     </div>
   );
 }

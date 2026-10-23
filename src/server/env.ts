@@ -36,6 +36,7 @@ export const serverEnvSchema = z.object({
   INNGEST_EVENT_KEY: optionalValue,
   INNGEST_SIGNING_KEY: optionalValue,
   ENABLE_RERANK: z.enum(["true", "false"]).default("false"),
+  ENABLE_CONTEXT_EXPANSION: z.enum(["true", "false"]).default("false"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

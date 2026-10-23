@@ -39,7 +39,7 @@ Schema was deployed before application code; the additive migration gives old ru
 
 Editor choices come from the live account; new records default to open, existing records retain their classification, previews/cards/details share document labels and badge styling. Classification-only edits preserve index state/chunks and emit no indexing request. Access changes immediately through the parent row without waiting for reindexing.
 
-The existing external-processing boundary is unchanged: owner authorization covers the current test corpus for Gemini. Real future classified documents need separately approved external-processing arrangements before ingestion; this change grants no blanket approval.
+Historical policy note: this report originally recorded authorization limited to the test corpus. The owner subsequently authorized Gemini for user-accessible materials at all classifications in Phase 2a. Current policy and transaction boundaries are documented in [Executive Analytics V1](../analytics-v1.md). Original integration evidence below records its own execution time and does not establish current production readiness.
 
 ## Validation and production boundary
 

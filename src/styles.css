@@ -339,8 +339,8 @@
 
 .analytics-action {
   display: inline-flex;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 35px;
+  min-height: 20px;
   align-items: center;
   justify-content: center;
   border-radius: 0.65rem;
@@ -560,5 +560,92 @@
   .zirve-loader-button::before,
   .zirve-skeleton-line {
     animation: none;
+  }
+}
+
+.zirve-loader-button {
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+.zirve-loader-button.is-visible {
+  opacity: 1;
+}
+.zirve-action-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.zirve-action-text {
+  display: inline-grid;
+}
+.zirve-action-text > span {
+  grid-area: 1 / 1;
+}
+.analytics-progress {
+  border-top: 1px solid var(--color-border);
+  padding-top: 1.25rem;
+}
+.analytics-progress-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+.analytics-progress-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+}
+.analytics-progress-dot {
+  display: inline-flex;
+  flex: 0 0 1.4rem;
+  height: 1.4rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  font-size: 0.65rem;
+}
+.analytics-progress-steps [data-state="active"] {
+  color: var(--color-foreground);
+}
+.analytics-progress-steps [data-state="active"] .analytics-progress-dot {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+.analytics-progress-steps [data-state="active"] .analytics-progress-dot {
+  position: relative;
+}
+.analytics-progress-steps [data-state="active"] .analytics-progress-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 1px solid transparent;
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: zirve-loader-orbit 3s linear infinite;
+}
+.analytics-progress-steps [data-state="complete"] .analytics-progress-dot {
+  color: var(--color-primary);
+  background: var(--color-accent);
+  border-color: transparent;
+}
+@media (max-width: 640px) {
+  .analytics-progress-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zirve-loader-button,
+  .analytics-history button {
+    transition: none;
+  }
+  .analytics-progress-dot::after {
+    animation: none !important;
   }
 }

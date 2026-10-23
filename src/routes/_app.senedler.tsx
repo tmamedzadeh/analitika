@@ -4,7 +4,7 @@ import { Paperclip, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Shell } from "@/components/Shell";
-import { ZirveLoader } from "@/components/ZirveLoader";
+import { ZirveSkeleton, ZirveActionLabel, ZirveQueryIndicator } from "@/components/ZirveLoader";
 import { Button } from "@/components/ui/button";
 import { ClassificationBadge } from "@/components/ClassificationBadge";
 import { listDocuments, retryDocumentIndexing } from "@/lib/documents.functions";
@@ -115,7 +115,9 @@ function DocumentLibrary() {
           ))}
         </select>
       </div>
-      {documents.isPending && <ZirveLoader variant="compact" label={az.documents.loading} />}
+      <ZirveQueryIndicator
+        fetching={!documents.isPending && documents.isFetching && !documents.isFetchingNextPage}
+      />
       {documents.isError && (
         <div role="alert" className="panel p-6 text-sm text-destructive">
           {az.documents.loadError}{" "}
@@ -124,7 +126,14 @@ function DocumentLibrary() {
           </Button>
         </div>
       )}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        aria-busy={documents.isPending}
+      >
+        {documents.isPending &&
+          Array.from({ length: 6 }, (_, index) => (
+            <ZirveSkeleton key={index} label={az.documents.loading} rows={5} className="min-h-48" />
+          ))}
         {items.map((document) => (
           <article
             key={document.id}
@@ -170,9 +179,14 @@ function DocumentLibrary() {
                 variant="outline"
                 className="relative z-10 self-start rounded-full"
                 disabled={retryingId === document.id}
+                aria-busy={retryingId === document.id}
                 onClick={() => void retry(document.id)}
               >
-                {retryingId === document.id ? az.documents.retrying : az.documents.retry}
+                <ZirveActionLabel
+                  busy={retryingId === document.id}
+                  label={az.documents.retry}
+                  pendingLabel={az.documents.retrying}
+                />
               </Button>
             )}
           </article>
@@ -189,10 +203,14 @@ function DocumentLibrary() {
             variant="outline"
             className="rounded-full"
             disabled={documents.isFetchingNextPage}
+            aria-busy={documents.isFetchingNextPage}
             onClick={() => void documents.fetchNextPage()}
           >
-            {documents.isFetchingNextPage && <ZirveLoader variant="inline" label="" />}
-            {az.documentLibrary.loadMore}
+            <ZirveActionLabel
+              busy={documents.isFetchingNextPage}
+              label={az.documentLibrary.loadMore}
+              pendingLabel={az.documents.loading}
+            />
           </Button>
         </div>
       )}

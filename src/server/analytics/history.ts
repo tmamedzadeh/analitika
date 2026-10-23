@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { analyticsFiltersSchema, citedSourceNumbers } from "@/lib/analytics";
@@ -17,6 +17,13 @@ import { hasCommittedDocumentIndex } from "./filters";
 import { hasCommittedBriefIndex } from "../briefs/index-state";
 import type { InfoCredibility, SourceReliability } from "@/lib/reliability";
 import { validateCitations } from "./citations";
+import {
+  contextChunkProjection,
+  contextChunks,
+  contextFingerprint,
+  contextFingerprintSchema,
+  type AnalyticsContext,
+} from "./context-identity";
 
 const sourceSnapshotSchema = z.object({
   n: z.number().int().positive(),
@@ -33,9 +40,11 @@ const sourceSnapshotSchema = z.object({
   model: z.string().default(""),
   durationMs: z.number().int().nonnegative().default(0),
   createdAt: z.string().default(""),
+  // Private provenance only: no text, citation number or standalone source entry.
+  contextChunks: z.array(contextFingerprintSchema).min(1).max(13).optional(),
 });
 
-export type AnalyticsHistorySource = z.infer<typeof sourceSnapshotSchema> & {
+export type AnalyticsHistorySource = Omit<z.infer<typeof sourceSnapshotSchema>, "contextChunks"> & {
   available: boolean;
   preview?: AnalyticsSourcePreview | null;
 };
@@ -46,9 +55,10 @@ export function buildAnalyticsHistorySnapshot(
   model: string,
   durationMs: number,
   createdAt: Date,
+  context?: AnalyticsContext,
 ) {
   const cited = citedSourceNumbers(answer);
-  const snapshots = sources.map((source) => ({
+  const snapshots = sources.map((source, index) => ({
     n: source.n,
     documentId: source.documentId,
     briefId: source.briefId,
@@ -60,6 +70,9 @@ export function buildAnalyticsHistorySnapshot(
     model,
     durationMs,
     createdAt: createdAt.toISOString(),
+    ...(index === 0 && context
+      ? { contextChunks: contextChunks(context).map(contextFingerprint) }
+      : {}),
   }));
   const classificationOrder = ["open", "secret", "top_secret", "special"];
   const maxClassification = snapshots.reduce(
@@ -317,8 +330,9 @@ export async function getAnalyticsHistoryRecord(id: string) {
           attachmentCount: 0,
         };
       }
+      const { contextChunks: _privateContext, ...publicSource } = source;
       resolved.push({
-        ...source,
+        ...publicSource,
         available,
         preview: available ? preview : null,
         ...(available
@@ -339,6 +353,39 @@ export async function getAnalyticsHistoryRecord(id: string) {
     }
     const filters = analyticsFiltersSchema.safeParse(row.filters);
     if (!filters.success) return null;
+    // All authorized parent locks above remain held. One bounded query checks the
+    // complete generation context, even when expansion has since been switched OFF.
+    const fingerprints = snapshots.flatMap((source) => source.contextChunks ?? []);
+    let unavailableContext = false;
+    if (fingerprints.length) {
+      unavailableContext =
+        fingerprints.length > 13 ||
+        new Set(fingerprints.map((item) => item.id)).size !== fingerprints.length ||
+        resolved.some((source) => !source.available) ||
+        fingerprints.some(
+          (chunk) =>
+            !resolved.some(
+              (source) =>
+                source.available &&
+                source.documentId === chunk.documentId &&
+                source.briefId === chunk.briefId,
+            ),
+        );
+      if (!unavailableContext) {
+        const current = await db
+          .select(contextChunkProjection)
+          .from(chunks)
+          .where(
+            inArray(
+              chunks.id,
+              fingerprints.map((item) => item.id),
+            ),
+          )
+          .for("share");
+        const byId = new Map(current.map((chunk) => [chunk.id, contextFingerprint(chunk)]));
+        unavailableContext = fingerprints.some((item) => byId.get(item.id)?.digest !== item.digest);
+      }
+    }
     // Child source reads can outlast a clearance/role change. Recheck query metadata last.
     const [stillVisible] = await db
       .select({ id: analyticsQueries.id })
@@ -356,6 +403,7 @@ export async function getAnalyticsHistoryRecord(id: string) {
       source.available && source.chunkId && source.preview ? [source.preview] : [],
     );
     const unavailableCitation =
+      unavailableContext ||
       resolved.some((source) => !source.available || !source.chunkId) ||
       validateCitations(row.answer ?? "", verifiedSources).incomplete;
     return {

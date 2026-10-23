@@ -1,14 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AnalyticsSource } from "@/lib/analytics";
-import { sameAnalyticsSourceSet, withAnalyticsSourceAccess } from "./source-access";
+import {
+  assertAnalyticsQueryAccess,
+  requireAnalyticsSourceAccess,
+  sameAnalyticsSourceSet,
+  withAnalyticsSourceAccess,
+} from "./source-access";
+import { AuthorizationError } from "@/server/auth";
 
-const mocks = vi.hoisted(() => ({ query: vi.fn() }));
+const mocks = vi.hoisted(() => ({ query: vi.fn(), transactionDepth: 0 }));
 vi.mock("@/server/db", async () => {
   const { drizzle } = await import("drizzle-orm/pg-proxy");
   return {
-    getDb: () => ({
-      transaction: (publish: (db: unknown) => unknown) => publish(drizzle(mocks.query)),
-    }),
+    getDb: () => {
+      const db = drizzle(mocks.query);
+      return {
+        select: db.select.bind(db),
+        transaction: async (publish: (db: unknown) => unknown) => {
+          mocks.transactionDepth++;
+          try {
+            return await publish(db);
+          } finally {
+            mocks.transactionDepth--;
+          }
+        },
+      };
+    },
   };
 });
 
@@ -43,11 +60,14 @@ function arrange(
     documentId?: string | null;
     charEnd?: number;
     brief?: boolean;
+    clearance?: string;
   } = {},
 ) {
   mocks.query.mockImplementation(async (query: string) => {
     if (query.startsWith('select "id", "clearance" from "app_users"'))
-      return { rows: options.active === false ? [] : [["reader", "special"]] };
+      return { rows: options.active === false ? [] : [["reader", options.clearance ?? "special"]] };
+    if (query.startsWith('select "clearance" from "app_users"'))
+      return { rows: options.active === false ? [] : [[options.clearance ?? "special"]] };
     if (query.includes('from "chunks"'))
       return {
         rows:
@@ -78,6 +98,30 @@ beforeEach(() => {
 });
 
 describe("source publication authorization", () => {
+  it("releases snapshot locks before external work and rejects a later revocation", async () => {
+    const user = { id: "reader", clearance: "secret" as const };
+    const available = await requireAnalyticsSourceAccess([source], user);
+    expect(mocks.transactionDepth).toBe(0);
+    expect(available).toHaveLength(1);
+    arrange({ chunk: false });
+    await expect(requireAnalyticsSourceAccess(available, user)).rejects.toBeInstanceOf(
+      AuthorizationError,
+    );
+    expect(mocks.transactionDepth).toBe(0);
+  });
+
+  it.each([{ active: false }, { clearance: "open" }])(
+    "rejects a revoked question before embedding without opening a transaction: %j",
+    async (options) => {
+      arrange(options);
+      await expect(
+        assertAnalyticsQueryAccess({ id: "reader", clearance: "secret" }),
+      ).rejects.toBeInstanceOf(AuthorizationError);
+      expect(mocks.query).toHaveBeenCalledOnce();
+      expect(mocks.query.mock.calls[0]?.[0]).not.toContain("for share");
+      expect(mocks.transactionDepth).toBe(0);
+    },
+  );
   it("locks the live account, current parent and exact fragment while publishing", async () => {
     const publish = vi.fn((available) => available);
     const result = await withAnalyticsSourceAccess([source], "reader", publish);
@@ -146,6 +190,8 @@ describe("citation mapping integrity across publication checks", () => {
     [source, { ...other, n: 3 }],
     [source, { ...other, documentId: "other-parent" }],
     [source, { ...other, sourceKind: "brief" as const }],
+    [source, { ...other, text: "changed evidence" }],
+    [source, { ...other, charStart: 1 }],
     [source],
   ])("rejects a changed citation-to-fragment mapping: %j", (...actual) => {
     expect(sameAnalyticsSourceSet([source, other], actual)).toBe(false);

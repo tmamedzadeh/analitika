@@ -1,0 +1,102 @@
+{
+  "status": "PASS",
+  "providerCalls": 0,
+  "databaseCalls": 0,
+  "tokenMeasurement": "Exact provider token overhead not measured. Bounds cover characters/UTF-8 bytes, including instructions.",
+  "caveat": "Hand-selected synthetic cases are not a corpus hit-rate or semantic-quality benchmark; protection was not weakened.",
+  "results": [
+    {
+      "id": "boundary_interpretation",
+      "description": "Controlled cut sentence with familiar vocabulary in a new boundary order",
+      "primaryChunks": 2,
+      "auxiliaryChunks": 2,
+      "baseChars": 3948,
+      "additionalChars": 614,
+      "additionalBytes": 631,
+      "increasePercent": 15.55,
+      "excerpts": [
+        {
+          "position": "before",
+          "text": "Bu texniki xidmət imkanlarını zavod mərhələli şəkildə inkişaf etdirir və"
+        },
+        {
+          "position": "after",
+          "text": "və zavod istehsal imkanlarını inkişaf etdirir."
+        }
+      ],
+      "conclusion": "Only boundary interpretation/restatement; no independent added fact or proven model-quality gain"
+    },
+    {
+      "id": "self_contained",
+      "description": "Complete uppercase-start, terminal-period evidence",
+      "primaryChunks": 2,
+      "auxiliaryChunks": 0,
+      "baseChars": 3950,
+      "additionalChars": 0,
+      "additionalBytes": 0,
+      "increasePercent": 0,
+      "excerpts": [],
+      "conclusion": "Safe baseline; no expansion"
+    },
+    {
+      "id": "auxiliary_new_fact",
+      "description": "New quantity and factual vocabulary appear only in neighbors",
+      "primaryChunks": 2,
+      "auxiliaryChunks": 0,
+      "baseChars": 3948,
+      "additionalChars": 0,
+      "additionalBytes": 0,
+      "increasePercent": 0,
+      "excerpts": [],
+      "conclusion": "Safe baseline; no expansion"
+    },
+    {
+      "id": "different_section",
+      "description": "Adjacent ord belongs to another section",
+      "primaryChunks": 2,
+      "auxiliaryChunks": 0,
+      "baseChars": 3948,
+      "additionalChars": 0,
+      "additionalBytes": 0,
+      "increasePercent": 0,
+      "excerpts": [],
+      "conclusion": "Safe baseline; no expansion"
+    },
+    {
+      "id": "different_model",
+      "description": "Adjacent ord has an incompatible embedding generation",
+      "primaryChunks": 2,
+      "auxiliaryChunks": 0,
+      "baseChars": 3948,
+      "additionalChars": 0,
+      "additionalBytes": 0,
+      "increasePercent": 0,
+      "excerpts": [],
+      "conclusion": "Safe baseline; no expansion"
+    },
+    {
+      "id": "no_neighbor",
+      "description": "No available neighbor returned from the authorized read",
+      "primaryChunks": 2,
+      "auxiliaryChunks": 0,
+      "baseChars": 3948,
+      "additionalChars": 0,
+      "additionalBytes": 0,
+      "increasePercent": 0,
+      "excerpts": [],
+      "conclusion": "Safe baseline; no expansion"
+    },
+    {
+      "id": "ordinary_chunked_prose",
+      "description": "Real chunker over synthetic Azerbaijani prose; selection frequency is observed, not a quality target",
+      "primaryChunks": 2,
+      "auxiliaryChunks": 0,
+      "baseChars": 3580,
+      "additionalChars": 0,
+      "additionalBytes": 0,
+      "increasePercent": 0,
+      "excerpts": [],
+      "conclusion": "Safe baseline; no expansion"
+    }
+  ]
+}

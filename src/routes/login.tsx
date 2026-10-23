@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
-import { ZirveLoader } from "@/components/ZirveLoader";
+import { ZirveActionLabel } from "@/components/ZirveLoader";
 import { az } from "@/lib/i18n/az";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
@@ -136,14 +136,11 @@ function LoginPage() {
               aria-busy={pending}
               className="glow inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70"
             >
-              {pending ? (
-                <>
-                  <ZirveLoader variant="button" label={az.auth.signingIn} />
-                  {az.auth.signingIn}
-                </>
-              ) : (
-                az.auth.signIn
-              )}
+              <ZirveActionLabel
+                busy={pending}
+                label={az.auth.signIn}
+                pendingLabel={az.auth.signingIn}
+              />
             </button>
           </form>
         </div>

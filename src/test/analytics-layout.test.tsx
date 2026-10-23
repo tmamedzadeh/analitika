@@ -339,7 +339,7 @@ describe("analytics search layout", () => {
     expect(screen.queryByRole("button", { name: az.analytics.copy })).toBeNull();
     expect(screen.queryByRole("button", { name: az.analytics.regenerate })).toBeNull();
     expect(screen.queryAllByRole("article")).toHaveLength(0);
-    expect(historyItem).not.toHaveAttribute("aria-current", "true");
+    expect(historyItem).toHaveAttribute("aria-current", "true");
   });
   it("places recent queries on the right and sources below the synthesis", async () => {
     vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
@@ -370,7 +370,7 @@ describe("analytics search layout", () => {
       screen.getByText(az.analytics.emptyState).compareDocumentPosition(sourcesTitle) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(screen.getByText(az.analytics.historyEmpty)).toBeInTheDocument();
+    expect(await screen.findByText(az.analytics.historyEmpty)).toBeInTheDocument();
     const toggle = screen.getByRole("button", { name: az.analytics.historyTitle });
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "false");
@@ -428,7 +428,7 @@ describe("analytics regeneration and transport", () => {
     });
     expect(screen.getByRole("heading", { name: "Original question" })).toBeInTheDocument();
     await act(async () => finish!(response("New answer [8].")));
-    expect(await screen.findByText(/New answer/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/New answer/)).toBeInTheDocument());
   });
   it("lists each cited material once and keeps chunk-level citation numbers", async () => {
     vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
@@ -442,7 +442,13 @@ describe("analytics regeneration and transport", () => {
     // Eight retrieved fragments from seven materials; only one material is cited.
     expect(screen.getAllByRole("article")).toHaveLength(1);
     expect(screen.queryByText("Synthetic source 3")).toBeNull();
-    expect(screen.getByText(new RegExp(materialCounts(7, 8, "retrieved")))).toBeInTheDocument();
+    // Answer mode counts only its cited evidence in the answer and source headers.
+    // Retrieval-only mode has a separate test; uncited results must not inflate these counts.
+    expect(screen.getAllByText(materialCounts(1, 2, "cited"))).toHaveLength(2);
+    expect(
+      screen.getByText(az.analytics.citedFragmentsCount.replace("{count}", "2")),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(materialCounts(7, 8, "cited"))).toBeNull();
     for (const n of [2, 8]) {
       for (const link of screen.getAllByRole("link", {
         name: az.analytics.openSource.replace("{n}", String(n)),
@@ -577,6 +583,7 @@ describe("analytics regeneration and transport", () => {
       );
     });
     expect(screen.getByText("Synthetic source 2")).toBeInTheDocument();
+    expect(screen.queryByText(/Partial answer/)).toBeNull();
     await act(async () => {
       streamController!.enqueue(
         encoder.encode(
@@ -589,5 +596,148 @@ describe("analytics regeneration and transport", () => {
     expect(screen.queryByText("Synthetic source 2")).toBeNull();
     expect(screen.queryByText(/Partial answer/)).toBeNull();
     expect(screen.queryByRole("button", { name: az.analytics.regenerate })).toBeNull();
+  });
+});
+
+describe("phase 2b history and progress lifecycle", () => {
+  const saved = (id: string) => ({
+    id,
+    query: `Question ${id}`,
+    filters: {
+      period: "7d" as const,
+      directionIds: [...directionIds],
+      minSourceReliability: "all" as const,
+      minInfoCredibility: "all" as const,
+    },
+    answer: `Answer ${id}.`,
+    status: "done" as const,
+    sources: [],
+    model: "test",
+    durationMs: 100,
+    createdAt: "2026-10-22T08:00:00Z",
+  });
+
+  it("selects and clears immediately, deduplicates pending clicks and rejects stale success and failure", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([saved("A"), saved("B")]);
+    let finishA!: (value: ReturnType<typeof saved>) => void;
+    let failB!: (error: Error) => void;
+    vi.mocked(getAnalyticsQueryHistory)
+      .mockResolvedValueOnce(saved("A"))
+      .mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject) => {
+            failB = reject;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishA = resolve;
+          }),
+      );
+    await openAnalytics();
+    const a = await screen.findByRole("button", { name: /Question A/ });
+    const b = screen.getByRole("button", { name: /Question B/ });
+    fireEvent.click(a);
+    await screen.findByText("Answer A.");
+    const calls = vi.mocked(getAnalyticsQueryHistory).mock.calls.length;
+    fireEvent.click(b);
+    fireEvent.click(b);
+    expect(vi.mocked(getAnalyticsQueryHistory).mock.calls.length).toBe(calls + 1);
+    expect(b).toHaveAttribute("aria-current", "true");
+    expect(b).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByText("Answer A.")).toBeNull();
+    expect(screen.getByRole("status", { name: az.analytics.historyLoading })).toBeInTheDocument();
+    fireEvent.click(a);
+    const oldSignal = vi.mocked(getAnalyticsQueryHistory).mock.calls.at(-2)![0]!.signal;
+    expect(oldSignal?.aborted).toBe(true);
+    await act(async () => failB(new Error("late failure")));
+    expect(a).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByRole("alert")).toBeNull();
+    await act(async () => finishA(saved("A")));
+    await waitFor(() => expect(screen.getByText("Answer A.")).toBeInTheDocument());
+    expect(a).toHaveAttribute("aria-current", "true");
+    expect(a).toHaveAttribute("aria-busy", "false");
+  });
+
+  it("keeps a newer history result when an older ignored-abort request succeeds", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([saved("A"), saved("B")]);
+    let finishA!: (value: ReturnType<typeof saved>) => void;
+    vi.mocked(getAnalyticsQueryHistory)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishA = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(saved("B"));
+    await openAnalytics();
+    fireEvent.click(await screen.findByRole("button", { name: /Question A/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Question B/ }));
+    await screen.findByText("Answer B.");
+    await act(async () => finishA(saved("A")));
+    expect(screen.getByText("Answer B.")).toBeInTheDocument();
+    expect(screen.queryByText("Answer A.")).toBeNull();
+  });
+
+  it("parses fragmented CRLF milestones, ignores unknown progress, and releases on final before EOF", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
+    let controller!: ReadableStreamDefaultController<Uint8Array>;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          new ReadableStream({
+            start(value) {
+              controller = value;
+            },
+          }),
+        ),
+      ),
+    );
+    await openAnalytics();
+    fireEvent.change(screen.getByLabelText(az.analytics.questionLabel), {
+      target: { value: "Question" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.searchButton }));
+    const send = async (text: string) =>
+      act(async () => {
+        controller.enqueue(new TextEncoder().encode(text));
+      });
+    await send('data: {"type":"progress","stage":"retrieval"}\r\n\r');
+    await send('\ndata: {"type":"progress","stage":"unknown"}\r\n\r\n');
+    expect(document.querySelector(".analytics-progress")).toHaveAttribute(
+      "data-stage",
+      "retrieval",
+    );
+    await send('data: {"type":"final","answer":"Checked result."}\r\n\r\n');
+    await waitFor(() => expect(screen.getByText("Checked result.")).toBeInTheDocument());
+    expect(document.querySelector(".analytics-progress")).toBeNull();
+    expect(screen.getByRole("button", { name: az.analytics.regenerate })).toBeEnabled();
+    await send('data: {"type":"error","message":"Late error"}\r\n\r\n');
+    expect(screen.queryByRole("alert")).toBeNull();
+    await act(async () => controller.close());
+  });
+
+  it("clears pending at the client deadline even when transport ignores abort", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => {})),
+    );
+    await openAnalytics();
+    vi.useFakeTimers();
+    try {
+      fireEvent.change(screen.getByLabelText(az.analytics.questionLabel), {
+        target: { value: "Question" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: az.analytics.searchButton }));
+      await act(async () => vi.advanceTimersByTimeAsync(ANALYTICS_CLIENT_DEADLINE_MS));
+      expect(screen.getByRole("alert")).toHaveTextContent(az.analytics.timeout);
+      expect(document.querySelector(".analytics-progress")).toBeNull();
+      expect(screen.getByRole("button", { name: az.analytics.searchButton })).toBeEnabled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

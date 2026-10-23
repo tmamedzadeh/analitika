@@ -4,25 +4,29 @@ import type { AnalyticsSource } from "@/lib/analytics";
 import { getDb } from "@/server/db";
 import { briefAccessFilter, documentAccessFilter } from "@/server/db/access";
 import { appUsers, chunks, dailyBriefs, documents } from "@/server/db/schema";
+import { assertLockedAnalyticsContext, type AnalyticsContextChunk } from "./context-identity";
 import { hasCommittedDocumentIndex } from "./filters";
 import { hasCommittedBriefIndex } from "../briefs/index-state";
-import { AuthorizationError } from "../auth";
+import { AuthorizationError, canAccessClassification, type SessionUser } from "../auth";
+import type { Clearance } from "@/lib/classification";
 
-/** Questions have no separate classification field in V1; use the live user's clearance. */
-export async function withAnalyticsQueryAccess<T>(
-  userId: string,
-  use: (classification: string) => T | Promise<T>,
-): Promise<T> {
-  return getDb().transaction(async (transaction) => {
-    const [user] = await transaction
-      .select({ clearance: appUsers.clearance })
-      .from(appUsers)
-      .where(and(eq(appUsers.id, userId), eq(appUsers.active, true)))
-      .for("share")
-      .limit(1);
-    if (!user) throw new AuthorizationError();
-    return use(user.clearance);
-  });
+type AnalyticsUser = Pick<SessionUser, "id" | "clearance">;
+
+/** The question retains its entry clearance, including when all sources are open. */
+export function assertAnalyticsQuestionAccess(user: AnalyticsUser, liveClearance: string): void {
+  if (!canAccessClassification({ clearance: liveClearance as Clearance }, user.clearance))
+    throw new AuthorizationError();
+}
+
+/** One current-account read; no transaction or lock spans an embedding request. */
+export async function assertAnalyticsQueryAccess(user: AnalyticsUser): Promise<void> {
+  const [activeUser] = await getDb()
+    .select({ clearance: appUsers.clearance })
+    .from(appUsers)
+    .where(and(eq(appUsers.id, user.id), eq(appUsers.active, true)))
+    .limit(1);
+  if (!activeUser) throw new AuthorizationError();
+  assertAnalyticsQuestionAccess(user, activeUser.clearance);
 }
 
 export async function recheckAnalyticsSourceAccess(
@@ -32,185 +36,152 @@ export async function recheckAnalyticsSourceAccess(
   return (await withAnalyticsSourceAccess(sources, userId, (available) => available)).sources;
 }
 
-export async function withAnalyticsCandidateAccess<T>(
-  documentIds: readonly string[],
-  briefIds: readonly string[],
-  userId: string,
-  rerank: (access: {
-    documentIds: ReadonlySet<string>;
-    briefIds: ReadonlySet<string>;
-    chunkIds: ReadonlySet<string>;
-    queryClassification: string;
-  }) => T | Promise<T>,
-  candidateChunkIds: readonly string[] = [],
-): Promise<T> {
-  return getDb().transaction(async (transaction) => {
-    const [activeUser] = await transaction
-      .select({ id: appUsers.id, clearance: appUsers.clearance })
-      .from(appUsers)
-      .where(and(eq(appUsers.id, userId), eq(appUsers.active, true)))
-      .for("share")
-      .limit(1);
-    if (!activeUser)
-      return rerank({
-        documentIds: new Set(),
-        briefIds: new Set(),
-        chunkIds: new Set(),
-        queryClassification: "unknown",
-      });
-
-    const [documentsAllowed, briefsAllowed] = await Promise.all([
-      documentIds.length
-        ? transaction
-            .select({ id: documents.id })
-            .from(documents)
-            .where(
-              and(
-                inArray(documents.id, [...documentIds]),
-                hasCommittedDocumentIndex(),
-                documentAccessFilter({ id: userId }),
-              ),
-            )
-            .for("share")
-        : Promise.resolve([]),
-      briefIds.length
-        ? transaction
-            .select({ id: dailyBriefs.id, classification: dailyBriefs.classification })
-            .from(dailyBriefs)
-            .where(
-              and(
-                inArray(dailyBriefs.id, [...briefIds]),
-                eq(dailyBriefs.status, "published"),
-                hasCommittedBriefIndex(),
-                briefAccessFilter({ id: userId }),
-              ),
-            )
-            .for("share")
-        : Promise.resolve([]),
-    ]);
-    const currentChunks = candidateChunkIds.length
-      ? await transaction
-          .select({ id: chunks.id })
-          .from(chunks)
-          .where(inArray(chunks.id, [...candidateChunkIds]))
-          .for("share")
-      : [];
-    return rerank({
-      documentIds: new Set(documentsAllowed.map((document) => document.id)),
-      briefIds: new Set(briefsAllowed.map((brief) => brief.id)),
-      chunkIds: new Set(currentChunks.map((chunk) => chunk.id)),
-      queryClassification: activeUser.clearance,
-    });
-  });
+/** Resolve before each provider dispatch/retry; the transaction ends before returning. */
+export async function requireAnalyticsSourceAccess(
+  sources: readonly AnalyticsSource[],
+  user: AnalyticsUser,
+  expectedContext: readonly AnalyticsContextChunk[] = [],
+): Promise<AnalyticsSource[]> {
+  const result = await withAnalyticsSourceAccess(
+    sources,
+    user.id,
+    (available, liveClearance) => {
+      assertAnalyticsQuestionAccess(user, liveClearance);
+      if (!sameAnalyticsSourceSet(sources, available)) throw new AuthorizationError();
+      return available;
+    },
+    expectedContext,
+  );
+  return result.value;
 }
 
-/** Run a brief publication step while live user/document rows are locked against revocation. */
+type Synchronous<T> = T & (T extends PromiseLike<unknown> ? never : unknown);
+
+/** Only synchronous snapshot/publication work belongs inside these short row locks. */
 export async function withAnalyticsSourceAccess<T>(
   sources: readonly AnalyticsSource[],
   userId: string,
-  publish: (available: AnalyticsSource[], queryClassification: string) => T | Promise<T>,
+  publish: (available: AnalyticsSource[], queryClassification: string) => Synchronous<T>,
+  expectedContext: readonly AnalyticsContextChunk[] = [],
 ): Promise<{ sources: AnalyticsSource[]; value: T }> {
-  const db = getDb();
+  return getDb().transaction(async (transaction) => {
+    const access = await readLockedAnalyticsSources(transaction, sources, userId);
+    if (expectedContext.length) {
+      if (!sameAnalyticsSourceSet(sources, access.sources)) throw new AuthorizationError();
+      await assertLockedAnalyticsContext(transaction, sources, expectedContext);
+    }
+    return { sources: access.sources, value: publish(access.sources, access.clearance) };
+  });
+}
+
+export type AnalyticsTransaction = Parameters<
+  Parameters<ReturnType<typeof getDb>["transaction"]>[0]
+>[0];
+
+/** DB reads only. The caller must own the transaction; never await a provider here. */
+export async function readLockedAnalyticsSources(
+  transaction: AnalyticsTransaction,
+  sources: readonly AnalyticsSource[],
+  userId: string,
+): Promise<{ sources: AnalyticsSource[]; clearance: string }> {
   const documentIds = [
     ...new Set(sources.flatMap((source) => (source.documentId ? [source.documentId] : []))),
   ];
   const briefIds = [
     ...new Set(sources.flatMap((source) => (source.briefId ? [source.briefId] : []))),
   ];
-  return db.transaction(async (transaction) => {
-    const [activeUser] = await transaction
-      .select({ id: appUsers.id, clearance: appUsers.clearance })
-      .from(appUsers)
-      .where(and(eq(appUsers.id, userId), eq(appUsers.active, true)))
-      .for("share")
-      .limit(1);
-    if (!activeUser) {
-      const available: AnalyticsSource[] = [];
-      return { sources: available, value: await publish(available, "unknown") };
-    }
-    const [accessibleDocuments, accessibleBriefs] = await Promise.all([
-      documentIds.length
-        ? transaction
-            .select({ id: documents.id, classification: documents.classification })
-            .from(documents)
-            .where(
-              and(
-                inArray(documents.id, documentIds),
-                hasCommittedDocumentIndex(),
-                documentAccessFilter({ id: userId }),
-              ),
-            )
-            .for("share")
-        : Promise.resolve([]),
-      briefIds.length
-        ? transaction
-            .select({ id: dailyBriefs.id, classification: dailyBriefs.classification })
-            .from(dailyBriefs)
-            .where(
-              and(
-                inArray(dailyBriefs.id, briefIds),
-                eq(dailyBriefs.status, "published"),
-                hasCommittedBriefIndex(),
-                briefAccessFilter({ id: userId }),
-              ),
-            )
-            .for("share")
-        : Promise.resolve([]),
-    ]);
-    const currentChunks = sources.length
-      ? await transaction
-          .select({
-            id: chunks.id,
-            documentId: chunks.documentId,
-            briefId: chunks.briefId,
-            text: chunks.text,
-            charStart: chunks.charStart,
-            charEnd: chunks.charEnd,
-          })
-          .from(chunks)
+  const [activeUser] = await transaction
+    .select({ id: appUsers.id, clearance: appUsers.clearance })
+    .from(appUsers)
+    .where(and(eq(appUsers.id, userId), eq(appUsers.active, true)))
+    .for("share")
+    .limit(1);
+  if (!activeUser) {
+    const available: AnalyticsSource[] = [];
+    return { sources: available, clearance: "unknown" };
+  }
+  const [accessibleDocuments, accessibleBriefs] = await Promise.all([
+    documentIds.length
+      ? transaction
+          .select({ id: documents.id, classification: documents.classification })
+          .from(documents)
           .where(
-            inArray(
-              chunks.id,
-              sources.map((source) => source.chunkId),
+            and(
+              inArray(documents.id, documentIds),
+              hasCommittedDocumentIndex(),
+              documentAccessFilter({ id: userId }),
             ),
           )
           .for("share")
-      : [];
-    const chunkById = new Map(currentChunks.map((chunk) => [chunk.id, chunk]));
-    const documentById = new Map(accessibleDocuments.map((document) => [document.id, document]));
-    const briefById = new Map(accessibleBriefs.map((brief) => [brief.id, brief]));
-    const available = sources
-      .flatMap((source, index) => {
-        const chunk = chunkById.get(source.chunkId);
-        if (
-          !chunk ||
-          chunk.documentId !== source.documentId ||
-          chunk.briefId !== source.briefId ||
-          chunk.text !== source.text ||
-          chunk.charStart !== source.charStart ||
-          chunk.charEnd !== source.charEnd
+      : Promise.resolve([]),
+    briefIds.length
+      ? transaction
+          .select({ id: dailyBriefs.id, classification: dailyBriefs.classification })
+          .from(dailyBriefs)
+          .where(
+            and(
+              inArray(dailyBriefs.id, briefIds),
+              eq(dailyBriefs.status, "published"),
+              hasCommittedBriefIndex(),
+              briefAccessFilter({ id: userId }),
+            ),
+          )
+          .for("share")
+      : Promise.resolve([]),
+  ]);
+  const currentChunks = sources.length
+    ? await transaction
+        .select({
+          id: chunks.id,
+          documentId: chunks.documentId,
+          briefId: chunks.briefId,
+          text: chunks.text,
+          charStart: chunks.charStart,
+          charEnd: chunks.charEnd,
+        })
+        .from(chunks)
+        .where(
+          inArray(
+            chunks.id,
+            sources.map((source) => source.chunkId),
+          ),
         )
-          return [];
-        if (source.sourceKind === "document" && source.documentId) {
-          const document = documentById.get(source.documentId);
-          return document
-            ? [{ ...source, n: index + 1, classification: document.classification }]
-            : [];
-        }
-        if (source.sourceKind === "brief" && source.briefId && briefById.has(source.briefId)) {
-          return [
-            {
-              ...source,
-              n: index + 1,
-              classification: briefById.get(source.briefId)!.classification,
-            },
-          ];
-        }
+        .for("share")
+    : [];
+  const chunkById = new Map(currentChunks.map((chunk) => [chunk.id, chunk]));
+  const documentById = new Map(accessibleDocuments.map((document) => [document.id, document]));
+  const briefById = new Map(accessibleBriefs.map((brief) => [brief.id, brief]));
+  const available = sources
+    .flatMap((source, index) => {
+      const chunk = chunkById.get(source.chunkId);
+      if (
+        !chunk ||
+        chunk.documentId !== source.documentId ||
+        chunk.briefId !== source.briefId ||
+        chunk.text !== source.text ||
+        chunk.charStart !== source.charStart ||
+        chunk.charEnd !== source.charEnd
+      )
         return [];
-      })
-      .map((source, index) => ({ ...source, n: index + 1 }));
-    return { sources: available, value: await publish(available, activeUser.clearance) };
-  });
+      if (source.sourceKind === "document" && source.documentId) {
+        const document = documentById.get(source.documentId);
+        return document
+          ? [{ ...source, n: index + 1, classification: document.classification }]
+          : [];
+      }
+      if (source.sourceKind === "brief" && source.briefId && briefById.has(source.briefId)) {
+        return [
+          {
+            ...source,
+            n: index + 1,
+            classification: briefById.get(source.briefId)!.classification,
+          },
+        ];
+      }
+      return [];
+    })
+    .map((source, index) => ({ ...source, n: index + 1 }));
+  return { sources: available, clearance: activeUser.clearance };
 }
 
 export function sameAnalyticsSourceSet(
@@ -228,7 +199,10 @@ export function sameAnalyticsSourceSet(
       source.chunkId === candidate.chunkId &&
       source.sourceKind === candidate.sourceKind &&
       source.documentId === candidate.documentId &&
-      source.briefId === candidate.briefId
+      source.briefId === candidate.briefId &&
+      source.text === candidate.text &&
+      source.charStart === candidate.charStart &&
+      source.charEnd === candidate.charEnd
     );
   });
 }

@@ -17,20 +17,26 @@ const mocks = vi.hoisted(() => ({
     },
   ),
   updateHistory: vi.fn(async (_id: string, _value: unknown) => undefined),
-  createHistory: vi.fn(async (_value: unknown) => undefined),
+  createHistory: vi.fn(async (_value: unknown): Promise<void> => undefined),
 }));
 
 vi.mock("./rate-limit", () => ({ consumeAnalyticsRateLimit: vi.fn(async () => true) }));
 vi.mock("./search", () => ({ searchDocumentChunks: mocks.search }));
-vi.mock("./source-access", () => ({
-  withAnalyticsSourceAccess: mocks.withSourceAccess,
-  sameAnalyticsSourceSet: (
-    expected: readonly AnalyticsSource[],
-    actual: readonly AnalyticsSource[],
-  ) =>
-    expected.length === actual.length &&
-    expected.every((source) => actual.some((candidate) => candidate.chunkId === source.chunkId)),
-}));
+vi.mock("./source-access", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./source-access")>();
+  return {
+    ...actual,
+    withAnalyticsSourceAccess: mocks.withSourceAccess,
+    requireAnalyticsSourceAccess: async (sources: AnalyticsSource[], user: SessionUser) => {
+      const result = await mocks.withSourceAccess(sources, user.id, (available, clearance) => {
+        actual.assertAnalyticsQuestionAccess(user, clearance);
+        if (!actual.sameAnalyticsSourceSet(sources, available)) throw new AuthorizationError();
+        return available;
+      });
+      return result.value;
+    },
+  };
+});
 vi.mock("./history", () => ({
   buildAnalyticsHistorySnapshot: vi.fn(() => ({ snapshots: [], maxClassification: "open" })),
   createAnalyticsHistoryRecord: mocks.createHistory,
@@ -38,7 +44,13 @@ vi.mock("./history", () => ({
 }));
 vi.mock("@/server/ai/gemini", () => ({
   createGeminiProviders: () => ({
-    analytics: { model: "test-model", generateTextWithMetadata: mocks.generate },
+    analytics: {
+      model: "test-model",
+      generateTextWithMetadata: async (input: TextGenerationInput) => {
+        await input.beforeRequest?.();
+        return mocks.generate(input);
+      },
+    },
   }),
 }));
 vi.mock("@/server/config", () => ({ getAppConfig: () => ({ analyticsThinkingLevel: "low" }) }));
@@ -46,8 +58,10 @@ vi.mock("../prompts/analytics", () => ({
   buildAnalyticsPrompt: mocks.buildPrompt,
 }));
 import { directionIds } from "@/lib/directions";
-import { withCurrentUser, type SessionUser } from "@/server/auth";
+import { AuthorizationError, withCurrentUser, type SessionUser } from "@/server/auth";
+import type { TextGenerationInput } from "@/server/ai/types";
 import { handleAnalyticsSearchRequest } from "./endpoint";
+import { consumeAnalyticsRateLimit } from "./rate-limit";
 
 const user: SessionUser = {
   id: "analytics-user",
@@ -168,12 +182,97 @@ describe("analytics stream access and cancellation", () => {
     await vi.waitFor(() => expect(providerSignal).toBeDefined());
     client.abort();
     const response = await pending;
-    expect(response.status).toBe(499);
+    expect(response.status).toBe(200);
+    expect(await response.text()).not.toContain('"type":"final"');
     expect(providerSignal?.aborted).toBe(true);
     expect(mocks.updateHistory).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ status: "cancelled" }),
     );
+  });
+
+  it("opens SSE before retrieval resolves and publishes only real ordered milestones", async () => {
+    let finish!: (value: AnalyticsSource[]) => void;
+    mocks.search.mockImplementationOnce(
+      () =>
+        new Promise<AnalyticsSource[]>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let output = decoder.decode((await reader.read()).value);
+    output += decoder.decode((await reader.read()).value);
+    expect(output).toContain('"stage":"retrieval"');
+    expect(output).not.toContain('"type":"sources"');
+    expect(mocks.generate).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(finish).toBeDefined());
+    finish([source]);
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      output += decoder.decode(part.value);
+    }
+    const events = output
+      .trim()
+      .split("\n\n")
+      .map((frame) => JSON.parse(frame.slice(6)));
+    expect(events.map((event) => (event.type === "progress" ? event.stage : event.type))).toEqual([
+      "starting",
+      "retrieval",
+      "sources",
+      "sources",
+      "generation",
+      "validation",
+      "final",
+    ]);
+    expect(
+      events
+        .filter((event) => event.type === "progress")
+        .every((event) => Object.keys(event).sort().join() === "stage,type"),
+    ).toBe(true);
+    expect(mocks.search).toHaveBeenCalledOnce();
+    expect(mocks.generate).toHaveBeenCalledOnce();
+  });
+
+  it.each(["empty", "sources"])(
+    "skips nonexistent generation stages for %s results",
+    async (scenario) => {
+      if (scenario === "empty") mocks.search.mockResolvedValueOnce([]);
+      const response = await withCurrentUser(user, () =>
+        handleAnalyticsSearchRequest(
+          request(undefined, scenario === "sources" ? "sources" : "answer"),
+        ),
+      );
+      const output = await response.text();
+      expect(output).toContain('"type":"final"');
+      expect(output).not.toContain('"stage":"generation"');
+      expect(output).not.toContain('"stage":"validation"');
+      expect(mocks.generate).not.toHaveBeenCalled();
+    },
+  );
+
+  it("returns validation to generation for the existing retry without publishing the draft", async () => {
+    mocks.generate.mockResolvedValueOnce({ text: "PRIVATE_DRAFT [1]", finishReason: "length" });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = await response.text();
+    const stages = [...output.matchAll(/"type":"progress","stage":"([^"]+)"/g)].map(
+      (match) => match[1],
+    );
+    expect(stages).toEqual([
+      "starting",
+      "retrieval",
+      "sources",
+      "generation",
+      "validation",
+      "generation",
+      "validation",
+    ]);
+    expect(output).not.toContain("PRIVATE_DRAFT");
+    expect((output.match(/"type":"final"/g) ?? []).length).toBe(1);
+    expect(mocks.generate).toHaveBeenCalledTimes(2);
   });
 
   it("aborts answer generation and marks history cancelled when the stream is cancelled", async () => {
@@ -306,6 +405,150 @@ describe("analytics stream access and cancellation", () => {
     expect(stream).not.toContain('"type":"final"');
     expect(mocks.generate).toHaveBeenCalledOnce();
     expect(vi.mocked(console.error).mock.calls.join(" ")).toContain('"errorCategory":"timeout"');
+  });
+
+  it("enforces the overall deadline when retrieval ignores its abort signal", async () => {
+    vi.useFakeTimers();
+    mocks.search.mockImplementation(() => new Promise(() => {}));
+    const pending = withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    await vi.advanceTimersByTimeAsync(105_000);
+    const response = await pending;
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('"type":"error"');
+    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed" }),
+    );
+  });
+
+  it("includes a stalled rate-limit DB read in the absolute deadline", async () => {
+    vi.useFakeTimers();
+    vi.mocked(consumeAnalyticsRateLimit).mockImplementationOnce(() => new Promise(() => {}));
+    const pending = withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    await vi.advanceTimersByTimeAsync(105_000);
+    expect((await pending).status).toBe(504);
+    expect(mocks.createHistory).not.toHaveBeenCalled();
+    expect(mocks.search).not.toHaveBeenCalled();
+  });
+
+  it("terminates SSE even when the provider ignores cancellation", async () => {
+    vi.useFakeTimers();
+    mocks.generate.mockImplementation(() => new Promise(() => {}));
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = response.text();
+    await vi.advanceTimersByTimeAsync(105_000);
+    expect(await output).toContain('"type":"error"');
+    expect(mocks.generate).toHaveBeenCalledOnce();
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed" }),
+    );
+  });
+
+  it("finishes a validated SSE response within budget when terminal history persistence stalls", async () => {
+    vi.useFakeTimers();
+    mocks.updateHistory.mockImplementationOnce(() => new Promise<undefined>(() => {}));
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = response.text();
+    await vi.advanceTimersByTimeAsync(105_000);
+    const stream = await output;
+    expect(stream).toContain('"type":"final"');
+    expect(stream).not.toContain('"type":"error"');
+    expect(mocks.updateHistory).toHaveBeenCalledOnce();
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "done" }),
+    );
+  });
+
+  it("finalizes a history insert that completes after the request deadline", async () => {
+    vi.useFakeTimers();
+    let inserted!: () => void;
+    mocks.createHistory.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          inserted = resolve;
+        }),
+    );
+    const pending = withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    await vi.advanceTimersByTimeAsync(105_000);
+    const response = await pending;
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('"type":"error"');
+    expect(mocks.search).not.toHaveBeenCalled();
+    expect(mocks.updateHistory).not.toHaveBeenCalled();
+    inserted();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed", durationMs: 105_000 }),
+    );
+  });
+
+  it("rejects a validation retry if a source was replaced after the first completion", async () => {
+    let revoked = false;
+    mocks.withSourceAccess.mockImplementation(async (sources, _id, publish) => {
+      const available = revoked ? [] : [...sources];
+      return { sources: available, value: publish(available, "secret") };
+    });
+    mocks.generate.mockImplementationOnce(async () => {
+      revoked = true;
+      return { text: "unpublishable private draft", finishReason: "length" };
+    });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = await response.text();
+    expect(output).toContain('"type":"error"');
+    expect(output).not.toContain("private draft");
+    expect(mocks.generate).toHaveBeenCalledOnce();
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed", sources: [], answer: "" }),
+    );
+  });
+
+  it("rechecks question access before a no-sources final response", async () => {
+    mocks.search.mockResolvedValue([]);
+    let checks = 0;
+    mocks.withSourceAccess.mockImplementation(async (sources, _id, publish) => ({
+      sources: [...sources],
+      value: publish([...sources], ++checks === 1 ? "secret" : "open"),
+    }));
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = await response.text();
+    expect(output).toContain('"type":"error"');
+    expect(output).not.toContain('"type":"final"');
+  });
+
+  it("retains done history when disconnect follows a final event before lock release", async () => {
+    let checks = 0;
+    let release!: () => void;
+    mocks.withSourceAccess.mockImplementation(async (sources, _id, publish) => {
+      const available = [...sources];
+      const value = publish(available, "secret");
+      if (++checks === 3)
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+      return { sources: available, value };
+    });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const reader = response.body!.getReader();
+    let frame = "";
+    while (!frame.includes('"type":"final"')) {
+      const chunk = await reader.read();
+      expect(chunk.done).toBe(false);
+      frame = new TextDecoder().decode(chunk.value);
+    }
+    await reader.cancel();
+    release();
+    await vi.waitFor(() =>
+      expect(mocks.updateHistory).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ status: "done", answer: "answer [1]" }),
+      ),
+    );
+    expect(mocks.updateHistory).toHaveBeenCalledOnce();
   });
 
   it("allows 75-second reasoning after retrieval without a 60-second generation cap", async () => {

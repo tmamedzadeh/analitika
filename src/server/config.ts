@@ -12,5 +12,6 @@ export function getAppConfig() {
     embeddingDimensions: 768 as const,
     analyticsThinkingLevel: env.ANALYTICS_THINKING_LEVEL,
     enableRerank: env.ENABLE_RERANK === "true",
+    enableContextExpansion: env.ENABLE_CONTEXT_EXPANSION === "true",
   };
 }

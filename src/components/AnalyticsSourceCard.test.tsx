@@ -128,13 +128,13 @@ describe("grouped analytics source card", () => {
         infoCredibility: null,
       }),
     ]);
-    expect(screen.getByText(az.analytics.materialBrief)).toBeInTheDocument();
+    expect(screen.getByText(az.analytics.materialBrief, { selector: "span" })).toBeInTheDocument();
     expect(screen.queryByText(new RegExp(az.reliability.sourceBadge))).toBeNull();
     expect(screen.getByRole("link", { name: az.analytics.openBrief })).toHaveAttribute(
       "href",
       "/brifler/brief-b?chunk=chunk-2",
     );
-    expect(screen.getByText(az.analytics.materialBrief)).toBeInTheDocument();
+    expect(screen.getByText(az.analytics.materialBrief, { selector: "span" })).toBeInTheDocument();
   });
 
   it("renders an unavailable history material without exposing stale text", () => {

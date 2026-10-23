@@ -76,6 +76,9 @@ describe("standard RAG analytics prompt", () => {
     const { system } = buildAnalyticsPrompt("Synthetic question", [source]);
     expect(system).toContain("təsdiqlənməmiş iddia");
     expect(system).toContain(az.analytics.noSources);
+    expect(system).toContain("A/1 qiyməti onun rəsmi sənəd olduğunu öz-özünə sübut etmir");
+    expect(system).toContain("yalnız reytinqə və sənəd növünə əsasən");
+    expect(system).toContain("'rəsmən təsdiqlənmiş' adlandırma");
   });
 
   it("adapts composition without prescribing a limitations section or a fixed sequence", () => {
@@ -144,18 +147,19 @@ describe("standard RAG analytics prompt", () => {
     const sections = prompt.split("\n\n---\n\n");
     expect(sections).toHaveLength(4);
     for (const [index, n, material] of [
-      [0, 1, 1],
-      [1, 3, 2],
-      [2, 6, 1],
-      [3, 10, 3],
-    ]) {
+      [0, 1, "[1], [6]"],
+      [1, 3, "[3]"],
+      [2, 6, "[1], [6]"],
+      [3, 10, "[10]"],
+    ] as const) {
       expect(sections[index!]).toContain(`[${n}]`);
-      expect(sections[index!]).toContain(`Material qrupu: M${material} (istinad nömrəsi deyil).`);
+      expect(sections[index!]).toContain(`Eyni ilkin materialın fraqmentləri: ${material}.`);
     }
     expect(prompt).not.toContain("doc-a");
     expect(prompt).not.toContain("doc-b");
     expect(system).toContain("fraqmentləri müstəqil mənbələr kimi təqdim etmə");
-    expect(system).toContain("M qrup kodlarını və texniki qrup etiketlərini cavab mətninə köçürmə");
+    expect(prompt).not.toMatch(/Material qrupu|\bM\d+\b/u);
+    expect(system).toContain("texniki qrup etiketi yaratma");
     expect(system).toContain("onun başlığından və ya aid olan [n] istinadlarından istifadə et");
     expect(system).toContain("İstinad sayına süni hədd qoyma");
     expect(system).toContain("onları dəyişmə və siyahıdan kənar nömrə yazma");
@@ -167,8 +171,9 @@ describe("standard RAG analytics prompt", () => {
       { ...source, n: 1, documentId: null, chunkId: "first" },
       { ...source, n: 3, documentId: null, chunkId: "second" },
     ]);
-    expect(prompt).toContain("Material qrupu: M1");
-    expect(prompt).toContain("Material qrupu: M2");
+    expect(prompt).toContain("Eyni ilkin materialın fraqmentləri: [1].");
+    expect(prompt).toContain("Eyni ilkin materialın fraqmentləri: [3].");
+    expect(prompt).not.toContain("[1], [3]");
   });
 
   it.each([

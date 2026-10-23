@@ -29,7 +29,12 @@ import { briefAccessFilter, documentAccessFilter, getCurrentUser } from "@/serve
 import { attachments, briefAttachments, chunks, dailyBriefs, documents } from "@/server/db/schema";
 import { documentConditions, hasCommittedDocumentIndex, minimumDocDate } from "./filters";
 import { reciprocalRankFusion, resolveQueryEmbedding, settleRetrievalBranches } from "./ranking";
-import { withAnalyticsCandidateAccess, withAnalyticsQueryAccess } from "./source-access";
+import {
+  assertAnalyticsQueryAccess,
+  assertAnalyticsQuestionAccess,
+  requireAnalyticsSourceAccess,
+  withAnalyticsSourceAccess,
+} from "./source-access";
 import { hasCommittedBriefIndex } from "../briefs/index-state";
 import { getBakuDate } from "@/lib/briefs";
 import { withAiDiagnostics } from "@/server/ai/diagnostics";
@@ -112,24 +117,28 @@ export async function searchDocumentChunks(
   const db = getDb();
   const providers = createGeminiProviders();
   const config = getAppConfig();
+  const currentUser = getCurrentUser();
+  await assertAnalyticsQueryAccess(currentUser);
+  options.signal?.throwIfAborted();
   const embeddingModel = options.embeddingModel ?? providers.embeddings.model;
   const embeddingResolution = await resolveQueryEmbedding({
     ...(options.embedding ? { provided: options.embedding } : {}),
     dimensions: config.embeddingDimensions,
     embed: () =>
       withAiDiagnostics({ stage: "query_embedding" }, () =>
-        withAnalyticsQueryAccess(getCurrentUser().id, () => {
-          return providers.embeddings.embedQuery(query, {
-            maxAttempts: options.maxEmbeddingAttempts ?? 1,
-            signal: options.signal
-              ? AbortSignal.any([options.signal, AbortSignal.timeout(15_000)])
-              : AbortSignal.timeout(15_000),
-          });
+        providers.embeddings.embedQuery(query, {
+          maxAttempts: options.maxEmbeddingAttempts ?? 1,
+          beforeRequest: () => assertAnalyticsQueryAccess(currentUser),
+          signal: options.signal
+            ? AbortSignal.any([options.signal, AbortSignal.timeout(15_000)])
+            : AbortSignal.timeout(15_000),
         }),
       ),
   });
   const embedding = embeddingResolution.embedding;
   options.signal?.throwIfAborted();
+  // An authorization failure must never turn into a permissive lexical fallback.
+  await assertAnalyticsQueryAccess(currentUser);
   const embeddingFailure = embeddingResolution.failure;
 
   const vectorLiteral = embedding ? `[${embedding.join(",")}]` : undefined;
@@ -224,56 +233,59 @@ export async function searchDocumentChunks(
     (config.enableRerank && config.lightModel
       ? new GeminiRerankProvider(providers.light)
       : undefined);
-  const currentUser = getCurrentUser();
-  const reranked = await withAnalyticsCandidateAccess(
-    [...new Set(candidates.flatMap(({ item }) => (item.documentId ? [item.documentId] : [])))],
-    [...new Set(candidates.flatMap(({ item }) => (item.briefId ? [item.briefId] : [])))],
+  const candidateSources: AnalyticsSource[] = candidates.map(({ item }, index) => {
+    const quote = item.text.replace(/\s+/g, " ").trim();
+    const { id: _id, ...source } = item;
+    return {
+      ...source,
+      n: index + 1,
+      sourceKind: item.sourceKind as AnalyticsSource["sourceKind"],
+      quote: quote.length > 360 ? quote.slice(0, 357) + "…" : quote,
+      attachmentCount: 0,
+      sourceReliability: item.sourceReliability as AnalyticsSource["sourceReliability"],
+      infoCredibility: item.infoCredibility as AnalyticsSource["infoCredibility"],
+    };
+  });
+  const access = await withAnalyticsSourceAccess(
+    candidateSources,
     currentUser.id,
-    async ({
-      documentIds: accessibleDocuments,
-      briefIds: accessibleBriefs,
-      chunkIds: accessibleChunks,
-    }) => {
-      const accessibleCandidates = candidates.filter(
-        ({ item }) =>
-          accessibleChunks.has(item.chunkId) &&
-          (item.documentId
-            ? accessibleDocuments.has(item.documentId)
-            : item.briefId
-              ? accessibleBriefs.has(item.briefId)
-              : false),
-      );
-      if (!accessibleCandidates.length) return { candidates: [], ids: [] as string[] };
-      const ids = await withAiDiagnostics({ stage: "rerank" }, () =>
-        rerankOrderOrOriginal(
-          query,
-          accessibleCandidates.map(({ item }) => ({
-            id: item.chunkId,
-            excerpt: item.text.slice(0, 500),
-          })),
-          rerankProvider,
-          options.enableRerank ?? config.enableRerank,
-          undefined,
-          options.signal,
-        ),
-      );
-      return { candidates: accessibleCandidates, ids };
+    (available, liveClearance) => {
+      assertAnalyticsQuestionAccess(currentUser, liveClearance);
+      return available;
     },
-    candidates.map(({ item }) => item.chunkId),
   );
-  const candidateById = new Map(
-    reranked.candidates.map((candidate) => [candidate.item.chunkId, candidate]),
-  );
+  const accessibleCandidates = access.sources;
   options.signal?.throwIfAborted();
-  const fused = reranked.ids
+  const ids = await withAiDiagnostics({ stage: "rerank" }, () =>
+    rerankOrderOrOriginal(
+      query,
+      accessibleCandidates.map((source) => ({
+        id: source.chunkId,
+        excerpt: source.text.slice(0, 500),
+      })),
+      rerankProvider,
+      options.enableRerank ?? config.enableRerank,
+      undefined,
+      options.signal,
+      async () => {
+        await requireAnalyticsSourceAccess(accessibleCandidates, currentUser);
+      },
+    ),
+  );
+  // Include every excerpt sent to rerank, even if it falls outside the final ten.
+  options.signal?.throwIfAborted();
+  await requireAnalyticsSourceAccess(accessibleCandidates, currentUser);
+  const candidateById = new Map(accessibleCandidates.map((source) => [source.chunkId, source]));
+  options.signal?.throwIfAborted();
+  const fused = ids
     .map((id) => candidateById.get(id))
-    .filter((candidate): candidate is (typeof candidates)[number] => candidate !== undefined)
+    .filter((candidate): candidate is AnalyticsSource => candidate !== undefined)
     .slice(0, RESULT_LIMIT);
 
   const documentIds = [
-    ...new Set(fused.flatMap(({ item }) => (item.documentId ? [item.documentId] : []))),
+    ...new Set(fused.flatMap((item) => (item.documentId ? [item.documentId] : []))),
   ];
-  const briefIds = [...new Set(fused.flatMap(({ item }) => (item.briefId ? [item.briefId] : [])))];
+  const briefIds = [...new Set(fused.flatMap((item) => (item.briefId ? [item.briefId] : [])))];
   const [documentCounts, briefCounts] = await Promise.all([
     documentIds.length
       ? db
@@ -295,25 +307,11 @@ export async function searchDocumentChunks(
   const countByDocument = new Map(documentCounts.map((row) => [row.id, Number(row.total)]));
   const countByBrief = new Map(briefCounts.map((row) => [row.id, Number(row.total)]));
 
-  return fused.map(({ item }, index) => {
-    const quote = item.text.replace(/\s+/g, " ").trim();
-    const sourceKind = item.sourceKind as AnalyticsSource["sourceKind"];
+  return fused.map((item, index) => {
+    const sourceKind = item.sourceKind;
     return {
+      ...item,
       n: index + 1,
-      sourceKind,
-      chunkId: item.chunkId,
-      documentId: item.documentId,
-      briefId: item.briefId,
-      title: item.title,
-      docDate: item.docDate,
-      briefDate: item.briefDate,
-      direction: item.direction,
-      sectionTitle: item.sectionTitle,
-      text: item.text,
-      quote: quote.length > 360 ? quote.slice(0, 357) + "…" : quote,
-      charStart: item.charStart,
-      charEnd: item.charEnd,
-      isTable: item.isTable,
       attachmentCount:
         sourceKind === "brief"
           ? item.briefId
@@ -322,9 +320,6 @@ export async function searchDocumentChunks(
           : item.documentId
             ? (countByDocument.get(item.documentId) ?? 0)
             : 0,
-      sourceReliability: item.sourceReliability as AnalyticsSource["sourceReliability"],
-      infoCredibility: item.infoCredibility as AnalyticsSource["infoCredibility"],
-      classification: item.classification,
     };
   });
 }

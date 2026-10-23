@@ -6,10 +6,7 @@ import {
   requireProjectEvaluationDatabase,
 } from "../src/server/evaluation-safety";
 import { searchDocumentChunks } from "../src/server/analytics/search";
-import {
-  withAnalyticsSourceAccess,
-  sameAnalyticsSourceSet,
-} from "../src/server/analytics/source-access";
+import { requireAnalyticsSourceAccess } from "../src/server/analytics/source-access";
 import { getCurrentUser } from "../src/server/auth";
 import { directionIds } from "../src/lib/directions";
 import { createGeminiProviders } from "../src/server/ai/gemini";
@@ -49,67 +46,72 @@ try {
     const started = Date.now();
     const result = await withProjectEvaluationUser(async () => {
       const sources = await searchDocumentChunks(item.query, filters, { enableRerank: false });
-      return withAnalyticsSourceAccess(sources, getCurrentUser().id, async (available) => {
-        if (!sameAnalyticsSourceSet(sources, available)) throw new Error("Source access changed.");
-        for (const source of available) {
+      const user = getCurrentUser();
+      const available = await requireAnalyticsSourceAccess(sources, user);
+      const beforeRequest = async () => {
+        const current = await requireAnalyticsSourceAccess(available, user);
+        for (const source of current) {
           if (source.classification !== "open")
             throw new Error("Live generation probe accepts open sources only.");
         }
-        const prompt = buildAnalyticsPrompt(item.query, available);
-        const provider = createGeminiProviders().analytics;
-        let attempts = 0;
-        let validation: ReturnType<typeof validateCitations> | undefined;
-        let finishReason = "";
-        let completedModel = provider.model;
-        for (; attempts < 2; attempts++) {
-          const generated = await provider.generateTextWithMetadata({
-            ...prompt,
-            timeoutMs: 45_000,
-            maxAttempts: 2,
-            ...(attempts
-              ? {
-                  system:
-                    prompt.system +
-                    "\nTam cavab yaz və yalnız təqdim edilmiş mənbə nömrələrinə istinad et. Məlumat kifayət etmirsə, bunu açıq bildir.",
-                }
-              : {}),
-          });
-          validation = validateCitations(generated.text, available);
-          completedModel = generated.model ?? provider.model;
-          // Open sources only. Raw answers/excerpts stay ignored for manual review.
-          diagnosticAnswers.push({
-            id: item.id,
-            attempt: attempts + 1,
-            answer: generated.text,
-            validation,
-            sources: available.map((source) => ({ n: source.n, text: source.text })),
-          });
-          finishReason = generated.finishReason;
-          if (canPublishAnalyticsAnswer(generated.text, finishReason, validation)) {
-            attempts++;
-            break;
-          }
-        }
-        const noAnswer = validation?.answer.trim() === az.analytics.noSources;
-        const publishable = validation
-          ? canPublishAnalyticsAnswer(validation.answer, finishReason, validation)
-          : false;
-        return {
+      };
+      await beforeRequest();
+      const prompt = buildAnalyticsPrompt(item.query, available);
+      const provider = createGeminiProviders().analytics;
+      let attempts = 0;
+      let validation: ReturnType<typeof validateCitations> | undefined;
+      let finishReason = "";
+      let completedModel = provider.model;
+      for (; attempts < 2; attempts++) {
+        const generated = await provider.generateTextWithMetadata({
+          ...prompt,
+          timeoutMs: 45_000,
+          maxAttempts: 2,
+          beforeRequest,
+          ...(attempts
+            ? {
+                system:
+                  prompt.system +
+                  "\nTam cavab yaz və yalnız təqdim edilmiş mənbə nömrələrinə istinad et. Məlumat kifayət etmirsə, bunu açıq bildir.",
+              }
+            : {}),
+        });
+        validation = validateCitations(generated.text, available);
+        completedModel = generated.model ?? provider.model;
+        // Open sources only. Raw answers/excerpts stay ignored for manual review.
+        diagnosticAnswers.push({
           id: item.id,
-          model: completedModel,
-          expectedNoAnswer: item.noAnswer,
-          actualNoAnswer: noAnswer,
-          sourceCount: available.length,
-          publishable,
-          validationFailureReasons: validation?.failureReasons,
-          attempts,
-          status: publishable && noAnswer === item.noAnswer ? "PASS" : "FAIL",
-          elapsedMs: Date.now() - started,
-        };
-      });
+          attempt: attempts + 1,
+          answer: generated.text,
+          validation,
+          sources: available.map((source) => ({ n: source.n, text: source.text })),
+        });
+        finishReason = generated.finishReason;
+        if (canPublishAnalyticsAnswer(generated.text, finishReason, validation)) {
+          attempts++;
+          break;
+        }
+      }
+      await beforeRequest();
+      const noAnswer = validation?.answer.trim() === az.analytics.noSources;
+      const publishable = validation
+        ? canPublishAnalyticsAnswer(validation.answer, finishReason, validation)
+        : false;
+      return {
+        id: item.id,
+        model: completedModel,
+        expectedNoAnswer: item.noAnswer,
+        actualNoAnswer: noAnswer,
+        sourceCount: available.length,
+        publishable,
+        validationFailureReasons: validation?.failureReasons,
+        attempts,
+        status: publishable && noAnswer === item.noAnswer ? "PASS" : "FAIL",
+        elapsedMs: Date.now() - started,
+      };
     });
-    results.push(result.value);
-    console.log(JSON.stringify(result.value));
+    results.push(result);
+    console.log(JSON.stringify(result));
   }
 } catch (error) {
   results.push({

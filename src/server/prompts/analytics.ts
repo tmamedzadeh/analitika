@@ -1,16 +1,26 @@
 import { analyticsSourceGroupKey, type AnalyticsSource } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
+import type { AnalyticsAuxiliaryContext } from "../analytics/context-identity";
+import {
+  AUXILIARY_SYSTEM_RULES,
+  CITABLE_EVIDENCE_PREFIX,
+  formatAuxiliaryContext,
+} from "../analytics/context-selection";
 
 export function buildAnalyticsPrompt(
   query: string,
   sources: readonly AnalyticsSource[],
   thinkingLevel: "low" | "medium" | "high" = "medium",
+  auxiliary: readonly AnalyticsAuxiliaryContext[] = [],
 ) {
-  const materials = new Map<string, number>();
+  const materials = new Map<string, number[]>();
+  for (const source of sources) {
+    const key = analyticsSourceGroupKey(source);
+    materials.set(key, [...(materials.get(key) ?? []), source.n]);
+  }
   const context = sources
     .map((source) => {
       const materialKey = analyticsSourceGroupKey(source);
-      if (!materials.has(materialKey)) materials.set(materialKey, materials.size + 1);
       const date =
         source.sourceKind === "brief"
           ? (source.briefDate ?? "tarix göstərilməyib")
@@ -30,7 +40,10 @@ export function buildAnalyticsPrompt(
           : [];
       return [
         "[" + source.n + "] " + label + " · " + source.title + " · " + section + " · " + date,
-        `Material qrupu: M${materials.get(materialKey)} (istinad nömrəsi deyil).`,
+        `Eyni ilkin materialın fraqmentləri: ${materials
+          .get(materialKey)!
+          .map((n) => `[${n}]`)
+          .join(", ")}.`,
         ratings.length
           ? ratings.join(" ")
           : "Etibarlılıq qiymətləndirilməyib; bu, aşağı etibarlılıq demək deyil.",
@@ -64,13 +77,19 @@ export function buildAnalyticsPrompt(
       "Etibarlılıq reytinqləri mənbələrin metadatasıdır. İstifadəçi birbaşa doğruluq və ya etibarlılıq haqqında soruşmursa, A–F və 1–6 qiymətlərini cavabın mətnində səbəbsiz təkrarlama. Standart etibarlılıq yekunu və formal yekun abzas əlavə etmə; qiymətlər kartlarda saxlanılır. Şübhəli məlumat barədə konkret xəbərdarlığı isə həmin iddianın yanında saxla.",
       "Sual birbaşa məlumatın doğruluğu, etibarlılığı və ya ziddiyyətləri haqqındadırsa, mövzunu tam təhlil et: təsdiqlənmiş faktları, təsdiqlənməmiş iddiaları, mənbələrin qiymətlərini və ziddiyyətləri izah et. Bu halda verilmiş A–F və 1–6 qiymətlərini mənaları ilə birlikdə izah et, mənbənin etibarlılığı ilə konkret məlumatın doğruluğunu ayır. Eyni ilkin mənbədən götürülmüş təkrar xəbərləri müstəqil təsdiq sayma; mövcud olmayan qiyməti uydurma. Quruluşu bu təhlilin ehtiyacına uyğun seç.",
       "Təsdiqlənməmiş iddianı təqdim edərkən mühüm məhdudiyyəti konkret olaraq həmin iddianın yanında qeyd et: məsələn, məlumatın anonim şəxsin bəyanatına əsaslandığını mənbə bunu göstərirsə bildir. Eyni məhdudiyyət bir neçə iddiaya aiddirsə, onu uyğun yerdə bir dəfə izah et; 'əlavə yoxlama lazımdır', 'qəti nəticə çıxarmaq olmaz', 'əlavə mənbələr tələb olunur' kimi ümumi ifadələri təkrar-təkrar yazma. Nəticəni əhəmiyyətli dərəcədə dəyişən qeyri-müəyyənliyi və mənbələr arasındakı real ziddiyyəti açıq göstər.",
-      "Eyni M material qrupuna aid fraqmentlər eyni ilkin materialdandır. M qrup kodlarını və texniki qrup etiketlərini cavab mətninə köçürmə; ortaq ilkin materialı izah edərkən onun başlığından və ya aid olan [n] istinadlarından istifadə et. Bir sənədin müxtəlif fraqmentləri ayrı istinad nömrələrinə malik ola bilər ([1], [3], [6] eyni sənədin üç fraqmenti ola bilər). Hər tezisi onu təsdiqləyən fraqmentin nömrəsi ilə əsaslandır; fraqmentləri müstəqil mənbələr kimi təqdim etmə. Eyni başlıq fərqli materialların eyni mənbə olduğunu sübut etmir.",
+      "Eyni ilkin materialın fraqmentləri ayrıca göstərilir; bu əlaqəni əlavə müstəqil təsdiq sayma. Ortaq ilkin materialı izah edərkən onun başlığından və ya aid olan [n] istinadlarından istifadə et; texniki qrup etiketi yaratma. Bir sənədin müxtəlif fraqmentləri ayrı istinad nömrələrinə malik ola bilər ([1], [3], [6] eyni sənədin üç fraqmenti ola bilər). Hər tezisi onu təsdiqləyən fraqmentin nömrəsi ilə əsaslandır; fraqmentləri müstəqil mənbələr kimi təqdim etmə. Eyni başlıq fərqli materialların eyni mənbə olduğunu sübut etmir.",
       "Mənbənin A/1 qiyməti onun rəsmi sənəd olduğunu öz-özünə sübut etmir; mənbənin statusunu uydurma. Mənbənin rəsmi statusu məzmunda göstərilmirsə, yalnız reytinqə və sənəd növünə əsasən onu 'rəsmi' və ya 'rəsmən təsdiqlənmiş' adlandırma. D/5 qiyməti və təsdiqləyici sənədin verilməməsi iddianın yalan olduğunu sübut etmir: onu 'təsdiqlənməmiş iddia' kimi təqdim et, avtomatik yanlış və ya etibarsız fakt adlandırma.",
       `Mənbələr sualı ümumiyyətlə cavablandırmırsa, bunu bildir: ${az.analytics.noSources}`,
+      ...(auxiliary.length ? [AUXILIARY_SYSTEM_RULES] : []),
     ].join("\n"),
-    prompt: ["Sual:", query, "", "Mənbə fraqmentləri:", context || "(uyğun fraqment yoxdur)"].join(
-      "\n",
-    ),
+    prompt: [
+      "Sual:",
+      query,
+      "",
+      (auxiliary.length ? CITABLE_EVIDENCE_PREFIX : "") + "Mənbə fraqmentləri:",
+      context || "(uyğun fraqment yoxdur)",
+      ...(auxiliary.length ? ["", formatAuxiliaryContext(sources, auxiliary)] : []),
+    ].join("\n"),
     thinkingLevel,
     maxOutputTokens: 4096,
   };

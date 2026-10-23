@@ -108,7 +108,7 @@ describe("document detail route", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("shows the page loader for a slow document request and removes it on success", async () => {
+  it("reserves a detail skeleton for a slow document request and removes it on success", async () => {
     let resolveDocument!: (value: Awaited<ReturnType<typeof getDocumentDetails>>) => void;
     vi.mocked(getDocumentDetails).mockImplementation(
       () => new Promise((resolve) => (resolveDocument = resolve)),
@@ -116,7 +116,10 @@ describe("document detail route", () => {
     const router = await makeRouter(`/senedler/${documentId}`);
     render(<RouterProvider router={router} />);
 
-    expect(await screen.findByRole("status")).toHaveTextContent(az.loader.loading);
+    expect(await screen.findByRole("status", { name: az.loader.loading })).toHaveClass(
+      "zirve-skeleton",
+      "min-h-64",
+    );
     await act(async () => {
       resolveDocument(detail as Awaited<ReturnType<typeof getDocumentDetails>>);
     });

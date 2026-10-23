@@ -5,6 +5,8 @@ import type { ModelFallback } from "@/lib/ai";
 export type ProviderRequestOptions = {
   maxAttempts?: GeminiAttemptLimit;
   signal?: AbortSignal;
+  /** Revalidate request data before every actual dispatch, including provider retries/fallback. */
+  beforeRequest?: () => Promise<void>;
 };
 
 export type ProviderUsageStats = {

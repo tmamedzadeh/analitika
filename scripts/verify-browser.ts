@@ -242,7 +242,11 @@ try {
       await page.getByLabel(az.briefs.searchLabel).fill(`${token} beta alfa`);
       await page.getByLabel(az.briefs.searchLabel).press("Enter");
       await page.getByRole("link", { name: title, exact: false }).first().waitFor();
-      await page.waitForFunction(() => document.querySelectorAll('a[href^="/brifler/"]:not([href="/brifler/yeni"])').length === 1);
+      await page.waitForFunction(
+        () =>
+          document.querySelectorAll('a[href^="/brifler/"]:not([href="/brifler/yeni"])').length ===
+          1,
+      );
       assert.equal(await page.locator(`a[href="/brifler/${createdBriefIds[0]}"]`).count(), 1);
       assert.equal(
         await page.locator('a[href^="/brifler/"]:not([href="/brifler/yeni"])').count(),

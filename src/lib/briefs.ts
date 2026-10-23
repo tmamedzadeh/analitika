@@ -211,4 +211,3 @@ export function briefRouteForSearchSource(source: {
     ? `/senedler/${encodeURIComponent(source.documentId)}?chunk=${encodeURIComponent(source.chunkId)}`
     : null;
 }
-

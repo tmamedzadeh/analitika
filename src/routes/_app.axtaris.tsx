@@ -4,15 +4,21 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { ChevronDown, History, Square } from "lucide-react";
 
+import { AnalyticsProgress } from "@/components/AnalyticsProgress";
 import { AnalyticsAnswer } from "@/components/AnalyticsAnswer";
 import { AnalyticsSourceCard } from "@/components/AnalyticsSourceCard";
 import { DirectionMultiSelect } from "@/components/DirectionMultiSelect";
 import { Shell } from "@/components/Shell";
-import { ZirveLoader } from "@/components/ZirveLoader";
-import type { AnalyticsFilters, AnalyticsSourcePreview } from "@/lib/analytics";
+import { ZirveLoader, ZirveSkeleton, ZirveActionLabel } from "@/components/ZirveLoader";
+import type {
+  AnalyticsFilters,
+  AnalyticsSourcePreview,
+  AnalyticsProgressStage,
+} from "@/lib/analytics";
 import {
   ANALYTICS_CLIENT_DEADLINE_MS,
   analyticsSourceCounts,
+  isAnalyticsProgressStage,
   citedSourceNumbers,
   groupAnalyticsSources,
 } from "@/lib/analytics";
@@ -69,7 +75,7 @@ function materialFragmentsLabel(
     .replace("{fragments}", fragmentsLabel);
 }
 
-function Analytics() {
+export function Analytics() {
   const queryClient = useQueryClient();
   const navigationScope = useId();
   const [question, setQuestion] = useState("");
@@ -91,9 +97,17 @@ function Analytics() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
   const searchLock = useRef(false);
-  const historyLock = useRef(false);
+  const historyLock = useRef<string | null>(null);
+  const operation = useRef(0);
+  const [stage, setStage] = useState<AnalyticsProgressStage>("starting");
   const activeRequest = useRef<AbortController | null>(null);
-  useEffect(() => () => activeRequest.current?.abort(), []);
+  useEffect(
+    () => () => {
+      operation.current++;
+      activeRequest.current?.abort();
+    },
+    [],
+  );
   const [selectedHistory, setSelectedHistory] =
     useState<Awaited<ReturnType<typeof getAnalyticsQueryHistory>>>(null);
   const noDirections = filters.directionIds.length === 0;
@@ -154,6 +168,11 @@ function Analytics() {
     queryFn: () => listRecentAnalyticsQueries(),
     refetchInterval: busy ? 2_000 : false,
   });
+  const displayedQuestion =
+    answerContext?.query ??
+    (historyLoading
+      ? historyQuery.data?.find((item) => item.id === activeHistoryId)?.query
+      : undefined);
 
   async function runSearch(
     mode: "answer" | "sources",
@@ -161,14 +180,14 @@ function Analytics() {
   ) {
     const normalizedQuestion = (override?.query ?? question).trim();
     const activeFilters = override?.filters ?? filters;
-    if (
-      !normalizedQuestion ||
-      searchLock.current ||
-      historyLock.current ||
-      activeFilters.directionIds.length === 0
-    )
+    if (!normalizedQuestion || searchLock.current || activeFilters.directionIds.length === 0)
       return;
+    activeRequest.current?.abort();
+    const token = ++operation.current;
+    historyLock.current = null;
+    setHistoryLoading(false);
     searchLock.current = true;
+    setStage("starting");
     // The displayed answer owns this immutable request, independent of subsequent form edits.
     setAnswerContext({
       query: normalizedQuestion,
@@ -190,10 +209,18 @@ function Analytics() {
 
     const abortController = new AbortController();
     activeRequest.current = abortController;
-    const timeoutId = window.setTimeout(
-      () => abortController.abort(new DOMException("Analytics deadline", "TimeoutError")),
-      ANALYTICS_CLIENT_DEADLINE_MS,
-    );
+    const timeoutId = window.setTimeout(() => {
+      abortController.abort(new DOMException("Analytics deadline", "TimeoutError"));
+      if (token !== operation.current || receivedTerminalEvent) return;
+      operation.current++;
+      searchLock.current = false;
+      activeRequest.current = null;
+      setBusy(false);
+      setAnswer("");
+      setSources([]);
+      setPageError(az.analytics.timeout);
+      void queryClient.invalidateQueries({ queryKey: ["analytics", "history"] });
+    }, ANALYTICS_CLIENT_DEADLINE_MS);
     let receivedTerminalEvent = false;
     try {
       const response = await fetch("/api/analytics/search", {
@@ -215,7 +242,7 @@ function Analytics() {
       const decoder = new TextDecoder();
       let buffer = "";
       const readEvent = (frame: string) => {
-        if (receivedTerminalEvent) return;
+        if (receivedTerminalEvent || token !== operation.current) return;
         const data = frame
           .split(/\r?\n/)
           .filter((line) => line.startsWith("data:"))
@@ -224,6 +251,7 @@ function Analytics() {
         if (!data) return;
         const event = JSON.parse(data) as {
           type: string;
+          stage?: unknown;
           sources?: AnalyticsSourcePreview[];
           text?: string;
           answer?: string;
@@ -236,9 +264,14 @@ function Analytics() {
         };
         if (event.type === "model-fallback" && event.fallback) notifyFallback(event.fallback);
         if (event.type === "sources") setSources(event.sources ?? []);
-        if (event.type === "delta") setAnswer((current) => current + (event.text ?? ""));
+        if (event.type === "progress" && isAnalyticsProgressStage(event.stage))
+          setStage(event.stage);
+        // Generated text is published exclusively by the server-validated final event.
         if (event.type === "final") {
           receivedTerminalEvent = true;
+          window.clearTimeout(timeoutId);
+          searchLock.current = false;
+          setBusy(false);
           setAnswer(event.answer ?? "");
           setIncomplete(Boolean(event.incomplete));
           setElapsedMs(event.durationMs ?? null);
@@ -246,6 +279,9 @@ function Analytics() {
         }
         if (event.type === "error") {
           receivedTerminalEvent = true;
+          window.clearTimeout(timeoutId);
+          searchLock.current = false;
+          setBusy(false);
           setAnswer("");
           setSources([]);
           setIncomplete(false);
@@ -257,16 +293,16 @@ function Analytics() {
       while (true) {
         const { done, value } = await reader.read();
         buffer += decoder.decode(value, { stream: !done });
-        let boundary = buffer.indexOf("\n\n");
-        while (boundary >= 0) {
-          readEvent(buffer.slice(0, boundary));
-          buffer = buffer.slice(boundary + 2);
-          boundary = buffer.indexOf("\n\n");
+        let boundary = /\r?\n\r?\n/.exec(buffer);
+        while (boundary) {
+          readEvent(buffer.slice(0, boundary.index));
+          buffer = buffer.slice(boundary.index + boundary[0].length);
+          boundary = /\r?\n\r?\n/.exec(buffer);
         }
         if (done) break;
       }
       if (buffer.trim()) readEvent(buffer);
-      if (!receivedTerminalEvent) {
+      if (!receivedTerminalEvent && token === operation.current) {
         setAnswer("");
         setSources([]);
         setIncomplete(false);
@@ -274,7 +310,7 @@ function Analytics() {
         setPageError(az.analytics.answerFailed);
       }
     } catch (error) {
-      if (receivedTerminalEvent) return;
+      if (receivedTerminalEvent || token !== operation.current) return;
       setAnswer("");
       setSources([]);
       setIncomplete(false);
@@ -284,25 +320,46 @@ function Analytics() {
           ? abortController.signal.reason?.name === "TimeoutError"
             ? az.analytics.timeout
             : az.analytics.cancelled
-          : error instanceof Error
+          : error instanceof Error &&
+              !(error instanceof TypeError) &&
+              !(error instanceof SyntaxError)
             ? error.message
             : az.analytics.searchFailed,
       );
     } finally {
       window.clearTimeout(timeoutId);
-      activeRequest.current = null;
-      searchLock.current = false;
-      setBusy(false);
+      if (token === operation.current) {
+        activeRequest.current = null;
+        searchLock.current = false;
+        setBusy(false);
+      }
       void queryClient.invalidateQueries({ queryKey: ["analytics", "history"] });
     }
   }
 
   async function openHistory(id: string) {
-    if (searchLock.current || historyLock.current) return;
-    historyLock.current = true;
+    if (historyLock.current === id) return;
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    const token = ++operation.current;
+    searchLock.current = false;
+    setBusy(false);
+    historyLock.current = id;
     setHistoryLoading(true);
+    setActiveHistoryId(id);
+    setSelectedHistory(null);
+    setAnswerContext(null);
+    setAnswer("");
+    setSources([]);
+    setModel("");
+    setElapsedMs(null);
+    setIncomplete(false);
+    setPageError("");
+    setHasSearched(true);
     try {
-      const record = await getAnalyticsQueryHistory({ data: { id } });
+      const record = await getAnalyticsQueryHistory({ data: { id }, signal: controller.signal });
+      if (token !== operation.current) return;
       if (!record) throw new Error(az.analytics.historyOpenFailed);
       setSelectedHistory(record);
       setActiveHistoryId(record.id);
@@ -327,9 +384,9 @@ function Analytics() {
       setSourceOnly(false);
       setPageError("");
     } catch {
+      if (token !== operation.current) return;
       // A rejected reopen is authoritative; do not keep a previously readable snapshot.
       setSelectedHistory(null);
-      setActiveHistoryId(null);
       setAnswerContext(null);
       setAnswer("");
       setSources([]);
@@ -338,9 +395,26 @@ function Analytics() {
       setIncomplete(false);
       setPageError(az.analytics.historyOpenFailed);
     } finally {
-      historyLock.current = false;
-      setHistoryLoading(false);
+      if (token === operation.current) {
+        historyLock.current = null;
+        activeRequest.current = null;
+        setHistoryLoading(false);
+      }
     }
+  }
+
+  function cancel() {
+    operation.current++;
+    activeRequest.current?.abort();
+    activeRequest.current = null;
+    searchLock.current = false;
+    historyLock.current = null;
+    setBusy(false);
+    setHistoryLoading(false);
+    setSources([]);
+    setAnswer("");
+    setPageError(az.analytics.cancelled);
+    void queryClient.invalidateQueries({ queryKey: ["analytics", "history"] });
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -365,7 +439,11 @@ function Analytics() {
           disabled={busy || historyLoading || noDirections || question.trim().length === 0}
           type="submit"
         >
-          {busy ? az.analytics.searching : az.analytics.searchButton}
+          <ZirveActionLabel
+            busy={busy}
+            label={az.analytics.searchButton}
+            pendingLabel={az.analytics.searching}
+          />
         </button>
         <button
           className="pill min-h-11 shrink-0 justify-center px-5"
@@ -452,45 +530,54 @@ function Analytics() {
       {pageError && (
         <div role="alert" className="mt-4 rounded-xl border border-destructive/40 p-4 text-sm">
           {pageError}
+          <button
+            type="button"
+            className="ml-3 min-h-11 underline"
+            onClick={() =>
+              activeHistoryId
+                ? void openHistory(activeHistoryId)
+                : answerContext
+                  ? void runSearch(sourceOnly ? "sources" : "answer", answerContext)
+                  : void runSearch("answer")
+            }
+          >
+            {az.actions.retry}
+          </button>
         </div>
       )}
 
       <div className="mt-6 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
-          <section className="panel panel-glow h-fit px-4 py-5 sm:p-7" aria-busy={busy}>
+          {/* Let stage announcements through while the analytical operation is running. */}
+          <section className="panel panel-glow h-fit px-4 py-5 sm:p-7" aria-busy={historyLoading}>
             <div className="mx-auto">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                {answerContext && (
+                {displayedQuestion && (
                   <h2 className="text-xl leading-snug font-semibold tracking-tight break-words sm:text-2xl">
-                    {answerContext.query}
+                    {displayedQuestion}
                   </h2>
                 )}
 
                 <span className="label-mono">
-                  {busy ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <ZirveLoader variant="inline" label="" />
-                      {az.analytics.generating}
-                    </span>
-                  ) : elapsedMs === null ? (
-                    hasSearched ? (
-                      sourceCountLabel
-                    ) : (
-                      az.analytics.waiting
-                    )
-                  ) : (
-                    az.analytics.timing.replace("{seconds}", (elapsedMs / 1000).toFixed(1))
-                  )}
+                  {busy
+                    ? null
+                    : historyLoading
+                      ? az.analytics.historyLoading
+                      : elapsedMs === null
+                        ? hasSearched
+                          ? sourceCountLabel
+                          : az.analytics.waiting
+                        : az.analytics.timing.replace("{seconds}", (elapsedMs / 1000).toFixed(1))}
                 </span>
               </div>
               {hasSearched && !busy && answer && (
                 <p className="mt-2 text-xs text-muted-foreground">{sourceCountLabel}</p>
               )}
-              {busy && (
+              {(busy || historyLoading) && (
                 <button
                   type="button"
-                  className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground hover:bg-secondary"
-                  onClick={() => activeRequest.current?.abort()}
+                  className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground hover:bg-secondary"
+                  onClick={cancel}
                 >
                   <Square size={13} aria-hidden="true" />
                   {az.analytics.cancel}
@@ -502,7 +589,13 @@ function Analytics() {
                 </p>
               )}
               <div aria-live="polite" className="mt-4">
-                {answer ? (
+                {historyLoading ? (
+                  <ZirveSkeleton
+                    label={az.analytics.historyLoading}
+                    rows={5}
+                    className="min-h-48"
+                  />
+                ) : answer ? (
                   <AnalyticsAnswer
                     navigationScope={navigationScope}
                     answer={answer}
@@ -517,10 +610,12 @@ function Analytics() {
                     }
                   />
                 ) : busy ? (
-                  <p className="text-muted-foreground">{az.analytics.generating}</p>
+                  <AnalyticsProgress stage={stage} sourceOnly={sourceOnly} />
                 ) : (sourceOnly || selectedHistory) && shownGroups.length > 0 ? (
                   <p className="text-muted-foreground">{az.analytics.fragmentsOnly}</p>
-                ) : hasSearched ? (
+                ) : selectedHistory?.status === "running" ? (
+                  <p className="text-muted-foreground">{az.analytics.historyRunningBody}</p>
+                ) : pageError ? null : hasSearched ? (
                   <p className="text-muted-foreground">{az.analytics.noSources}</p>
                 ) : (
                   <p className="text-muted-foreground">{az.analytics.emptyState}</p>
@@ -536,17 +631,7 @@ function Analytics() {
                 <span className="label-mono">{sourceListCountLabel}</span>
               ) : null}
             </div>
-            {shownMode === "cited" && (
-              <p className="mb-3 text-xs text-muted-foreground">
-                {az.analytics.citationNumbering}{" "}
-                {materialFragmentsLabel(
-                  retrievedCounts.materials,
-                  retrievedCounts.fragments,
-                  "retrieved",
-                )}
-                .
-              </p>
-            )}
+
             <div className="space-y-3">
               {shownGroups.map((group) => (
                 <AnalyticsSourceCard
@@ -572,6 +657,8 @@ function Analytics() {
                 shownGroups.length === 0 &&
                 unavailableSources.length === 0 &&
                 !busy &&
+                !historyLoading &&
+                selectedHistory?.status !== "running" &&
                 !pageError && (
                   <div className="panel p-5 text-sm text-muted-foreground">
                     {az.analytics.noSources}
@@ -614,7 +701,16 @@ function Analytics() {
               {historyQuery.isError ? (
                 <p role="alert" className="text-sm text-destructive">
                   {az.analytics.historyFailed}
+                  <button
+                    type="button"
+                    className="min-h-11 px-2 underline"
+                    onClick={() => void historyQuery.refetch()}
+                  >
+                    {az.actions.retry}
+                  </button>
                 </p>
+              ) : historyQuery.isPending ? (
+                <ZirveSkeleton label={az.loader.loading} />
               ) : historyQuery.data?.length ? (
                 <div className="analytics-history max-h-72 space-y-1 overflow-y-auto pr-1 xl:max-h-[65vh]">
                   {historyQuery.data.map((item) => (
@@ -628,12 +724,14 @@ function Analytics() {
                           : "border-transparent hover:bg-secondary")
                       }
                       aria-current={activeHistoryId === item.id ? "true" : undefined}
-                      disabled={busy || historyLoading}
+                      aria-busy={historyLoading && activeHistoryId === item.id}
                       onClick={() => void openHistory(item.id)}
                     >
                       <span className="block line-clamp-2 text-sm font-medium">{item.query}</span>
                       <span className="label-mono mt-1 block">
-                        {historyStatusLabel(item.status)}
+                        {historyLoading && activeHistoryId === item.id
+                          ? az.analytics.historyLoading
+                          : historyStatusLabel(item.status)}
                         {item.author ? ` · ${item.author}` : ""}
                         {` · ${new Date(item.createdAt).toLocaleString("az-AZ")}`}
                       </span>

@@ -36,11 +36,11 @@ try {
       ),
     ];
     assert.equal(
-      String(applied[index]!.created_at),
+      String(applied[index]!["created_at"]),
       String(entry.when),
       "Applied journal order mismatch.",
     );
-    assert(hashes.includes(String(applied[index]!.hash)), "Applied migration hash mismatch.");
+    assert(hashes.includes(String(applied[index]!["hash"])), "Applied migration hash mismatch.");
   }
   const isApplied = applied.length === 25;
   const snapshot = JSON.parse(
@@ -72,10 +72,10 @@ try {
     const [legacy] =
       await tx`select classification, title, body, author_id from classification_migration_probe`;
     stage = "temp-constraints";
-    assert.equal(legacy!.classification, "open");
-    assert.equal(legacy!.title, "Synthetic migration fixture");
-    assert.equal(legacy!.body, "Invented fixture");
-    assert.equal(legacy!.author_id, "synthetic");
+    assert.equal(legacy!["classification"], "open");
+    assert.equal(legacy!["title"], "Synthetic migration fixture");
+    assert.equal(legacy!["body"], "Invented fixture");
+    assert.equal(legacy!["author_id"], "synthetic");
     await tx`insert into classification_migration_probe (brief_date,title,body,author_id) values ('2026-10-22','New synthetic fixture','Invented','synthetic')`;
     for (const classification of ["open", "secret", "top_secret", "special"])
       await tx`update classification_migration_probe set classification = ${classification}`;

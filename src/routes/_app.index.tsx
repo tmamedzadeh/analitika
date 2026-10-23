@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { BriefCard } from "@/components/BriefCard";
 import { Shell } from "@/components/Shell";
-import { ZirveLoader } from "@/components/ZirveLoader";
+import { ZirveSkeleton, ZirveActionLabel, ZirveQueryIndicator } from "@/components/ZirveLoader";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { listBriefs } from "@/lib/briefs.functions";
@@ -196,15 +196,31 @@ function DailyBriefs() {
         </div>
       </div>
 
-      {briefsQuery.isFetching && !briefsQuery.isFetchingNextPage && (
-        <ZirveLoader variant="compact" label={az.briefs.loading} />
-      )}
+      <ZirveQueryIndicator
+        fetching={
+          !briefsQuery.isPending && briefsQuery.isFetching && !briefsQuery.isFetchingNextPage
+        }
+      />
       {briefsQuery.isError && (
         <p role="alert" className="py-8 text-center text-destructive">
           {az.briefs.listFailed}
+          <button
+            type="button"
+            className="min-h-11 px-3 underline"
+            onClick={() => void briefsQuery.refetch()}
+          >
+            {az.actions.retry}
+          </button>
         </p>
       )}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        aria-busy={briefsQuery.isPending}
+      >
+        {briefsQuery.isPending &&
+          Array.from({ length: 6 }, (_, index) => (
+            <ZirveSkeleton key={index} label={az.briefs.loading} rows={5} className="min-h-48" />
+          ))}
         {orderedBriefs.map((brief) => (
           <div key={brief.id}>
             <BriefCard brief={brief} />
@@ -235,10 +251,14 @@ function DailyBriefs() {
             variant="outline"
             className="rounded-full"
             disabled={briefsQuery.isFetchingNextPage}
+            aria-busy={briefsQuery.isFetchingNextPage}
             onClick={() => void briefsQuery.fetchNextPage()}
           >
-            {briefsQuery.isFetchingNextPage && <ZirveLoader variant="inline" label="" />}
-            {briefsQuery.isFetchingNextPage ? az.briefs.loading : az.briefs.loadMore}
+            <ZirveActionLabel
+              busy={briefsQuery.isFetchingNextPage}
+              label={az.briefs.loadMore}
+              pendingLabel={az.briefs.loading}
+            />
           </Button>
         </div>
       )}

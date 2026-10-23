@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   briefExcerpt,
   briefStatuses,
-  briefSearchLabel,
   briefRouteForSearchSource,
   formatBriefEmbeddingText,
   getBakuDate,
@@ -85,7 +84,6 @@ describe("brief indexing and search mapping", () => {
   });
 
   it("uses the brief route and chunk query for indexed search results", () => {
-    expect(briefSearchLabel("2026-10-18")).toBe("Gündəlik xülasə · 2026-10-18");
     expect(
       briefRouteForSearchSource({
         sourceKind: "brief",

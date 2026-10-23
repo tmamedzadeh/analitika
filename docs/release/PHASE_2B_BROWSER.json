@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "checks": [
+    "desktop: real stages, authorized sources during generation, no draft, responsive layout, 44px cancel, reduced motion",
+    "desktop: validation retry and immediate final publication",
+    "desktop: immediate history selection, skeleton, latest wins after late response",
+    "desktop: cancel, retry and terminal error release pending",
+    "desktop: keyboard route transition preserves sidebar and completes immediately",
+    "mobile: real stages, authorized sources during generation, no draft, responsive layout, 44px cancel, reduced motion",
+    "mobile: validation retry and immediate final publication",
+    "mobile: immediate history selection, skeleton, latest wins after late response",
+    "mobile: cancel, retry and terminal error release pending",
+    "mobile: keyboard route transition preserves sidebar and completes immediately"
+  ],
+  "errors": [],
+  "externalRequests": [],
+  "failure": null,
+  "isolation": "Local Vite component harness; server functions replaced; synthetic fetch only; no DB/AI/S3/Inngest"
+}

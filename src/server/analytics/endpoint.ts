@@ -3,7 +3,11 @@ import { AuthorizationError, canAccessClassification, getCurrentUser } from "@/s
 import type { Clearance } from "@/lib/classification";
 
 import { ANALYTICS_SERVER_DEADLINE_MS, analyticsSearchRequestSchema } from "@/lib/analytics";
-import type { AnalyticsSource, AnalyticsSourcePreview } from "@/lib/analytics";
+import type {
+  AnalyticsProgressStage,
+  AnalyticsSource,
+  AnalyticsSourcePreview,
+} from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
 import { createGeminiProviders } from "@/server/ai/gemini";
 import {
@@ -22,10 +26,17 @@ import {
   validateCitations,
 } from "./citations";
 import { consumeAnalyticsRateLimit } from "./rate-limit";
+import { withAnalyticsAbort } from "./abort";
 import { searchDocumentChunks } from "./search";
+import { prepareAnalyticsContext } from "./context-expansion";
+import { contextChunks, type AnalyticsContext } from "./context-identity";
 import { buildAnalyticsPrompt } from "../prompts/analytics";
 import { getAppConfig } from "@/server/config";
-import { sameAnalyticsSourceSet, withAnalyticsSourceAccess } from "./source-access";
+import {
+  requireAnalyticsSourceAccess,
+  sameAnalyticsSourceSet,
+  withAnalyticsSourceAccess,
+} from "./source-access";
 import {
   buildAnalyticsHistorySnapshot,
   createAnalyticsHistoryRecord,
@@ -64,24 +75,46 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
   const headerId = request.headers.get("x-vercel-id");
   const requestId = headerId && /^[a-zA-Z0-9-]{1,128}$/.test(headerId) ? headerId : randomUUID();
   const startedAt = Date.now();
-  return withAiDiagnostics({ requestId, startedAt, stage: "retrieval" }, () =>
-    handleAnalyticsSearch(request, requestId, startedAt),
+  // Include rate-limit DB reads and request-body parsing in the same absolute budget.
+  const preflight = new AbortController();
+  const abort = () => preflight.abort(request.signal.reason);
+  if (request.signal.aborted) abort();
+  else request.signal.addEventListener("abort", abort, { once: true });
+  const deadline = setTimeout(
+    () => preflight.abort(new DOMException("Analytics deadline exceeded.", "TimeoutError")),
+    ANALYTICS_SERVER_DEADLINE_MS,
   );
+  return withAiDiagnostics({ requestId, startedAt, stage: "retrieval" }, async () => {
+    try {
+      return await handleAnalyticsSearch(request, requestId, startedAt, preflight.signal);
+    } catch (error) {
+      if (!preflight.signal.aborted) throw error;
+      const timedOut = getGeminiErrorCategory(error, preflight.signal) === "timeout";
+      return timedOut
+        ? jsonError(504, az.analytics.searchFailed, requestId)
+        : new Response(null, { status: 499, headers: { "x-analytics-request-id": requestId } });
+    } finally {
+      clearTimeout(deadline);
+      request.signal.removeEventListener("abort", abort);
+    }
+  });
 }
 
 async function handleAnalyticsSearch(
   request: Request,
   requestId: string,
   startedAt: number,
+  preflightSignal: AbortSignal,
 ): Promise<Response> {
-  if (!(await consumeAnalyticsRateLimit(request))) {
+  if (!(await withAnalyticsAbort(() => consumeAnalyticsRateLimit(request), preflightSignal))) {
     return jsonError(429, az.analytics.rateLimited, requestId);
   }
 
   let rawInput: unknown;
   try {
-    rawInput = await request.json();
+    rawInput = await withAnalyticsAbort(() => request.json(), preflightSignal);
   } catch {
+    preflightSignal.throwIfAborted();
     return jsonError(400, az.analytics.invalidRequest, requestId);
   }
 
@@ -98,11 +131,6 @@ async function handleAnalyticsSearch(
   let model = "";
   let activeStage: NonNullable<AiDiagnosticEvent["stage"]> = "retrieval";
   let activeAttempt = 0;
-  try {
-    await createAnalyticsHistoryRecord({ id: historyId, createdBy: user.id, query, filters });
-  } catch {
-    // History persistence is best-effort and must not block a live response.
-  }
   const aborter = new AbortController();
   // Keep both generation attempts inside the deployed 120-second function limit.
   const deadline = setTimeout(
@@ -124,9 +152,28 @@ async function handleAnalyticsSearch(
       ? ("failed" as const)
       : ("cancelled" as const);
   let heartbeat: ReturnType<typeof setInterval> | undefined;
+  // A delayed insert must precede its terminal update, including after a timeout.
+  const historyCreated = createAnalyticsHistoryRecord({
+    id: historyId,
+    createdBy: user.id,
+    query,
+    filters,
+  }).then(
+    () => true,
+    () => false,
+  );
+  type HistoryOutcome = Parameters<typeof updateAnalyticsHistoryRecord>[1];
+  let finalHistory: HistoryOutcome | undefined;
+  let historyWrite: Promise<void> | undefined;
   const saveHistory = async (input: Parameters<typeof updateAnalyticsHistoryRecord>[1]) => {
+    const outcome = finalHistory ?? input;
+    historyWrite ??= historyCreated
+      .then(async (created) => {
+        if (created) await updateAnalyticsHistoryRecord(historyId, outcome);
+      })
+      .catch(() => {});
     try {
-      await updateAnalyticsHistoryRecord(historyId, input);
+      await withAnalyticsAbort(() => historyWrite!, aborter.signal);
     } catch {
       // History persistence is best-effort and must not block a live response.
     }
@@ -135,43 +182,12 @@ async function handleAnalyticsSearch(
     clearTimeout(deadline);
     aborter.abort(request.signal.reason);
     if (heartbeat) clearInterval(heartbeat);
-    void saveHistory({ status: "cancelled", durationMs: Date.now() - startedAt });
+    void saveHistory({ status: abortedHistoryStatus(), durationMs: Date.now() - startedAt });
   };
   if (request.signal.aborted) abortFromRequest();
   else request.signal.addEventListener("abort", abortFromRequest, { once: true });
-  let sources: AnalyticsSource[];
-  try {
-    const providers = createGeminiProviders();
-    model = providers.analytics.model;
-    sources = await searchDocumentChunks(query, filters, { signal: aborter.signal });
-  } catch (error) {
-    if (aborter.signal.aborted) {
-      await saveHistory({ status: abortedHistoryStatus(), durationMs: Date.now() - startedAt });
-      clearTimeout(deadline);
-      request.signal.removeEventListener("abort", abortFromRequest);
-      return abortedHistoryStatus() === "failed"
-        ? jsonError(504, az.analytics.searchFailed, requestId)
-        : new Response(null, { status: 499, headers: { "x-analytics-request-id": requestId } });
-    }
-    logAiDiagnostic({
-      event: "failure",
-      stage: "retrieval",
-      providerStatus: getGeminiFailureInfo(error).statusCode,
-      errorCategory: getGeminiErrorCategory(error),
-    });
-    await saveHistory({ status: "failed", durationMs: Date.now() - startedAt });
-    clearTimeout(deadline);
-    request.signal.removeEventListener("abort", abortFromRequest);
-    return jsonError(500, az.analytics.searchFailed, requestId);
-  }
-  if (aborter.signal.aborted) {
-    await saveHistory({ status: abortedHistoryStatus(), durationMs: Date.now() - startedAt });
-    clearTimeout(deadline);
-    request.signal.removeEventListener("abort", abortFromRequest);
-    return abortedHistoryStatus() === "failed"
-      ? jsonError(504, az.analytics.searchFailed, requestId)
-      : new Response(null, { status: 499, headers: { "x-analytics-request-id": requestId } });
-  }
+  let sources: AnalyticsSource[] = [];
+  let expandedContext: AnalyticsContext | undefined;
 
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -198,17 +214,41 @@ async function handleAnalyticsSearch(
           event["type"] === "error" &&
           abortedHistoryStatus() === "failed" &&
           !request.signal.aborted;
-        if (closed || (aborter.signal.aborted && !deadlineError) || controller.desiredSize === null)
+        if (
+          closed ||
+          terminalSent ||
+          (aborter.signal.aborted && !deadlineError) ||
+          controller.desiredSize === null
+        )
           return false;
         try {
           controller.enqueue(encoder.encode("data: " + JSON.stringify(event) + "\n\n"));
           if (event["type"] === "error" || event["type"] === "final") terminalSent = true;
+          if (event["type"] === "final") {
+            const snapshot = buildAnalyticsHistorySnapshot(
+              sources,
+              String(event["answer"] ?? ""),
+              model,
+              Date.now() - startedAt,
+              new Date(startedAt),
+              expandedContext,
+            );
+            finalHistory = {
+              status: "done",
+              answer: String(event["answer"] ?? ""),
+              sources: snapshot.snapshots,
+              maxClassification: snapshot.maxClassification,
+              model,
+              durationMs: Date.now() - startedAt,
+            };
+          }
           return true;
         } catch {
           aborter.abort(new Error("client disconnected"));
           return false;
         }
       };
+      const progress = (stage: AnalyticsProgressStage) => send({ type: "progress", stage });
       heartbeat = setInterval(() => {
         if (controller.desiredSize === null || aborter.signal.aborted) {
           if (heartbeat) clearInterval(heartbeat);
@@ -223,6 +263,34 @@ async function handleAnalyticsSearch(
         }
       }, 15_000);
       void (async () => {
+        progress("starting");
+        try {
+          await withAnalyticsAbort(() => historyCreated, aborter.signal);
+          aborter.signal.throwIfAborted();
+          progress("retrieval");
+          const providers = createGeminiProviders();
+          model = providers.analytics.model;
+          sources = await withAnalyticsAbort(
+            () => searchDocumentChunks(query, filters, { signal: aborter.signal }),
+            aborter.signal,
+          );
+        } catch (error) {
+          if (!aborter.signal.aborted) {
+            logAiDiagnostic({
+              event: "failure",
+              stage: "retrieval",
+              providerStatus: getGeminiFailureInfo(error).statusCode,
+              errorCategory: getGeminiErrorCategory(error),
+            });
+            send({ type: "error", message: az.analytics.searchFailed, requestId });
+          }
+          await saveHistory({
+            status: aborter.signal.aborted ? abortedHistoryStatus() : "failed",
+            durationMs: Date.now() - startedAt,
+          });
+          close();
+          return;
+        }
         if (aborter.signal.aborted) {
           await saveHistory({ status: abortedHistoryStatus(), durationMs: Date.now() - startedAt });
           close();
@@ -230,16 +298,21 @@ async function handleAnalyticsSearch(
         }
         const retrievedCount = sources.length;
         activeStage = "source_access_before_prompt";
+        progress("sources");
         try {
-          await withAnalyticsSourceAccess(sources, user.id, (available, liveClearance) => {
-            aborter.signal.throwIfAborted();
-            if (!canUseQuestion(liveClearance)) throw new AuthorizationError();
-            sources = available;
-            const sourcePreviews: AnalyticsSourcePreview[] = sources.map(
-              ({ text: _text, charStart: _charStart, charEnd: _charEnd, ...source }) => source,
-            );
-            send({ type: "sources", sources: sourcePreviews });
-          });
+          await withAnalyticsAbort(
+            () =>
+              withAnalyticsSourceAccess(sources, user.id, (available, liveClearance) => {
+                aborter.signal.throwIfAborted();
+                if (!canUseQuestion(liveClearance)) throw new AuthorizationError();
+                sources = available;
+                const sourcePreviews: AnalyticsSourcePreview[] = sources.map(
+                  ({ text: _text, charStart: _charStart, charEnd: _charEnd, ...source }) => source,
+                );
+                send({ type: "sources", sources: sourcePreviews });
+              }),
+            aborter.signal,
+          );
         } catch (error) {
           if (aborter.signal.aborted) {
             await saveHistory({
@@ -279,6 +352,14 @@ async function handleAnalyticsSearch(
           });
         }
         const denyRevokedSources = async () => {
+          if (aborter.signal.aborted) {
+            await saveHistory({
+              status: abortedHistoryStatus(),
+              durationMs: Date.now() - startedAt,
+            });
+            close();
+            return;
+          }
           logAiDiagnostic({
             event: "failure",
             stage: "source_access_before_publish",
@@ -299,19 +380,31 @@ async function handleAnalyticsSearch(
         if (sources.length === 0) {
           model = "";
           const answer = az.analytics.noSources;
-          send({
-            type: "final",
-            answer,
-            incomplete: false,
-            durationMs: Date.now() - startedAt,
-            model,
-          });
+          const publication = await withAnalyticsAbort(
+            () =>
+              withAnalyticsSourceAccess(sources, user.id, (_available, liveClearance) => {
+                if (!canUseQuestion(liveClearance)) return false;
+                return send({
+                  type: "final",
+                  answer,
+                  incomplete: false,
+                  durationMs: Date.now() - startedAt,
+                  model,
+                });
+              }),
+            aborter.signal,
+          ).catch(() => ({ value: false }));
+          if (!publication.value) {
+            await denyRevokedSources();
+            return;
+          }
           const snapshot = buildAnalyticsHistorySnapshot(
             sources,
             answer,
             model,
             Date.now() - startedAt,
             new Date(startedAt),
+            expandedContext,
           );
           await saveHistory({
             status: "done",
@@ -328,22 +421,22 @@ async function handleAnalyticsSearch(
         if (mode === "sources") {
           model = "";
           activeStage = "source_access_before_publish";
-          const finalPublication = await withAnalyticsSourceAccess(
-            sources,
-            user.id,
-            (available, liveClearance) => {
-              if (!canUseQuestion(liveClearance) || !sameAnalyticsSourceSet(sources, available))
-                return false;
-              sources = available;
-              return send({
-                type: "final",
-                answer: "",
-                incomplete: false,
-                durationMs: Date.now() - startedAt,
-                model,
-              });
-            },
-          );
+          const finalPublication = await withAnalyticsAbort(
+            () =>
+              withAnalyticsSourceAccess(sources, user.id, (available, liveClearance) => {
+                if (!canUseQuestion(liveClearance) || !sameAnalyticsSourceSet(sources, available))
+                  return false;
+                sources = available;
+                return send({
+                  type: "final",
+                  answer: "",
+                  incomplete: false,
+                  durationMs: Date.now() - startedAt,
+                  model,
+                });
+              }),
+            aborter.signal,
+          ).catch(() => ({ value: false }));
           if (!finalPublication.value) {
             await denyRevokedSources();
             return;
@@ -354,6 +447,7 @@ async function handleAnalyticsSearch(
             model,
             Date.now() - startedAt,
             new Date(startedAt),
+            expandedContext,
           );
           await saveHistory({
             status: "done",
@@ -368,89 +462,94 @@ async function handleAnalyticsSearch(
         }
 
         try {
+          // The existing sources stage includes optional preparation; no synthetic UI stage.
+          const config = getAppConfig();
+          expandedContext = await prepareAnalyticsContext(sources, user, {
+            enabled: Boolean(config.enableContextExpansion),
+            embeddingModel: config.embeddingModel,
+            signal: aborter.signal,
+          });
+          aborter.signal.throwIfAborted();
           activeStage = "generation";
-          const generation = await withAnalyticsSourceAccess(
-            sources,
-            user.id,
-            async (available, liveClearance) => {
-              aborter.signal.throwIfAborted();
-              if (!canUseQuestion(liveClearance) || !sameAnalyticsSourceSet(sources, available)) {
-                return { accessChanged: true, validatedAnswer: null };
-              }
-              sources = available;
-              const providers = createGeminiProviders();
-              const prompt = buildAnalyticsPrompt(
+          const providers = createGeminiProviders();
+          const prompt = expandedContext
+            ? buildAnalyticsPrompt(
                 query,
                 sources,
-                getAppConfig().analyticsThinkingLevel,
-              );
-              let validatedAnswer: ReturnType<typeof validateCitations> | null = null;
-              for (let attempt = 0; attempt < 2; attempt += 1) {
-                aborter.signal.throwIfAborted();
-                activeStage = "generation";
-                activeAttempt = attempt + 1;
-                const generationPrompt =
-                  attempt === 0
-                    ? prompt
-                    : {
-                        ...prompt,
-                        maxOutputTokens: 6144,
-                        system:
-                          prompt.system +
-                          "\nTam və boş olmayan cavab yaz. Yalnız təqdim edilmiş mənbə nömrələrinə [1], [2] formatında istinad et. Mənbə URL-ləri yazma.",
-                        prompt:
-                          prompt.prompt +
-                          "\n\nİcazəli istinadlar: " +
-                          sources.map(({ n }) => `[${n}]`).join(", ") +
-                          ". Cavabı və bütün istinadları tamamla.",
-                      };
-                const generated = await withAiDiagnostics(
-                  { stage: "generation", generationAttempt: activeAttempt },
-                  () =>
-                    providers.analytics.generateTextWithMetadata({
-                      ...generationPrompt,
-                      signal: aborter.signal,
-                      deadlineAt: startedAt + ANALYTICS_SERVER_DEADLINE_MS,
-                      onFallback: (fallback) => send({ type: "model-fallback", fallback }),
-                    }),
-                );
-                aborter.signal.throwIfAborted();
-                if (generated.model) model = generated.model;
-                activeStage = "answer_validation";
-                const validated = validateCitations(generated.text, sources);
-                const publishable = canPublishAnalyticsAnswer(
-                  generated.text,
-                  generated.finishReason,
-                  validated,
-                );
-                logAiDiagnostic({
-                  event: publishable ? "success" : "rejected",
-                  stage: "answer_validation",
-                  model,
-                  attempt: activeAttempt,
-                  providerStatus: 200,
-                  ...(publishable ? {} : { errorCategory: "validation" as const }),
-                  finishReason: generated.finishReason,
-                  validationFailureReasons: analyticsPublicationFailureReasons(
-                    generated.text,
-                    generated.finishReason,
-                    validated,
-                  ),
-                });
-                if (publishable) {
-                  validatedAnswer = validated;
-                  break;
-                }
-              }
-              return { accessChanged: false, validatedAnswer };
-            },
-          );
-          if (generation.value.accessChanged) {
-            await denyRevokedSources();
-            return;
+                config.analyticsThinkingLevel,
+                expandedContext.auxiliary,
+              )
+            : buildAnalyticsPrompt(query, sources, config.analyticsThinkingLevel);
+          let validatedAnswer: ReturnType<typeof validateCitations> | null = null;
+          for (let attempt = 0; attempt < 2; attempt += 1) {
+            aborter.signal.throwIfAborted();
+            activeStage = "generation";
+            progress("generation");
+            activeAttempt = attempt + 1;
+            const generationPrompt =
+              attempt === 0
+                ? prompt
+                : {
+                    ...prompt,
+                    maxOutputTokens: 6144,
+                    system:
+                      prompt.system +
+                      "\nTam və boş olmayan cavab yaz. Yalnız təqdim edilmiş mənbə nömrələrinə [1], [2] formatında istinad et. Mənbə URL-ləri yazma.",
+                    prompt:
+                      prompt.prompt +
+                      "\n\nİcazəli istinadlar: " +
+                      sources.map(({ n }) => `[${n}]`).join(", ") +
+                      ". Cavabı və bütün istinadları tamamla.",
+                  };
+            const generated = await withAnalyticsAbort(
+              () =>
+                withAiDiagnostics({ stage: "generation", generationAttempt: activeAttempt }, () =>
+                  providers.analytics.generateTextWithMetadata({
+                    ...generationPrompt,
+                    signal: aborter.signal,
+                    deadlineAt: startedAt + ANALYTICS_SERVER_DEADLINE_MS,
+                    onFallback: (fallback) => send({ type: "model-fallback", fallback }),
+                    beforeRequest: async () => {
+                      sources = await requireAnalyticsSourceAccess(
+                        sources,
+                        user,
+                        expandedContext ? contextChunks(expandedContext) : [],
+                      );
+                      aborter.signal.throwIfAborted();
+                    },
+                  }),
+                ),
+              aborter.signal,
+            );
+            aborter.signal.throwIfAborted();
+            if (generated.model) model = generated.model;
+            activeStage = "answer_validation";
+            progress("validation");
+            const validated = validateCitations(generated.text, sources);
+            const publishable = canPublishAnalyticsAnswer(
+              generated.text,
+              generated.finishReason,
+              validated,
+            );
+            logAiDiagnostic({
+              event: publishable ? "success" : "rejected",
+              stage: "answer_validation",
+              model,
+              attempt: activeAttempt,
+              providerStatus: 200,
+              ...(publishable ? {} : { errorCategory: "validation" as const }),
+              finishReason: generated.finishReason,
+              validationFailureReasons: analyticsPublicationFailureReasons(
+                generated.text,
+                generated.finishReason,
+                validated,
+              ),
+            });
+            if (publishable) {
+              validatedAnswer = validated;
+              break;
+            }
           }
-          const validatedAnswer = generation.value.validatedAnswer;
-
           if (!validatedAnswer) {
             send({ type: "error", message: az.analytics.answerFailed, requestId });
             const snapshot = buildAnalyticsHistorySnapshot(
@@ -459,6 +558,7 @@ async function handleAnalyticsSearch(
               model,
               Date.now() - startedAt,
               new Date(startedAt),
+              expandedContext,
             );
             await saveHistory({
               status: "failed",
@@ -472,21 +572,26 @@ async function handleAnalyticsSearch(
           }
 
           activeStage = "source_access_before_publish";
-          const finalPublication = await withAnalyticsSourceAccess(
-            sources,
-            user.id,
-            (available, liveClearance) => {
-              if (!canUseQuestion(liveClearance) || !sameAnalyticsSourceSet(sources, available))
-                return false;
-              sources = available;
-              return send({
-                type: "final",
-                answer: validatedAnswer.answer,
-                incomplete: false,
-                durationMs: Date.now() - startedAt,
-                model,
-              });
-            },
+          const finalPublication = await withAnalyticsAbort(
+            () =>
+              withAnalyticsSourceAccess(
+                sources,
+                user.id,
+                (available, liveClearance) => {
+                  if (!canUseQuestion(liveClearance) || !sameAnalyticsSourceSet(sources, available))
+                    return false;
+                  sources = available;
+                  return send({
+                    type: "final",
+                    answer: validatedAnswer.answer,
+                    incomplete: false,
+                    durationMs: Date.now() - startedAt,
+                    model,
+                  });
+                },
+                expandedContext ? contextChunks(expandedContext) : [],
+              ),
+            aborter.signal,
           );
           if (!finalPublication.value) {
             await denyRevokedSources();
@@ -498,6 +603,7 @@ async function handleAnalyticsSearch(
             model,
             Date.now() - startedAt,
             new Date(startedAt),
+            expandedContext,
           );
           await saveHistory({
             status: "done",
@@ -508,7 +614,10 @@ async function handleAnalyticsSearch(
             durationMs: Date.now() - startedAt,
           });
         } catch (error) {
-          if (aborter.signal.aborted) {
+          if (error instanceof AuthorizationError) {
+            await denyRevokedSources();
+            return;
+          } else if (aborter.signal.aborted) {
             await saveHistory({
               status: abortedHistoryStatus(),
               durationMs: Date.now() - startedAt,
@@ -527,6 +636,7 @@ async function handleAnalyticsSearch(
               model,
               Date.now() - startedAt,
               new Date(startedAt),
+              expandedContext,
             );
             await saveHistory({
               status: "failed",
@@ -548,7 +658,6 @@ async function handleAnalyticsSearch(
           close();
         }
       })().catch(async (error) => {
-        clearTimeout(deadline);
         await saveHistory({
           status: aborter.signal.aborted ? abortedHistoryStatus() : "failed",
           durationMs: Date.now() - startedAt,
@@ -560,15 +669,16 @@ async function handleAnalyticsSearch(
             model,
             errorCategory: getGeminiErrorCategory(error),
           });
-        if (heartbeat) clearInterval(heartbeat);
-        if (!aborter.signal.aborted) controller.error(new Error(az.analytics.answerFailed));
+        if (!aborter.signal.aborted)
+          send({ type: "error", message: az.analytics.answerFailed, requestId });
+        close();
       });
     },
     cancel() {
       clearTimeout(deadline);
       if (heartbeat) clearInterval(heartbeat);
       aborter.abort(new Error("client disconnected"));
-      void saveHistory({ status: "cancelled", durationMs: Date.now() - startedAt });
+      void saveHistory({ status: abortedHistoryStatus(), durationMs: Date.now() - startedAt });
       request.signal.removeEventListener("abort", abortFromRequest);
     },
   });

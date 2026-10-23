@@ -50,7 +50,14 @@ function LogoutAction({ iconOnly = false }: { iconOnly?: boolean }) {
           <LogOut size={16} aria-hidden="true" />
         )}
         <span className={iconOnly ? "sr-only" : "hidden sm:inline"}>
-          {pending ? "Çıxış edilir…" : az.actions.logout}
+          <span className="zirve-action-text">
+            <span aria-hidden={pending} style={{ visibility: pending ? "hidden" : "visible" }}>
+              {az.actions.logout}
+            </span>
+            <span aria-hidden={!pending} style={{ visibility: pending ? "visible" : "hidden" }}>
+              Çıxış edilir…
+            </span>
+          </span>
         </span>
       </button>
       {error && (

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 
 import { Shell } from "@/components/Shell";
-import { ZirveLoader } from "@/components/ZirveLoader";
+import { ZirveLoader, ZirveSkeleton, ZirveActionLabel } from "@/components/ZirveLoader";
 import { BriefMarkdown } from "@/components/BriefMarkdown";
 import { directionLabel } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
@@ -108,7 +108,7 @@ function DocumentPage() {
   if (documentQuery.isPending) {
     return (
       <Shell crumb={az.navigation.documents} title={az.documents.loadingDocument} badges={[]}>
-        <ZirveLoader variant="page" label={az.loader.loading} />
+        <ZirveSkeleton label={az.loader.loading} rows={6} className="min-h-64" />
       </Shell>
     );
   }
@@ -172,9 +172,18 @@ function DocumentPage() {
           {az.documents.backToList}
         </Link>
         {document.status === "failed" && (
-          <button type="button" disabled={busy} onClick={() => void retry()} className="pill">
-            {busyAction === "retry" && <ZirveLoader variant="inline" label="" />}
-            {busyAction === "retry" ? az.documents.retrying : az.documents.retry}
+          <button
+            type="button"
+            disabled={busy}
+            aria-busy={busyAction === "retry"}
+            onClick={() => void retry()}
+            className="pill"
+          >
+            <ZirveActionLabel
+              busy={busyAction === "retry"}
+              label={az.documents.retry}
+              pendingLabel={az.documents.retrying}
+            />
           </button>
         )}
         {document.canManage && (

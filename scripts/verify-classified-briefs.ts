@@ -34,7 +34,7 @@ const runId = randomUUID();
 const userId = `classification-${runId}`;
 const otherId = `classification-author-${runId}`;
 const token = `classprobe${runId.replaceAll("-", "")}`;
-const ids = clearanceValues.map(() => randomUUID());
+const ids: string[] = clearanceValues.map(() => randomUUID());
 const chunkIds = clearanceValues.map(() => randomUUID());
 const attachmentIds = clearanceValues.map(() => randomUUID());
 const historyId = randomUUID();

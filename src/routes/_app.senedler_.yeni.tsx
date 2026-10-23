@@ -6,7 +6,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { LocalizedDatePicker } from "@/components/LocalizedDatePicker";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { Shell } from "@/components/Shell";
-import { ZirveLoader } from "@/components/ZirveLoader";
+import { ZirveActionLabel } from "@/components/ZirveLoader";
 import {
   infoCredibilityLabels,
   infoCredibilityValues,
@@ -322,10 +322,14 @@ function AddDoc() {
           <div className="flex gap-3">
             <button
               disabled={saving}
+              aria-busy={saving}
               className="glow rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-60"
             >
-              {saving && <ZirveLoader variant="inline" label="" />}
-              {saving ? az.documents.form.saving : az.documents.form.save}
+              <ZirveActionLabel
+                busy={saving}
+                label={az.documents.form.save}
+                pendingLabel={az.documents.form.saving}
+              />
             </button>
             <button
               type="reset"

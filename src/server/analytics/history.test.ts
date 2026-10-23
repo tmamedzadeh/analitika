@@ -4,6 +4,8 @@ import { directionIds } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
 import { buildAnalyticsHistorySnapshot, getAnalyticsHistoryRecord } from "./history";
 import type { AnalyticsSource } from "@/lib/analytics";
+import { contextFixture } from "@/test/fixtures/analytics-context";
+import { contextFingerprint, type AnalyticsContext } from "./context-identity";
 
 const mocks = vi.hoisted(() => ({ query: vi.fn() }));
 vi.mock("@/server/db", async () => {
@@ -11,6 +13,121 @@ vi.mock("@/server/db", async () => {
   return {
     getDb: () => ({ transaction: (read: (db: unknown) => unknown) => read(drizzle(mocks.query)) }),
   };
+});
+
+describe("private expansion provenance in history", () => {
+  function arrangeContext(change?: string) {
+    const fixture = contextFixture();
+    const primary = { ...fixture.primary[0]!, id: chunkId, documentId: id };
+    const neighbor = { ...fixture.neighbors[0]!, documentId: id };
+    const context: AnalyticsContext = {
+      primary: [primary],
+      auxiliary: [
+        { anchorChunkId: chunkId, position: "before", chunk: neighbor, text: "Boundary context" },
+      ],
+    };
+    const saved = { ...snapshot, contextChunks: [primary, neighbor].map(contextFingerprint) };
+    const original = mocks.query.getMockImplementation()!;
+    mocks.query.mockImplementation(async (...args) => {
+      const query = String(args[0]);
+      if (query.includes('from "chunks"') && query.includes('"embedding_model"')) {
+        let current = [primary, neighbor];
+        if (change === "deleted") current = [primary];
+        else if (change)
+          current = [
+            primary,
+            {
+              ...neighbor,
+              ...(change === "uuid" ? { id: fixture.primary[1]!.id } : {}),
+              ...(change === "text" ? { text: "changed" } : {}),
+              ...(change === "offset" ? { charEnd: neighbor.charEnd + 1 } : {}),
+              ...(change === "model" ? { embeddingModel: "changed" } : {}),
+            },
+          ];
+        return {
+          rows: current.map((chunk) => [
+            chunk.id,
+            chunk.documentId,
+            chunk.briefId,
+            chunk.text,
+            chunk.charStart,
+            chunk.charEnd,
+            chunk.ord,
+            chunk.sectionTitle,
+            chunk.isTable,
+            chunk.embeddingModel,
+          ]),
+        };
+      }
+      const result = await original(...args);
+      if (query.includes('inner join "app_users"') && result.rows.length)
+        result.rows[0][6] = [saved];
+      return result;
+    });
+    return { context, primary, neighbor };
+  }
+
+  it("keeps one citable snapshot and stores only context fingerprints, never auxiliary text", async () => {
+    const { context, primary } = arrangeContext();
+    const source: AnalyticsSource = {
+      ...snapshot,
+      sourceKind: "document",
+      title: "Synthetic",
+      docDate: null,
+      briefDate: null,
+      direction: null,
+      sectionTitle: primary.sectionTitle,
+      text: primary.text,
+      quote: "preview",
+      charStart: primary.charStart,
+      charEnd: primary.charEnd,
+      isTable: false,
+      attachmentCount: 0,
+      classification: "open",
+      sourceReliability: "A",
+      infoCredibility: 1,
+    };
+    const result = buildAnalyticsHistorySnapshot(
+      [source],
+      "Answer [8]",
+      "test",
+      12,
+      new Date(snapshot.createdAt),
+      context,
+    );
+    expect(result.snapshots).toHaveLength(1);
+    expect(result.snapshots[0]!.n).toBe(8);
+    expect(result.snapshots[0]!.contextChunks).toHaveLength(2);
+    expect(JSON.stringify(result)).not.toMatch(/Boundary context|999|"text"|"quote"/);
+    const record = await read();
+    expect(record?.answer).toBe("Saved answer [8].");
+    expect(record?.sources).toHaveLength(1);
+    expect(record?.sources[0]).not.toHaveProperty("contextChunks");
+    expect(
+      mocks.query.mock.calls.filter(([query]) => query.includes('"embedding_model"')),
+    ).toHaveLength(1);
+  });
+
+  it.each(["uuid", "text", "offset", "model", "deleted"])(
+    "suppresses the saved answer when auxiliary %s changes, regardless of the current flag",
+    async (change) => {
+      arrangeContext(change);
+      const record = await read();
+      expect(record?.status).toBe("incomplete");
+      expect(record?.answer).toBe(az.analytics.sourceUnavailable);
+      expect(record?.sources[0]?.available).toBe(true); // The original citable evidence stays independent.
+    },
+  );
+
+  it("does not read auxiliary payloads after parent access is revoked", async () => {
+    arrange({ document: false });
+    arrangeContext();
+    const record = await read();
+    expect(record?.answer).toBe(az.analytics.sourceUnavailable);
+    expect(mocks.query.mock.calls.some(([query]) => query.includes('"embedding_model"'))).toBe(
+      false,
+    );
+  });
 });
 
 const id = "00000000-0000-4000-8000-000000000001";

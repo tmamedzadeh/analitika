@@ -125,6 +125,8 @@ export class GeminiLLMProvider implements LLMProvider {
       return withGeminiRequest(
         quotaKey,
         async () => {
+          await input.beforeRequest?.();
+          modelSignal?.throwIfAborted();
           this.usageStats.apiCalls += 1;
           const result = await operation(model, modelSignal);
           this.recordUsage(result);
@@ -292,6 +294,8 @@ export class GeminiLLMProvider implements LLMProvider {
       return withGeminiStream(
         quotaKey,
         async () => {
+          await input.beforeRequest?.();
+          modelSignal?.throwIfAborted();
           this.usageStats.apiCalls += 1;
           return streamTextResponse({
             model: google(model),
@@ -374,6 +378,8 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
     const result = await withGeminiRequest(
       "GEMINI_EMBED_MODEL",
       async () => {
+        await request.beforeRequest?.();
+        request.signal?.throwIfAborted();
         this.usage.apiCalls += 1;
         const result = await embed({
           maxRetries: 0,
@@ -403,6 +409,8 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
       const result = await withGeminiRequest(
         "GEMINI_EMBED_MODEL",
         async () => {
+          await request.beforeRequest?.();
+          request.signal?.throwIfAborted();
           this.usage.apiCalls += 1;
           const response = await embedMany({
             maxRetries: 0,
@@ -427,6 +435,8 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
     const result = await withGeminiRequest(
       "GEMINI_EMBED_MODEL",
       async () => {
+        await request.beforeRequest?.();
+        request.signal?.throwIfAborted();
         this.usage.apiCalls += 1;
         const result = await embed({
           maxRetries: 0,
@@ -453,6 +463,8 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
       const result = await withGeminiRequest(
         "GEMINI_EMBED_MODEL",
         async () => {
+          await request.beforeRequest?.();
+          request.signal?.throwIfAborted();
           this.usage.apiCalls += 1;
           const response = await embedMany({
             maxRetries: 0,

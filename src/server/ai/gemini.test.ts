@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GeminiEmbeddingProvider, GeminiLLMProvider } from "./gemini";
 import { withAiDiagnostics } from "./diagnostics";
 import { clearGeminiModelCooldowns } from "./gemini-gateway";
+import { AuthorizationError } from "@/server/auth";
 
 beforeEach(() => {
   clearGeminiModelCooldowns();
@@ -15,6 +16,48 @@ afterEach(() => {
 });
 
 describe("Gemini SDK and gateway retry budget", () => {
+  it("rechecks authorization before a retry and never dispatches revoked text to fallback", async () => {
+    vi.useFakeTimers();
+    const denied = new AuthorizationError();
+    const beforeRequest = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValue(denied);
+    const fetch = vi.fn(async () =>
+      Response.json({ error: { code: 503, message: "Synthetic unavailable" } }, { status: 503 }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const pending = new GeminiLLMProvider(
+      "gemini-3.8-flash",
+      "AI_CHAT_MODEL",
+      "gemini-3.5-flash-lite",
+    ).generateText({ prompt: "Synthetic prompt", beforeRequest });
+    const rejected = expect(pending).rejects.toBe(denied);
+    await vi.advanceTimersByTimeAsync(500);
+    await rejected;
+    expect(beforeRequest).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("checks cancellation again after a pending authorization read, before dispatch", async () => {
+    let authorize!: () => void;
+    const beforeRequest = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          authorize = resolve;
+        }),
+    );
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const controller = new AbortController();
+    const pending = new GeminiEmbeddingProvider("gemini-embedding-2").embedQuery(
+      "Synthetic query",
+      { beforeRequest, signal: controller.signal },
+    );
+    const rejected = expect(pending).rejects.toThrow();
+    await vi.waitFor(() => expect(beforeRequest).toHaveBeenCalledOnce());
+    controller.abort(new DOMException("Cancelled", "AbortError"));
+    authorize();
+    await rejected;
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it("reports the model that actually completed after quota fallback", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

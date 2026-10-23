@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { KeyRound, Plus, ShieldCheck, UserRound, UserX } from "lucide-react";
+import { KeyRound, ShieldCheck, UserRound, UserX } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
-import { ZirveLoader, ZirveSkeleton } from "@/components/ZirveLoader";
+import { ZirveSkeleton, ZirveActionLabel, ZirveQueryIndicator } from "@/components/ZirveLoader";
 import { Button } from "@/components/ui/button";
 import { Shell } from "@/components/Shell";
 import {
@@ -329,12 +329,11 @@ function Settings() {
               </label>
               <div className="md:col-span-2">
                 <Button type="submit" disabled={creating} aria-busy={creating}>
-                  {creating ? (
-                    <ZirveLoader variant="button" label={az.userManagement.creating} />
-                  ) : (
-                    <Plus size={16} aria-hidden="true" />
-                  )}
-                  {creating ? az.userManagement.creating : az.userManagement.createUser}
+                  <ZirveActionLabel
+                    busy={creating}
+                    label={az.userManagement.createUser}
+                    pendingLabel={az.userManagement.creating}
+                  />
                 </Button>
               </div>
               <div className="md:col-span-2" aria-live="polite">
@@ -357,7 +356,8 @@ function Settings() {
                 <span className="text-xs text-muted-foreground">{users.length}</span>
               )}
             </div>
-            {usersLoading ? (
+            <ZirveQueryIndicator fetching={usersLoading && users.length > 0} />
+            {usersLoading && users.length === 0 ? (
               <ZirveSkeleton label={az.loader.loading} rows={4} />
             ) : usersError ? (
               <div
@@ -589,14 +589,11 @@ function Settings() {
             </label>
             <div className="sm:col-span-2">
               <Button type="submit" disabled={changingOwnPassword} aria-busy={changingOwnPassword}>
-                {changingOwnPassword ? (
-                  <ZirveLoader variant="button" label={az.userManagement.changingPassword} />
-                ) : (
-                  <KeyRound size={16} aria-hidden="true" />
-                )}
-                {changingOwnPassword
-                  ? az.userManagement.changingPassword
-                  : az.userManagement.changePassword}
+                <ZirveActionLabel
+                  busy={changingOwnPassword}
+                  label={az.userManagement.changePassword}
+                  pendingLabel={az.userManagement.changingPassword}
+                />
               </Button>
             </div>
             <div className="sm:col-span-2" aria-live="polite">

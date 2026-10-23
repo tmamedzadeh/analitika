@@ -7,6 +7,19 @@ import { directionIdSchema, directionIds } from "./directions";
 export const ANALYTICS_SERVER_DEADLINE_MS = 105_000;
 export const ANALYTICS_CLIENT_DEADLINE_MS = 115_000;
 
+export const analyticsProgressStages = [
+  "starting",
+  "retrieval",
+  "sources",
+  "generation",
+  "validation",
+] as const;
+export type AnalyticsProgressStage = (typeof analyticsProgressStages)[number];
+
+export function isAnalyticsProgressStage(value: unknown): value is AnalyticsProgressStage {
+  return typeof value === "string" && analyticsProgressStages.some((stage) => stage === value);
+}
+
 export function citedSourceNumbers(answer: string): Set<number> {
   return new Set([...answer.matchAll(/\[(\d+)\]/gu)].map((match) => Number(match[1])));
 }
