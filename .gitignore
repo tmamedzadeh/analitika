@@ -16,6 +16,9 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
+# Local verification scratch space and backup snapshots.
+/.gate-backup/
+/.release-backup.local/
 .env*
 !.env.example
 

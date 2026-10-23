@@ -1,0 +1,175 @@
+{
+  "id": "D-comparison",
+  "query": "Rusiya və İran arasında hərbi əməkdaşlığın əsas istiqamətlərini müqayisə et.",
+  "sources": [
+    {
+      "n": 1,
+      "sourceKind": "document",
+      "documentId": "synthetic-əməkdaşlıq-icmalı",
+      "briefId": null,
+      "chunkId": "synthetic-əməkdaşlıq-icmalı-1",
+      "title": "Açıq sintetik sınaq: əməkdaşlıq-icmalı",
+      "sectionTitle": "Sınaq ssenarisi",
+      "text": "Sınaq ssenarisində Rusiya və İran arasında üç əməkdaşlıq istiqaməti təsvir olunur. Texniki xidmət üzrə fəaliyyət göstərən birgə mərkəz üçün iş planı təsdiqlənib. Heyət hazırlığı istiqamətində ilkin kurs keçirilib. Yeni platformaların birgə istehsalı barədə niyyət protokolu imzalanıb, istehsala başlandığına dair məlumat yoxdur. Bu istiqamətlər eyni icra mərhələsində deyil.",
+      "quote": "Sınaq ssenarisində Rusiya və İran arasında üç əməkdaşlıq istiqaməti təsvir olunur. Texniki xidmət üzrə fəaliyyət göstərən birgə mərkəz üçün iş planı təsdiqlənib. Heyət hazırlığı istiqamətində ilkin kurs keçirilib. Yeni platformaların birgə istehsalı barədə niyyət protokolu imzalanıb, istehsala başlandığına dair məlumat yoxdur. Bu istiqamətlər eyni icra mərhələsində deyil.",
+      "charStart": 0,
+      "charEnd": 374,
+      "docDate": "2026-10-01",
+      "briefDate": null,
+      "direction": "OSINT",
+      "isTable": false,
+      "attachmentCount": 0,
+      "classification": "open",
+      "sourceReliability": "A",
+      "infoCredibility": 1
+    },
+    {
+      "n": 3,
+      "sourceKind": "document",
+      "documentId": "synthetic-əməkdaşlıq-detalları",
+      "briefId": null,
+      "chunkId": "synthetic-əməkdaşlıq-detalları-3",
+      "title": "Açıq sintetik sınaq: əməkdaşlıq-detalları",
+      "sectionTitle": "Sınaq ssenarisi",
+      "text": "Sınaq ssenarisində texniki xidmət mərkəzinin işi mövcud avadanlığın istismarını dəstəkləməyə yönəlib; hazırlıq kursu texniki heyətin bacarıqlarına aiddir. Birgə istehsal niyyət protokolu gələcək istehsalın təşkili üzrə danışıqları nəzərdə tutur. Müqavilə qiyməti, texnologiya transferinin şərtləri və istehsal müddəti açıqlanmır. Bütün istiqamətlər üzrə tərəflərin siyasi razılığı ilə əməli icra arasında fərq saxlanmalıdır.",
+      "quote": "Sınaq ssenarisində texniki xidmət mərkəzinin işi mövcud avadanlığın istismarını dəstəkləməyə yönəlib; hazırlıq kursu texniki heyətin bacarıqlarına aiddir. Birgə istehsal niyyət protokolu gələcək istehsalın təşkili üzrə danışıqları nəzərdə tutur. Müqavilə qiyməti, texnologiya transferinin şərtləri və istehsal müddəti açıqlanmır. Bütün istiqamətlər üzrə tərəflərin siyasi razılığı ilə əməli icra arasında fərq saxlanmalıdır.",
+      "charStart": 0,
+      "charEnd": 424,
+      "docDate": "2026-10-01",
+      "briefDate": null,
+      "direction": "OSINT",
+      "isTable": false,
+      "attachmentCount": 0,
+      "classification": "open",
+      "sourceReliability": "B",
+      "infoCredibility": 2
+    }
+  ],
+  "startedAt": "2026-10-23T04:56:22.592Z",
+  "deadlineAt": "2026-10-23T04:58:07.592Z",
+  "systemPromptSha256": "4d1479f538ab74177ea3de998b4bc4c7bca3c44d62e37c82b04ba112ba7e4f1d",
+  "fullPromptSha256": "88dc3cbc9f49e26e967bb07953f948e95eca6787f2c7de010ded52a4c82e1fe2",
+  "configuration": {
+    "chatModel": "gemini-3.8-flash",
+    "lightModel": "gemini-3.5-flash-lite",
+    "backupModel": "gemini-3.1-flash-lite",
+    "thinkingLevel": "medium",
+    "maxOutputTokens": 4096,
+    "deadlineMs": 105000,
+    "maxAttemptsPerRoute": 1,
+    "sdkMaxRetries": 0,
+    "contextExpansion": "false"
+  },
+  "dispatches": [
+    {
+      "model": "gemini-3.8-flash",
+      "startedAt": "2026-10-23T04:56:22.595Z",
+      "startElapsedMs": 3,
+      "headersElapsedMs": 309,
+      "status": 429,
+      "elapsedMs": 309
+    },
+    {
+      "model": "gemini-3.5-flash-lite",
+      "startedAt": "2026-10-23T04:56:22.912Z",
+      "startElapsedMs": 320,
+      "headersElapsedMs": 5785,
+      "status": 200,
+      "usage": {
+        "inputTokens": 4073,
+        "candidateTokens": 500,
+        "thinkingTokens": 1552,
+        "totalTokens": 6125,
+        "cachedInputTokens": null
+      },
+      "elapsedMs": 5790
+    }
+  ],
+  "diagnostics": [
+    {
+      "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-D-comparison",
+      "stage": "generation",
+      "event": "start",
+      "model": "gemini-3.8-flash",
+      "attempt": 1,
+      "generationAttempt": 1,
+      "providerStatus": null,
+      "errorCategory": null,
+      "elapsedMs": 2
+    },
+    {
+      "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-D-comparison",
+      "stage": "generation",
+      "event": "failure",
+      "model": "gemini-3.8-flash",
+      "attempt": 1,
+      "generationAttempt": 1,
+      "providerStatus": 429,
+      "errorCategory": "quota",
+      "elapsedMs": 318
+    },
+    {
+      "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-D-comparison",
+      "stage": "generation",
+      "event": "fallback",
+      "model": "gemini-3.8-flash",
+      "attempt": null,
+      "generationAttempt": 1,
+      "providerStatus": null,
+      "errorCategory": "quota",
+      "elapsedMs": 319,
+      "fallbackModel": "gemini-3.5-flash-lite"
+    },
+    {
+      "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-D-comparison",
+      "stage": "generation",
+      "event": "start",
+      "model": "gemini-3.5-flash-lite",
+      "attempt": 1,
+      "generationAttempt": 1,
+      "providerStatus": null,
+      "errorCategory": null,
+      "elapsedMs": 319
+    },
+    {
+      "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-D-comparison",
+      "stage": "generation",
+      "event": "success",
+      "model": "gemini-3.5-flash-lite",
+      "attempt": 1,
+      "generationAttempt": 1,
+      "providerStatus": 200,
+      "errorCategory": null,
+      "elapsedMs": 6114
+    }
+  ],
+  "fallbacks": [
+    {
+      "fromModel": "gemini-3.8-flash",
+      "toModel": "gemini-3.5-flash-lite",
+      "reason": "quota",
+      "backup": false,
+      "elapsedMs": 319
+    }
+  ],
+  "semanticReview": {
+    "status": "PENDING_MANUAL_REVIEW"
+  },
+  "status": "completed",
+  "model": "gemini-3.5-flash-lite",
+  "finishReason": "stop",
+  "elapsedMs": 6115,
+  "answer": "Rusiya və İran arasında hərbi əməkdaşlıq üç əsas istiqamət – texniki xidmət, heyət hazırlığı və yeni platformaların birgə istehsalı üzrə həyata keçirilir [1]. Bu istiqamətlər eyni icra mərhələsində deyil və bütün istiqamətlər üzrə tərəflərin siyasi razılığı ilə əməli icra arasında fərq mövcuddur [1][3].\n\nİstiqamətlərin müqayisəli təhlili:\n\n*   **Texniki xidmət və heyət hazırlığı:** Bu sahələrdə konkret praktiki addımlar atılmışdır. Texniki xidmət mərkəzinin işi mövcud avadanlığın istismarını dəstəkləməyə yönəlmişdir və bu mərkəz üçün iş planı təsdiqlənib [1][3]. Heyət hazırlığı istiqamətində isə texniki heyətin bacarıqlarının artırılmasına xidmət edən ilkin kurs keçirilib [1][3].\n*   **Yeni platformaların birgə istehsalı:** Bu istiqamət digərlərindən fərqli olaraq ilkin mərhələdədir. Tərəflər arasında yalnız niyyət protokolu imzalanmışdır və gələcək istehsalın təşkili üzrə danışıqlar nəzərdə tutulur [1][3]. İstehsala başlandığına dair məlumat mövcud deyil [1]. Eyni zamanda, bu sahə üzrə müqavilə qiyməti, texnologiya transferinin şərtləri və istehsal müddəti açıqlanmır [3].\n\nMövcud məlumatlar göstərir ki, texniki xidmət və kadr hazırlığı tədbirləri praktiki mərhələdə icra olunduğu halda, birgə istehsal istiqaməti hələlik hüquqi və təşkilati razılaşma (niyyət protokolu) səviyyəsindədir [1][3].",
+  "validatedAnswer": "Rusiya və İran arasında hərbi əməkdaşlıq üç əsas istiqamət – texniki xidmət, heyət hazırlığı və yeni platformaların birgə istehsalı üzrə həyata keçirilir [1]. Bu istiqamətlər eyni icra mərhələsində deyil və bütün istiqamətlər üzrə tərəflərin siyasi razılığı ilə əməli icra arasında fərq mövcuddur [1][3].\n\nİstiqamətlərin müqayisəli təhlili:\n\n*   **Texniki xidmət və heyət hazırlığı:** Bu sahələrdə konkret praktiki addımlar atılmışdır. Texniki xidmət mərkəzinin işi mövcud avadanlığın istismarını dəstəkləməyə yönəlmişdir və bu mərkəz üçün iş planı təsdiqlənib [1][3]. Heyət hazırlığı istiqamətində isə texniki heyətin bacarıqlarının artırılmasına xidmət edən ilkin kurs keçirilib [1][3].\n*   **Yeni platformaların birgə istehsalı:** Bu istiqamət digərlərindən fərqli olaraq ilkin mərhələdədir. Tərəflər arasında yalnız niyyət protokolu imzalanmışdır və gələcək istehsalın təşkili üzrə danışıqlar nəzərdə tutulur [1][3]. İstehsala başlandığına dair məlumat mövcud deyil [1]. Eyni zamanda, bu sahə üzrə müqavilə qiyməti, texnologiya transferinin şərtləri və istehsal müddəti açıqlanmır [3].\n\nMövcud məlumatlar göstərir ki, texniki xidmət və kadr hazırlığı tədbirləri praktiki mərhələdə icra olunduğu halda, birgə istehsal istiqaməti hələlik hüquqi və təşkilati razılaşma (niyyət protokolu) səviyyəsindədir [1][3].",
+  "publicationFailureReasons": [],
+  "structuralValidation": {
+    "answer": "Rusiya və İran arasında hərbi əməkdaşlıq üç əsas istiqamət – texniki xidmət, heyət hazırlığı və yeni platformaların birgə istehsalı üzrə həyata keçirilir [1]. Bu istiqamətlər eyni icra mərhələsində deyil və bütün istiqamətlər üzrə tərəflərin siyasi razılığı ilə əməli icra arasında fərq mövcuddur [1][3].\n\nİstiqamətlərin müqayisəli təhlili:\n\n*   **Texniki xidmət və heyət hazırlığı:** Bu sahələrdə konkret praktiki addımlar atılmışdır. Texniki xidmət mərkəzinin işi mövcud avadanlığın istismarını dəstəkləməyə yönəlmişdir və bu mərkəz üçün iş planı təsdiqlənib [1][3]. Heyət hazırlığı istiqamətində isə texniki heyətin bacarıqlarının artırılmasına xidmət edən ilkin kurs keçirilib [1][3].\n*   **Yeni platformaların birgə istehsalı:** Bu istiqamət digərlərindən fərqli olaraq ilkin mərhələdədir. Tərəflər arasında yalnız niyyət protokolu imzalanmışdır və gələcək istehsalın təşkili üzrə danışıqlar nəzərdə tutulur [1][3]. İstehsala başlandığına dair məlumat mövcud deyil [1]. Eyni zamanda, bu sahə üzrə müqavilə qiyməti, texnologiya transferinin şərtləri və istehsal müddəti açıqlanmır [3].\n\nMövcud məlumatlar göstərir ki, texniki xidmət və kadr hazırlığı tədbirləri praktiki mərhələdə icra olunduğu halda, birgə istehsal istiqaməti hələlik hüquqi və təşkilati razılaşma (niyyət protokolu) səviyyəsindədir [1][3].",
+    "incomplete": false,
+    "usedLowReliability": false,
+    "failureReasons": []
+  },
+  "structuralStatus": "PASS",
+  "deadlineStatus": "PASS",
+  "usedLowReliability": false,
+  "dispatchCount": 2
+}

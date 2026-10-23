@@ -1,0 +1,146 @@
+{
+  "id": "E-reliability",
+  "query": "Avadanlığın qəbul və istismardan çıxarılması barədə bu məlumatların etibarlılıq səviyyəsi nə dərəcədədir?",
+  "sources": [
+    {
+      "n": 1,
+      "sourceKind": "document",
+      "documentId": "synthetic-yoxlama-hesabatı",
+      "briefId": null,
+      "chunkId": "synthetic-yoxlama-hesabatı-1",
+      "title": "Açıq sintetik sınaq: yoxlama-hesabatı",
+      "sectionTitle": "Sınaq ssenarisi",
+      "text": "Sınaq ssenarisində avadanlığın qəbulu 1 oktyabr tarixli qəbul aktında təsdiqlənir. Akt qəbul tarixini təsdiqləyir, avadanlığın döyüş şəraitində nəticəsini və ya sonrakı istismarını təsdiqləmir.",
+      "quote": "Sınaq ssenarisində avadanlığın qəbulu 1 oktyabr tarixli qəbul aktında təsdiqlənir. Akt qəbul tarixini təsdiqləyir, avadanlığın döyüş şəraitində nəticəsini və ya sonrakı istismarını təsdiqləmir.",
+      "charStart": 0,
+      "charEnd": 193,
+      "docDate": "2026-10-01",
+      "briefDate": null,
+      "direction": "OSINT",
+      "isTable": false,
+      "attachmentCount": 0,
+      "classification": "open",
+      "sourceReliability": "A",
+      "infoCredibility": 1
+    },
+    {
+      "n": 3,
+      "sourceKind": "document",
+      "documentId": "synthetic-anonim-iddia",
+      "briefId": null,
+      "chunkId": "synthetic-anonim-iddia-3",
+      "title": "Açıq sintetik sınaq: anonim-iddia",
+      "sectionTitle": "Sınaq ssenarisi",
+      "text": "Sınaq ssenarisində anonim şəxs avadanlığın artıq istismardan çıxarıldığını iddia edir. Sınaq toplusunda bu iddianı təsdiqləyən texniki baxış aktı, ikinci müstəqil mənbə və ya rəsmi açıqlama yoxdur.",
+      "quote": "Sınaq ssenarisində anonim şəxs avadanlığın artıq istismardan çıxarıldığını iddia edir. Sınaq toplusunda bu iddianı təsdiqləyən texniki baxış aktı, ikinci müstəqil mənbə və ya rəsmi açıqlama yoxdur.",
+      "charStart": 0,
+      "charEnd": 197,
+      "docDate": "2026-10-01",
+      "briefDate": null,
+      "direction": "OSINT",
+      "isTable": false,
+      "attachmentCount": 0,
+      "classification": "open",
+      "sourceReliability": "D",
+      "infoCredibility": 5
+    },
+    {
+      "n": 6,
+      "sourceKind": "document",
+      "documentId": "synthetic-anonim-iddia",
+      "briefId": null,
+      "chunkId": "synthetic-anonim-iddia-6",
+      "title": "Açıq sintetik sınaq: anonim-iddia",
+      "sectionTitle": "Sınaq ssenarisi",
+      "text": "Eyni anonim şəxsin eyni avadanlığın istismardan çıxarılması barədə sözləri bu materialın başqa bölməsində təkrar edilir. Bu hissə yeni müstəqil təsdiq deyil.",
+      "quote": "Eyni anonim şəxsin eyni avadanlığın istismardan çıxarılması barədə sözləri bu materialın başqa bölməsində təkrar edilir. Bu hissə yeni müstəqil təsdiq deyil.",
+      "charStart": 0,
+      "charEnd": 157,
+      "docDate": "2026-10-01",
+      "briefDate": null,
+      "direction": "OSINT",
+      "isTable": false,
+      "attachmentCount": 0,
+      "classification": "open",
+      "sourceReliability": "D",
+      "infoCredibility": 5
+    }
+  ],
+  "startedAt": "2026-10-23T04:53:56.510Z",
+  "deadlineAt": "2026-10-23T04:55:41.510Z",
+  "systemPromptSha256": "4d1479f538ab74177ea3de998b4bc4c7bca3c44d62e37c82b04ba112ba7e4f1d",
+  "fullPromptSha256": "157ced324fcda976cc0163fd3e5358f3d4ef02cdec102788406cbd383608c1ac",
+  "configuration": {
+    "chatModel": "gemini-3.8-flash",
+    "lightModel": "gemini-3.5-flash-lite",
+    "backupModel": "gemini-3.1-flash-lite",
+    "thinkingLevel": "medium",
+    "maxOutputTokens": 4096,
+    "deadlineMs": 105000,
+    "maxAttemptsPerRoute": 1,
+    "sdkMaxRetries": 0,
+    "contextExpansion": "false"
+  },
+  "dispatches": [
+    {
+      "model": "gemini-3.8-flash",
+      "startedAt": "2026-10-23T04:53:56.526Z",
+      "startElapsedMs": 16,
+      "headersElapsedMs": 38254,
+      "status": 200,
+      "usage": {
+        "inputTokens": 4076,
+        "candidateTokens": 527,
+        "thinkingTokens": 1187,
+        "totalTokens": 5790,
+        "cachedInputTokens": null
+      },
+      "elapsedMs": 38258
+    }
+  ],
+  "diagnostics": [
+    {
+      "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-E-reliability",
+      "stage": "generation",
+      "event": "start",
+      "model": "gemini-3.8-flash",
+      "attempt": 1,
+      "generationAttempt": 1,
+      "providerStatus": null,
+      "errorCategory": null,
+      "elapsedMs": 4
+    },
+    {
+      "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-E-reliability",
+      "stage": "generation",
+      "event": "success",
+      "model": "gemini-3.8-flash",
+      "attempt": 1,
+      "generationAttempt": 1,
+      "providerStatus": 200,
+      "errorCategory": null,
+      "elapsedMs": 38278
+    }
+  ],
+  "fallbacks": [],
+  "semanticReview": {
+    "status": "PENDING_MANUAL_REVIEW"
+  },
+  "status": "completed",
+  "model": "gemini-3.8-flash",
+  "finishReason": "stop",
+  "elapsedMs": 38278,
+  "answer": "Avadanlığın qəbulu sənədlə təsdiqlənmiş yüksək etibarlı fakt hesab edildiyi halda, onun istismardan çıxarılması barədə məlumat aşağı etibarlılığa malik, təsdiqlənməmiş və ehtimal olunmayan iddiadır [1][3][6].\n\n**Avadanlığın qəbulu**\n1 oktyabr tarixli qəbul aktı ilə avadanlığın qəbul edildiyi faktı təsdiqlənib [1]. Bu məlumat üzrə mənbə etibarlılığı **A (Tam etibarlı)**, məlumat etibarlılığı isə **1 (Təsdiqlənib)** səviyyəsində qiymətləndirilir [1]. Akt qəbul tarixini rəsmən təsdiqləsə də, avadanlığın döyüş şəraitindəki nəticəsini və ya sonrakı istismar vəziyyətini əhatə etmir [1].\n\n**İstismardan çıxarılma iddiası**\nAvadanlığın artıq istismardan çıxarılması iddiası anonim şəxsin bəyanatına əsaslanır [3]. Bu məlumat üzrə mənbə etibarlılığı **D (Adətən etibarsız)**, məlumat etibarlılığı isə **5 (Ehtimal olunmayan)** olaraq müəyyən edilib [3][6]. İddianı təsdiq edən texniki baxış aktı, rəsmi açıqlama və ya ikinci müstəqil mənbə mövcud deyil [3]. Eyni anonim şəxsin sözlərinin həmin materialın başqa bölməsində təkrar edilməsi ([6]) müstəqil təsdiq sayılmır, çünki hər iki fraqment ([3] və [6]) eyni ilkin mənbəyə aiddir. D/5 qiymətləndirməsi və təsdiqləyici sənədlərin olmaması iddianın birmənalı şəkildə yalan olduğunu sübut etməsə də, bu məlumat hazırda əsaslandırılmamış subyektiv iddia xarakteri daşıyır [3][6].",
+  "validatedAnswer": "Avadanlığın qəbulu sənədlə təsdiqlənmiş yüksək etibarlı fakt hesab edildiyi halda, onun istismardan çıxarılması barədə məlumat aşağı etibarlılığa malik, təsdiqlənməmiş və ehtimal olunmayan iddiadır [1][3][6].\n\n**Avadanlığın qəbulu**\n1 oktyabr tarixli qəbul aktı ilə avadanlığın qəbul edildiyi faktı təsdiqlənib [1]. Bu məlumat üzrə mənbə etibarlılığı **A (Tam etibarlı)**, məlumat etibarlılığı isə **1 (Təsdiqlənib)** səviyyəsində qiymətləndirilir [1]. Akt qəbul tarixini rəsmən təsdiqləsə də, avadanlığın döyüş şəraitindəki nəticəsini və ya sonrakı istismar vəziyyətini əhatə etmir [1].\n\n**İstismardan çıxarılma iddiası**\nAvadanlığın artıq istismardan çıxarılması iddiası anonim şəxsin bəyanatına əsaslanır [3]. Bu məlumat üzrə mənbə etibarlılığı **D (Adətən etibarsız)**, məlumat etibarlılığı isə **5 (Ehtimal olunmayan)** olaraq müəyyən edilib [3][6]. İddianı təsdiq edən texniki baxış aktı, rəsmi açıqlama və ya ikinci müstəqil mənbə mövcud deyil [3]. Eyni anonim şəxsin sözlərinin həmin materialın başqa bölməsində təkrar edilməsi ([6]) müstəqil təsdiq sayılmır, çünki hər iki fraqment ([3] və [6]) eyni ilkin mənbəyə aiddir. D/5 qiymətləndirməsi və təsdiqləyici sənədlərin olmaması iddianın birmənalı şəkildə yalan olduğunu sübut etməsə də, bu məlumat hazırda əsaslandırılmamış subyektiv iddia xarakteri daşıyır [3][6].",
+  "publicationFailureReasons": [],
+  "structuralValidation": {
+    "answer": "Avadanlığın qəbulu sənədlə təsdiqlənmiş yüksək etibarlı fakt hesab edildiyi halda, onun istismardan çıxarılması barədə məlumat aşağı etibarlılığa malik, təsdiqlənməmiş və ehtimal olunmayan iddiadır [1][3][6].\n\n**Avadanlığın qəbulu**\n1 oktyabr tarixli qəbul aktı ilə avadanlığın qəbul edildiyi faktı təsdiqlənib [1]. Bu məlumat üzrə mənbə etibarlılığı **A (Tam etibarlı)**, məlumat etibarlılığı isə **1 (Təsdiqlənib)** səviyyəsində qiymətləndirilir [1]. Akt qəbul tarixini rəsmən təsdiqləsə də, avadanlığın döyüş şəraitindəki nəticəsini və ya sonrakı istismar vəziyyətini əhatə etmir [1].\n\n**İstismardan çıxarılma iddiası**\nAvadanlığın artıq istismardan çıxarılması iddiası anonim şəxsin bəyanatına əsaslanır [3]. Bu məlumat üzrə mənbə etibarlılığı **D (Adətən etibarsız)**, məlumat etibarlılığı isə **5 (Ehtimal olunmayan)** olaraq müəyyən edilib [3][6]. İddianı təsdiq edən texniki baxış aktı, rəsmi açıqlama və ya ikinci müstəqil mənbə mövcud deyil [3]. Eyni anonim şəxsin sözlərinin həmin materialın başqa bölməsində təkrar edilməsi ([6]) müstəqil təsdiq sayılmır, çünki hər iki fraqment ([3] və [6]) eyni ilkin mənbəyə aiddir. D/5 qiymətləndirməsi və təsdiqləyici sənədlərin olmaması iddianın birmənalı şəkildə yalan olduğunu sübut etməsə də, bu məlumat hazırda əsaslandırılmamış subyektiv iddia xarakteri daşıyır [3][6].",
+    "incomplete": false,
+    "usedLowReliability": true,
+    "failureReasons": []
+  },
+  "structuralStatus": "PASS",
+  "deadlineStatus": "PASS",
+  "usedLowReliability": true,
+  "dispatchCount": 1
+}

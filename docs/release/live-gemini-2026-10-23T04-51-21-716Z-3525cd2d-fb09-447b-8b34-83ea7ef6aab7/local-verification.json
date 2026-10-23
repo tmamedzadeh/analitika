@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-10-23T04:58:03.409Z",
+  "checks": {
+    "protectedBaselineFilesUnchanged": true,
+    "fixturesByteEquivalentToHead": true,
+    "authorizedOrder": true,
+    "maxThreeLogicalGenerations": true,
+    "maxNineDispatches": true,
+    "dispatchCountsAgree": true,
+    "perCaseAndRouteBudget": true,
+    "noRetryDiagnostics": true,
+    "oneSharedDeadline": true,
+    "stopAfterProviderFailure": true,
+    "C-assessment:rawMatchesRun": true,
+    "C-assessment:promptHashesReproduce": true,
+    "E-reliability:rawMatchesRun": true,
+    "E-reliability:promptHashesReproduce": true,
+    "D-comparison:rawMatchesRun": true,
+    "D-comparison:promptHashesReproduce": true,
+    "noCredentialValueInArtifacts": true
+  },
+  "passed": true,
+  "historicalAndProductionHashes": [
+    {
+      "Path": "src/server/ai/gemini.ts",
+      "Hash": "C389075E8991C299C3EB33FB8E9CC224BD5DC2BBE4E8A69735C492BECC1759B1"
+    },
+    {
+      "Path": "src/server/ai/gemini-gateway.ts",
+      "Hash": "7B3586646CEA1DEE889C887B2A19A06A23A3C00CA72B16B41C614FE94D6FD1F5"
+    },
+    {
+      "Path": "src/server/prompts/analytics.ts",
+      "Hash": "C325392524948A29661D1490ADCBADE080AAC78EF7E365694B7EB2477274A22A"
+    },
+    {
+      "Path": "docs/release/ZIRVE_PHASE_4_REPORT.md",
+      "Hash": "74F20FB243A1A31EEE9A8FD66ABEF7746CA6762B626215F50E336A120C14D45F"
+    },
+    {
+      "Path": "docs/release/FINAL_ANALYTICS_SEMANTIC_REVIEW.md",
+      "Hash": "C40385FB518CB26AB5EE03B7A6C9C5609ED354405AFA97AF9ACB603E656FC8AE"
+    },
+    {
+      "Path": "src/routes/_app.axtaris.tsx",
+      "Hash": "865E241434E208D2112D083CD26ECCE4E472FE280511570648AA773F685AB573"
+    },
+    {
+      "Path": "docs/analytics-prompt-live-audit.json",
+      "Hash": "6EE91B467D8FB436A58F99190EB72416193F114100F8861B047E448963D30D83"
+    },
+    {
+      "Path": "docs/analytics-prompt-live-C-assessment-audit.json",
+      "Hash": "DE8A694B030755DD113ECA35CF9E64214B7A4A0A45E5FB4FD80DAAC1684607C7"
+    },
+    {
+      "Path": "docs/analytics-prompt-live-E-reliability_F-insufficient-audit.json",
+      "Hash": "0A49E7895B3CC9435363BE65741C8D249AC73D85DFAADFDBB3774264DD96D956"
+    }
+  ],
+  "syntheticFixturesSha256": "24ff6286334941288b432f75ab36f227819b5451899349afac02707e3733d440",
+  "pathPrivacy": "Local absolute paths normalized to repository-relative paths before publication; original hash values preserved."
+}

@@ -77,8 +77,8 @@ describe("standard RAG analytics prompt", () => {
     expect(system).toContain("təsdiqlənməmiş iddia");
     expect(system).toContain(az.analytics.noSources);
     expect(system).toContain("A/1 qiyməti onun rəsmi sənəd olduğunu öz-özünə sübut etmir");
-    expect(system).toContain("yalnız reytinqə və sənəd növünə əsasən");
-    expect(system).toContain("'rəsmən təsdiqlənmiş' adlandırma");
+    expect(system).toContain("Yalnız reytinqə və sənəd növünə əsasən");
+    expect(system).toContain("rəsmi status və ya mütləq doğruluq əlavə etmə");
   });
 
   it("adapts composition without prescribing a limitations section or a fixed sequence", () => {
@@ -119,13 +119,76 @@ describe("standard RAG analytics prompt", () => {
   it("does not turn missing production metrics into proof of weak capability or confirmed strength", () => {
     const { system } = buildAnalyticsPrompt("Müdafiə-sənaye potensialını qiymətləndir.", [source]);
     expect(system).toContain(
-      "İstehsal həcminin, məhsuldarlığın və ya sınaq nəticələrinin açıqlanmamasını",
+      "Ölçülərin olmaması real potensialı deyil, onu qiymətləndirmə imkanını məhdudlaşdırır",
     );
-    expect(system).toContain("sənaye məhdudiyyətinin sübutu sayma");
-    expect(system).toContain("potensialın real miqyasını qiymətləndirməyə imkan vermir");
     expect(system).toContain(
-      "bəyan edilən qabiliyyəti ölçülmüş və təsdiqlənmiş imkan kimi təqdim etmə",
+      "Bəyan edilən qabiliyyəti ölçülmüş və təsdiqlənmiş imkan kimi təqdim etmə",
     );
+  });
+
+  it("separates stages, conditional risks and evidence-backed weaknesses without forbidding analysis", () => {
+    const { system } = buildAnalyticsPrompt("Logistika imkanlarını qiymətləndir.", [source]);
+    expect(system).toContain("mümkün riski, analitik fərziyyəni və naməlum göstəricini");
+    expect(system).toContain(
+      "Mərhələlərin fərqli olması keçidin problemli, gecikmiş və ya mümkünsüz olduğunu sübut etmir",
+    );
+    expect(system).toContain("Tamamlanmanın təsdiqlənməməsi prosesin yarımçıq qaldığını");
+    expect(system).toContain("fəaliyyətə başlanması isə miqyaslı nəticəni sübut etmir");
+    expect(system).toContain("Mümkün riski artıq müəyyən edilmiş zəiflik kimi təqdim etmə");
+    expect(system).toContain("sıralamalar müqayisəli əsas tələb edir");
+    expect(system).toContain("Mənbədə birbaşa təsdiqlənən zəifliyi isə açıq adlandır");
+    expect(system).toContain("əsaslandırılmış riski şərti təsiri ilə izah et");
+    expect(system).toContain("əlaqəli faktları birləşdir");
+    expect(system).toContain("əsaslandırdığı nəticələri isə lüzumsuz tərəddüdlə zəiflətmə");
+  });
+
+  it("preserves certainty, attribution, time and collection scope during synthesis", () => {
+    const { system } = buildAnalyticsPrompt("Bu hesabatları birlikdə təhlil et.", [source]);
+    expect(system).toContain("Parafraz və sintezdə iddianın əminlik dərəcəsini");
+    expect(system).toContain("təsdiqin kimə və nəyə əsaslandığını, zaman və əhatə sərhədini saxla");
+    expect(system).toContain("mənbənin əminliyini artırma");
+    expect(system).toContain(
+      "'Bu materiallarda təsdiq yoxdur' ifadəsi 'ümumiyyətlə təsdiq yoxdur' demək deyil",
+    );
+    expect(system).toContain(
+      "Sənədin təqdim edilməməsi onun ümumiyyətlə mövcud olmaması demək deyil",
+    );
+  });
+
+  it("conditions official status and absolute certainty on content, including equivalent paraphrases", () => {
+    const { system } = buildAnalyticsPrompt("Sənədin mənşəyini qiymətləndir.", [source]);
+    expect(system).toContain("aktın olması da dövlət mənşəyini göstərmir");
+    for (const unsupportedUpgrade of [
+      "rəsmən təsdiqləyir",
+      "dövlət tərəfindən təsdiqlənib",
+      "şübhəsiz doğrudur",
+    ]) {
+      expect(system).toContain(unsupportedUpgrade);
+    }
+    expect(system).toContain(
+      "yalnız müvafiq status və əminlik mənbədə açıq təsdiqləndikdə işlədilə bilər",
+    );
+    expect(system).toContain("mənbənin etibarlılığı ilə konkret məlumatın doğruluğunu ayır");
+    expect(system).toContain(
+      "Eyni ilkin mənbədən götürülmüş təkrar xəbərləri müstəqil təsdiq sayma",
+    );
+  });
+
+  it("retains the comparison and conditional forecasting contract for D with unchanged generation options", () => {
+    const prompt = buildAnalyticsPrompt(
+      "Texniki xidmət, hazırlıq və istehsalı müqayisə et.",
+      [source],
+      "medium",
+    );
+    expect(prompt.system).toContain("Müqayisədə eyni meyarlarla oxşar və fərqli cəhətləri");
+    expect(prompt.system).toContain("təsdiqlənmiş plan onun icrasını");
+    expect(prompt.system).toContain("razılaşmanı müqavilə və onun icrası ilə qarışdırma");
+    expect(prompt.system).toContain("Ssenari və perspektiv yalnız mənbələr imkan verdikdə");
+    expect(prompt.system).toContain("şərtləri göstərilməklə verilməli");
+    expect(prompt.system).toContain("'Məhdudiyyətlər' bölməsini standart hissə kimi əlavə etmə");
+    expect(prompt.system).not.toMatch(/\b\d+\s*(söz|word|cümlə)/u);
+    expect(prompt.thinkingLevel).toBe("medium");
+    expect(prompt.maxOutputTokens).toBe(4096);
   });
 
   it("preserves sparse source mappings and same-material relationships without merging titles or types", () => {

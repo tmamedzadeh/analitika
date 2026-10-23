@@ -1,0 +1,507 @@
+{
+  "runId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7",
+  "configuration": {
+    "chatModel": "gemini-3.8-flash",
+    "lightModel": "gemini-3.5-flash-lite",
+    "backupModel": "gemini-3.1-flash-lite",
+    "thinkingLevel": "medium",
+    "maxOutputTokens": 4096,
+    "deadlineMs": 105000,
+    "maxAttemptsPerRoute": 1,
+    "sdkMaxRetries": 0,
+    "contextExpansion": "false"
+  },
+  "generatedAt": "2026-10-23T04:56:28.709Z",
+  "dataPolicy": "Invented open fixtures only; no DB/storage/history/retrieval/embedding/rerank/indexing. Not production RAG acceptance.",
+  "bounds": {
+    "logicalGenerations": 3,
+    "sdkDispatches": 9,
+    "perCaseDispatches": 3
+  },
+  "logicalGenerations": 3,
+  "sdkDispatches": 4,
+  "elapsedMs": 306992,
+  "providerUsageStats": {
+    "apiCalls": 4,
+    "inputTokens": 12385,
+    "outputTokens": 5014,
+    "thinkingTokens": 3238,
+    "usageReportedCalls": 3
+  },
+  "usageCaveat": "Adapter usageStats coerces missing fields to zero; use per-dispatch wire usage nulls for availability. Output may include thinking; do not add thinking again.",
+  "selectedCases": [
+    "C-assessment",
+    "E-reliability",
+    "D-comparison"
+  ],
+  "remainingCases": [],
+  "results": [
+    {
+      "id": "C-assessment",
+      "query": "İranın raket və pilotsuz sistemlər üzrə müdafiə-sənaye potensialını qiymətləndir.",
+      "sources": [
+        {
+          "n": 1,
+          "sourceKind": "document",
+          "documentId": "synthetic-sənaye-hesabatı",
+          "briefId": null,
+          "chunkId": "synthetic-sənaye-hesabatı-1",
+          "title": "Açıq sintetik sınaq: sənaye-hesabatı",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində İranın iki müdafiə müəssisəsində raket və pilotsuz uçuş aparatları üçün mühərrik və idarəetmə modullarının istehsal xətləri yenilənib. Hesabat yığım və texniki xidmət imkanlarının genişləndiyini göstərir. Kritik elektron komponentlərin bir hissəsi idxaldan asılıdır. Materialda istehsal həcmi, məhsuldarlıq və döyüş şəraitində sınaq nəticələri açıqlanmır.",
+          "quote": "Sınaq ssenarisində İranın iki müdafiə müəssisəsində raket və pilotsuz uçuş aparatları üçün mühərrik və idarəetmə modullarının istehsal xətləri yenilənib. Hesabat yığım və texniki xidmət imkanlarının genişləndiyini göstərir. Kritik elektron komponentlərin bir hissəsi idxaldan asılıdır. Materialda istehsal həcmi, məhsuldarlıq və döyüş şəraitində sınaq nəticələri açıqlanmır.",
+          "charStart": 0,
+          "charEnd": 374,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "B",
+          "infoCredibility": 2
+        },
+        {
+          "n": 3,
+          "sourceKind": "document",
+          "documentId": "synthetic-rəsmi-bəyanat",
+          "briefId": null,
+          "chunkId": "synthetic-rəsmi-bəyanat-3",
+          "title": "Açıq sintetik sınaq: rəsmi-bəyanat",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində bir qurum yeni pilotsuz sistemin sınaqlarının tamamlandığını və raket istehsalının artırıldığını bəyan edib. Bu, qurumun bəyanatıdır; təqdim edilmiş materialda istehsal üzrə faktiki say və texniki sınaq protokolu yoxdur. İddia olunan uçuş məsafəsi və dəqiqlik üzrə ölçülmüş göstərici verilmir.",
+          "quote": "Sınaq ssenarisində bir qurum yeni pilotsuz sistemin sınaqlarının tamamlandığını və raket istehsalının artırıldığını bəyan edib. Bu, qurumun bəyanatıdır; təqdim edilmiş materialda istehsal üzrə faktiki say və texniki sınaq protokolu yoxdur. İddia olunan uçuş məsafəsi və dəqiqlik üzrə ölçülmüş göstərici verilmir.",
+          "charStart": 0,
+          "charEnd": 312,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "C",
+          "infoCredibility": 3
+        },
+        {
+          "n": 6,
+          "sourceKind": "document",
+          "documentId": "synthetic-sənaye-hesabatı",
+          "briefId": null,
+          "chunkId": "synthetic-sənaye-hesabatı-6",
+          "title": "Açıq sintetik sınaq: sənaye-hesabatı",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində mövcud platformaların texniki xidməti və heyət hazırlığı təşkil olunub. Hesabatda istismar müddətinin uzadılması üçün texniki xidmətin əhəmiyyəti göstərilir. İdxal komponentləri üzrə tədarük fasilələrinin istehsalın sabitliyinə təsir edə biləcəyi qeyd olunur. Yeni xəttin qurulması ilə sabit kütləvi istehsalın əldə edilməsi ayrıca mərhələlərdir.",
+          "quote": "Sınaq ssenarisində mövcud platformaların texniki xidməti və heyət hazırlığı təşkil olunub. Hesabatda istismar müddətinin uzadılması üçün texniki xidmətin əhəmiyyəti göstərilir. İdxal komponentləri üzrə tədarük fasilələrinin istehsalın sabitliyinə təsir edə biləcəyi qeyd olunur. Yeni xəttin qurulması ilə sabit kütləvi istehsalın əldə edilməsi ayrıca mərhələlərdir.",
+          "charStart": 0,
+          "charEnd": 365,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "B",
+          "infoCredibility": 2
+        }
+      ],
+      "startedAt": "2026-10-23T04:51:21.718Z",
+      "deadlineAt": "2026-10-23T04:53:06.718Z",
+      "systemPromptSha256": "4d1479f538ab74177ea3de998b4bc4c7bca3c44d62e37c82b04ba112ba7e4f1d",
+      "fullPromptSha256": "8ad28a86e1433ea6c5e7be9259ca8c5c0dfa966ec2743fed6587953975a55665",
+      "configuration": {
+        "chatModel": "gemini-3.8-flash",
+        "lightModel": "gemini-3.5-flash-lite",
+        "backupModel": "gemini-3.1-flash-lite",
+        "thinkingLevel": "medium",
+        "maxOutputTokens": 4096,
+        "deadlineMs": 105000,
+        "maxAttemptsPerRoute": 1,
+        "sdkMaxRetries": 0,
+        "contextExpansion": "false"
+      },
+      "dispatches": [
+        {
+          "model": "gemini-3.8-flash",
+          "startedAt": "2026-10-23T04:51:21.733Z",
+          "startElapsedMs": 15,
+          "headersElapsedMs": 79666,
+          "status": 200,
+          "usage": {
+            "inputTokens": 4236,
+            "candidateTokens": 749,
+            "thinkingTokens": 499,
+            "totalTokens": 5484,
+            "cachedInputTokens": null
+          },
+          "elapsedMs": 79667
+        }
+      ],
+      "diagnostics": [
+        {
+          "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-C-assessment",
+          "stage": "generation",
+          "event": "start",
+          "model": "gemini-3.8-flash",
+          "attempt": 1,
+          "generationAttempt": 1,
+          "providerStatus": null,
+          "errorCategory": null,
+          "elapsedMs": 4
+        },
+        {
+          "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-C-assessment",
+          "stage": "generation",
+          "event": "success",
+          "model": "gemini-3.8-flash",
+          "attempt": 1,
+          "generationAttempt": 1,
+          "providerStatus": 200,
+          "errorCategory": null,
+          "elapsedMs": 79688
+        }
+      ],
+      "fallbacks": [],
+      "semanticReview": {
+        "status": "PENDING_MANUAL_REVIEW"
+      },
+      "status": "completed",
+      "model": "gemini-3.8-flash",
+      "finishReason": "stop",
+      "elapsedMs": 79689,
+      "answer": "Təqdim edilmiş sınaq ssenarisinə əsasən, İranın raket və pilotsuz uçuş aparatları (PUA) üzrə müdafiə-sənaye potensialı istehsal xətlərinin modernləşdirilməsi, yığım və texniki xidmət imkanlarının genişləndirilməsi hesabına inkişaf etdirilir, lakin kritik elektron komponentlərdən xarici asılılıq və kütləvi istehsal mərhələsinə keçid amilləri bu potensial üçün əsas zəifliklər olaraq qalır [1][6].\n\n**İstehsal bazasının vəziyyəti və genişlənmə imkanları**  \nSsenaridə iki müdafiə sənayesi müəssisəsində raketlər və PUA-lar üçün mühərrik həmçinin idarəetmə modullarının istehsal xətləri yenilənmiş, yığım və texniki xidmət infrastrukturu genişləndirilmişdir [1]. Eyni zamanda mövcud platformaların istismar müddətini uzatmaq məqsədilə texniki xidmət mexanizmləri qurulmuş və müvafiq heyət hazırlığı təşkil olunmuşdur [6]. Digər tərəfdən, aidiyyəti qurum yeni pilotsuz sistemin sınaqlarının başa çatdığını və raket istehsalının artırıldığını bəyan etsə də, bu məlumatlar rəsmi iddia xarakteri daşıyır [3].\n\n**Həssaslıqlar və risk amilləri**  \nİstehsalın genişləndirilməsinə baxmayaraq, kritik elektron komponentlərin bir hissəsinin idxaldan asılı olması sənaye potensialının ən həssas nöqtəsidir [1]. Xarici tədarük zəncirində yarana biləcək fasilələr istehsal prosesinin sabitliyinə birbaşa təsir göstərmək riski daşıyır [6]. Bundan əlavə, yeni istehsal xətlərinin qurulması texniki baxımdan sabit kütləvi istehsalın əldə edilməsi demək deyil və bu keçid ayrı bir mərhələ tələb edir [6].\n\n**Qiymətləndirməni məhdudlaşdıran amillər**  \nSənayedə əldə olunan irəliləyişin real miqyasını dəqiq qiymətləndirmək üçün zəruri olan faktiki göstəricilər açıqlanmır. Materiallarda istehsal həcmi, zavodların məhsuldarlığı və sistemlərin döyüş şəraitindəki sınaq nəticələri əksini tapmamışdır [1]. Bəyan edilən yeni PUA sisteminin uçuş məsafəsi və dəqiqlik parametrləri üzrə ölçülmüş göstəricilər, eləcə də faktiki istehsal sayı və sınaq protokolları təqdim olunmadığından, elan edilmiş imkanlar təsdiqlənmiş əməliyyat qabiliyyəti kimi qəbul edilə bilməz [3].",
+      "validatedAnswer": "Təqdim edilmiş sınaq ssenarisinə əsasən, İranın raket və pilotsuz uçuş aparatları (PUA) üzrə müdafiə-sənaye potensialı istehsal xətlərinin modernləşdirilməsi, yığım və texniki xidmət imkanlarının genişləndirilməsi hesabına inkişaf etdirilir, lakin kritik elektron komponentlərdən xarici asılılıq və kütləvi istehsal mərhələsinə keçid amilləri bu potensial üçün əsas zəifliklər olaraq qalır [1][6].\n\n**İstehsal bazasının vəziyyəti və genişlənmə imkanları**  \nSsenaridə iki müdafiə sənayesi müəssisəsində raketlər və PUA-lar üçün mühərrik həmçinin idarəetmə modullarının istehsal xətləri yenilənmiş, yığım və texniki xidmət infrastrukturu genişləndirilmişdir [1]. Eyni zamanda mövcud platformaların istismar müddətini uzatmaq məqsədilə texniki xidmət mexanizmləri qurulmuş və müvafiq heyət hazırlığı təşkil olunmuşdur [6]. Digər tərəfdən, aidiyyəti qurum yeni pilotsuz sistemin sınaqlarının başa çatdığını və raket istehsalının artırıldığını bəyan etsə də, bu məlumatlar rəsmi iddia xarakteri daşıyır [3].\n\n**Həssaslıqlar və risk amilləri**  \nİstehsalın genişləndirilməsinə baxmayaraq, kritik elektron komponentlərin bir hissəsinin idxaldan asılı olması sənaye potensialının ən həssas nöqtəsidir [1]. Xarici tədarük zəncirində yarana biləcək fasilələr istehsal prosesinin sabitliyinə birbaşa təsir göstərmək riski daşıyır [6]. Bundan əlavə, yeni istehsal xətlərinin qurulması texniki baxımdan sabit kütləvi istehsalın əldə edilməsi demək deyil və bu keçid ayrı bir mərhələ tələb edir [6].\n\n**Qiymətləndirməni məhdudlaşdıran amillər**  \nSənayedə əldə olunan irəliləyişin real miqyasını dəqiq qiymətləndirmək üçün zəruri olan faktiki göstəricilər açıqlanmır. Materiallarda istehsal həcmi, zavodların məhsuldarlığı və sistemlərin döyüş şəraitindəki sınaq nəticələri əksini tapmamışdır [1]. Bəyan edilən yeni PUA sisteminin uçuş məsafəsi və dəqiqlik parametrləri üzrə ölçülmüş göstəricilər, eləcə də faktiki istehsal sayı və sınaq protokolları təqdim olunmadığından, elan edilmiş imkanlar təsdiqlənmiş əməliyyat qabiliyyəti kimi qəbul edilə bilməz [3].",
+      "publicationFailureReasons": [],
+      "structuralValidation": {
+        "answer": "Təqdim edilmiş sınaq ssenarisinə əsasən, İranın raket və pilotsuz uçuş aparatları (PUA) üzrə müdafiə-sənaye potensialı istehsal xətlərinin modernləşdirilməsi, yığım və texniki xidmət imkanlarının genişləndirilməsi hesabına inkişaf etdirilir, lakin kritik elektron komponentlərdən xarici asılılıq və kütləvi istehsal mərhələsinə keçid amilləri bu potensial üçün əsas zəifliklər olaraq qalır [1][6].\n\n**İstehsal bazasının vəziyyəti və genişlənmə imkanları**  \nSsenaridə iki müdafiə sənayesi müəssisəsində raketlər və PUA-lar üçün mühərrik həmçinin idarəetmə modullarının istehsal xətləri yenilənmiş, yığım və texniki xidmət infrastrukturu genişləndirilmişdir [1]. Eyni zamanda mövcud platformaların istismar müddətini uzatmaq məqsədilə texniki xidmət mexanizmləri qurulmuş və müvafiq heyət hazırlığı təşkil olunmuşdur [6]. Digər tərəfdən, aidiyyəti qurum yeni pilotsuz sistemin sınaqlarının başa çatdığını və raket istehsalının artırıldığını bəyan etsə də, bu məlumatlar rəsmi iddia xarakteri daşıyır [3].\n\n**Həssaslıqlar və risk amilləri**  \nİstehsalın genişləndirilməsinə baxmayaraq, kritik elektron komponentlərin bir hissəsinin idxaldan asılı olması sənaye potensialının ən həssas nöqtəsidir [1]. Xarici tədarük zəncirində yarana biləcək fasilələr istehsal prosesinin sabitliyinə birbaşa təsir göstərmək riski daşıyır [6]. Bundan əlavə, yeni istehsal xətlərinin qurulması texniki baxımdan sabit kütləvi istehsalın əldə edilməsi demək deyil və bu keçid ayrı bir mərhələ tələb edir [6].\n\n**Qiymətləndirməni məhdudlaşdıran amillər**  \nSənayedə əldə olunan irəliləyişin real miqyasını dəqiq qiymətləndirmək üçün zəruri olan faktiki göstəricilər açıqlanmır. Materiallarda istehsal həcmi, zavodların məhsuldarlığı və sistemlərin döyüş şəraitindəki sınaq nəticələri əksini tapmamışdır [1]. Bəyan edilən yeni PUA sisteminin uçuş məsafəsi və dəqiqlik parametrləri üzrə ölçülmüş göstəricilər, eləcə də faktiki istehsal sayı və sınaq protokolları təqdim olunmadığından, elan edilmiş imkanlar təsdiqlənmiş əməliyyat qabiliyyəti kimi qəbul edilə bilməz [3].",
+        "incomplete": false,
+        "usedLowReliability": false,
+        "failureReasons": []
+      },
+      "structuralStatus": "PASS",
+      "deadlineStatus": "PASS",
+      "usedLowReliability": false,
+      "dispatchCount": 1
+    },
+    {
+      "id": "E-reliability",
+      "query": "Avadanlığın qəbul və istismardan çıxarılması barədə bu məlumatların etibarlılıq səviyyəsi nə dərəcədədir?",
+      "sources": [
+        {
+          "n": 1,
+          "sourceKind": "document",
+          "documentId": "synthetic-yoxlama-hesabatı",
+          "briefId": null,
+          "chunkId": "synthetic-yoxlama-hesabatı-1",
+          "title": "Açıq sintetik sınaq: yoxlama-hesabatı",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində avadanlığın qəbulu 1 oktyabr tarixli qəbul aktında təsdiqlənir. Akt qəbul tarixini təsdiqləyir, avadanlığın döyüş şəraitində nəticəsini və ya sonrakı istismarını təsdiqləmir.",
+          "quote": "Sınaq ssenarisində avadanlığın qəbulu 1 oktyabr tarixli qəbul aktında təsdiqlənir. Akt qəbul tarixini təsdiqləyir, avadanlığın döyüş şəraitində nəticəsini və ya sonrakı istismarını təsdiqləmir.",
+          "charStart": 0,
+          "charEnd": 193,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "A",
+          "infoCredibility": 1
+        },
+        {
+          "n": 3,
+          "sourceKind": "document",
+          "documentId": "synthetic-anonim-iddia",
+          "briefId": null,
+          "chunkId": "synthetic-anonim-iddia-3",
+          "title": "Açıq sintetik sınaq: anonim-iddia",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində anonim şəxs avadanlığın artıq istismardan çıxarıldığını iddia edir. Sınaq toplusunda bu iddianı təsdiqləyən texniki baxış aktı, ikinci müstəqil mənbə və ya rəsmi açıqlama yoxdur.",
+          "quote": "Sınaq ssenarisində anonim şəxs avadanlığın artıq istismardan çıxarıldığını iddia edir. Sınaq toplusunda bu iddianı təsdiqləyən texniki baxış aktı, ikinci müstəqil mənbə və ya rəsmi açıqlama yoxdur.",
+          "charStart": 0,
+          "charEnd": 197,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "D",
+          "infoCredibility": 5
+        },
+        {
+          "n": 6,
+          "sourceKind": "document",
+          "documentId": "synthetic-anonim-iddia",
+          "briefId": null,
+          "chunkId": "synthetic-anonim-iddia-6",
+          "title": "Açıq sintetik sınaq: anonim-iddia",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Eyni anonim şəxsin eyni avadanlığın istismardan çıxarılması barədə sözləri bu materialın başqa bölməsində təkrar edilir. Bu hissə yeni müstəqil təsdiq deyil.",
+          "quote": "Eyni anonim şəxsin eyni avadanlığın istismardan çıxarılması barədə sözləri bu materialın başqa bölməsində təkrar edilir. Bu hissə yeni müstəqil təsdiq deyil.",
+          "charStart": 0,
+          "charEnd": 157,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "D",
+          "infoCredibility": 5
+        }
+      ],
+      "startedAt": "2026-10-23T04:53:56.510Z",
+      "deadlineAt": "2026-10-23T04:55:41.510Z",
+      "systemPromptSha256": "4d1479f538ab74177ea3de998b4bc4c7bca3c44d62e37c82b04ba112ba7e4f1d",
+      "fullPromptSha256": "157ced324fcda976cc0163fd3e5358f3d4ef02cdec102788406cbd383608c1ac",
+      "configuration": {
+        "chatModel": "gemini-3.8-flash",
+        "lightModel": "gemini-3.5-flash-lite",
+        "backupModel": "gemini-3.1-flash-lite",
+        "thinkingLevel": "medium",
+        "maxOutputTokens": 4096,
+        "deadlineMs": 105000,
+        "maxAttemptsPerRoute": 1,
+        "sdkMaxRetries": 0,
+        "contextExpansion": "false"
+      },
+      "dispatches": [
+        {
+          "model": "gemini-3.8-flash",
+          "startedAt": "2026-10-23T04:53:56.526Z",
+          "startElapsedMs": 16,
+          "headersElapsedMs": 38254,
+          "status": 200,
+          "usage": {
+            "inputTokens": 4076,
+            "candidateTokens": 527,
+            "thinkingTokens": 1187,
+            "totalTokens": 5790,
+            "cachedInputTokens": null
+          },
+          "elapsedMs": 38258
+        }
+      ],
+      "diagnostics": [
+        {
+          "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-E-reliability",
+          "stage": "generation",
+          "event": "start",
+          "model": "gemini-3.8-flash",
+          "attempt": 1,
+          "generationAttempt": 1,
+          "providerStatus": null,
+          "errorCategory": null,
+          "elapsedMs": 4
+        },
+        {
+          "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-E-reliability",
+          "stage": "generation",
+          "event": "success",
+          "model": "gemini-3.8-flash",
+          "attempt": 1,
+          "generationAttempt": 1,
+          "providerStatus": 200,
+          "errorCategory": null,
+          "elapsedMs": 38278
+        }
+      ],
+      "fallbacks": [],
+      "semanticReview": {
+        "status": "PENDING_MANUAL_REVIEW"
+      },
+      "status": "completed",
+      "model": "gemini-3.8-flash",
+      "finishReason": "stop",
+      "elapsedMs": 38278,
+      "answer": "Avadanlığın qəbulu sənədlə təsdiqlənmiş yüksək etibarlı fakt hesab edildiyi halda, onun istismardan çıxarılması barədə məlumat aşağı etibarlılığa malik, təsdiqlənməmiş və ehtimal olunmayan iddiadır [1][3][6].\n\n**Avadanlığın qəbulu**\n1 oktyabr tarixli qəbul aktı ilə avadanlığın qəbul edildiyi faktı təsdiqlənib [1]. Bu məlumat üzrə mənbə etibarlılığı **A (Tam etibarlı)**, məlumat etibarlılığı isə **1 (Təsdiqlənib)** səviyyəsində qiymətləndirilir [1]. Akt qəbul tarixini rəsmən təsdiqləsə də, avadanlığın döyüş şəraitindəki nəticəsini və ya sonrakı istismar vəziyyətini əhatə etmir [1].\n\n**İstismardan çıxarılma iddiası**\nAvadanlığın artıq istismardan çıxarılması iddiası anonim şəxsin bəyanatına əsaslanır [3]. Bu məlumat üzrə mənbə etibarlılığı **D (Adətən etibarsız)**, məlumat etibarlılığı isə **5 (Ehtimal olunmayan)** olaraq müəyyən edilib [3][6]. İddianı təsdiq edən texniki baxış aktı, rəsmi açıqlama və ya ikinci müstəqil mənbə mövcud deyil [3]. Eyni anonim şəxsin sözlərinin həmin materialın başqa bölməsində təkrar edilməsi ([6]) müstəqil təsdiq sayılmır, çünki hər iki fraqment ([3] və [6]) eyni ilkin mənbəyə aiddir. D/5 qiymətləndirməsi və təsdiqləyici sənədlərin olmaması iddianın birmənalı şəkildə yalan olduğunu sübut etməsə də, bu məlumat hazırda əsaslandırılmamış subyektiv iddia xarakteri daşıyır [3][6].",
+      "validatedAnswer": "Avadanlığın qəbulu sənədlə təsdiqlənmiş yüksək etibarlı fakt hesab edildiyi halda, onun istismardan çıxarılması barədə məlumat aşağı etibarlılığa malik, təsdiqlənməmiş və ehtimal olunmayan iddiadır [1][3][6].\n\n**Avadanlığın qəbulu**\n1 oktyabr tarixli qəbul aktı ilə avadanlığın qəbul edildiyi faktı təsdiqlənib [1]. Bu məlumat üzrə mənbə etibarlılığı **A (Tam etibarlı)**, məlumat etibarlılığı isə **1 (Təsdiqlənib)** səviyyəsində qiymətləndirilir [1]. Akt qəbul tarixini rəsmən təsdiqləsə də, avadanlığın döyüş şəraitindəki nəticəsini və ya sonrakı istismar vəziyyətini əhatə etmir [1].\n\n**İstismardan çıxarılma iddiası**\nAvadanlığın artıq istismardan çıxarılması iddiası anonim şəxsin bəyanatına əsaslanır [3]. Bu məlumat üzrə mənbə etibarlılığı **D (Adətən etibarsız)**, məlumat etibarlılığı isə **5 (Ehtimal olunmayan)** olaraq müəyyən edilib [3][6]. İddianı təsdiq edən texniki baxış aktı, rəsmi açıqlama və ya ikinci müstəqil mənbə mövcud deyil [3]. Eyni anonim şəxsin sözlərinin həmin materialın başqa bölməsində təkrar edilməsi ([6]) müstəqil təsdiq sayılmır, çünki hər iki fraqment ([3] və [6]) eyni ilkin mənbəyə aiddir. D/5 qiymətləndirməsi və təsdiqləyici sənədlərin olmaması iddianın birmənalı şəkildə yalan olduğunu sübut etməsə də, bu məlumat hazırda əsaslandırılmamış subyektiv iddia xarakteri daşıyır [3][6].",
+      "publicationFailureReasons": [],
+      "structuralValidation": {
+        "answer": "Avadanlığın qəbulu sənədlə təsdiqlənmiş yüksək etibarlı fakt hesab edildiyi halda, onun istismardan çıxarılması barədə məlumat aşağı etibarlılığa malik, təsdiqlənməmiş və ehtimal olunmayan iddiadır [1][3][6].\n\n**Avadanlığın qəbulu**\n1 oktyabr tarixli qəbul aktı ilə avadanlığın qəbul edildiyi faktı təsdiqlənib [1]. Bu məlumat üzrə mənbə etibarlılığı **A (Tam etibarlı)**, məlumat etibarlılığı isə **1 (Təsdiqlənib)** səviyyəsində qiymətləndirilir [1]. Akt qəbul tarixini rəsmən təsdiqləsə də, avadanlığın döyüş şəraitindəki nəticəsini və ya sonrakı istismar vəziyyətini əhatə etmir [1].\n\n**İstismardan çıxarılma iddiası**\nAvadanlığın artıq istismardan çıxarılması iddiası anonim şəxsin bəyanatına əsaslanır [3]. Bu məlumat üzrə mənbə etibarlılığı **D (Adətən etibarsız)**, məlumat etibarlılığı isə **5 (Ehtimal olunmayan)** olaraq müəyyən edilib [3][6]. İddianı təsdiq edən texniki baxış aktı, rəsmi açıqlama və ya ikinci müstəqil mənbə mövcud deyil [3]. Eyni anonim şəxsin sözlərinin həmin materialın başqa bölməsində təkrar edilməsi ([6]) müstəqil təsdiq sayılmır, çünki hər iki fraqment ([3] və [6]) eyni ilkin mənbəyə aiddir. D/5 qiymətləndirməsi və təsdiqləyici sənədlərin olmaması iddianın birmənalı şəkildə yalan olduğunu sübut etməsə də, bu məlumat hazırda əsaslandırılmamış subyektiv iddia xarakteri daşıyır [3][6].",
+        "incomplete": false,
+        "usedLowReliability": true,
+        "failureReasons": []
+      },
+      "structuralStatus": "PASS",
+      "deadlineStatus": "PASS",
+      "usedLowReliability": true,
+      "dispatchCount": 1
+    },
+    {
+      "id": "D-comparison",
+      "query": "Rusiya və İran arasında hərbi əməkdaşlığın əsas istiqamətlərini müqayisə et.",
+      "sources": [
+        {
+          "n": 1,
+          "sourceKind": "document",
+          "documentId": "synthetic-əməkdaşlıq-icmalı",
+          "briefId": null,
+          "chunkId": "synthetic-əməkdaşlıq-icmalı-1",
+          "title": "Açıq sintetik sınaq: əməkdaşlıq-icmalı",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində Rusiya və İran arasında üç əməkdaşlıq istiqaməti təsvir olunur. Texniki xidmət üzrə fəaliyyət göstərən birgə mərkəz üçün iş planı təsdiqlənib. Heyət hazırlığı istiqamətində ilkin kurs keçirilib. Yeni platformaların birgə istehsalı barədə niyyət protokolu imzalanıb, istehsala başlandığına dair məlumat yoxdur. Bu istiqamətlər eyni icra mərhələsində deyil.",
+          "quote": "Sınaq ssenarisində Rusiya və İran arasında üç əməkdaşlıq istiqaməti təsvir olunur. Texniki xidmət üzrə fəaliyyət göstərən birgə mərkəz üçün iş planı təsdiqlənib. Heyət hazırlığı istiqamətində ilkin kurs keçirilib. Yeni platformaların birgə istehsalı barədə niyyət protokolu imzalanıb, istehsala başlandığına dair məlumat yoxdur. Bu istiqamətlər eyni icra mərhələsində deyil.",
+          "charStart": 0,
+          "charEnd": 374,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "A",
+          "infoCredibility": 1
+        },
+        {
+          "n": 3,
+          "sourceKind": "document",
+          "documentId": "synthetic-əməkdaşlıq-detalları",
+          "briefId": null,
+          "chunkId": "synthetic-əməkdaşlıq-detalları-3",
+          "title": "Açıq sintetik sınaq: əməkdaşlıq-detalları",
+          "sectionTitle": "Sınaq ssenarisi",
+          "text": "Sınaq ssenarisində texniki xidmət mərkəzinin işi mövcud avadanlığın istismarını dəstəkləməyə yönəlib; hazırlıq kursu texniki heyətin bacarıqlarına aiddir. Birgə istehsal niyyət protokolu gələcək istehsalın təşkili üzrə danışıqları nəzərdə tutur. Müqavilə qiyməti, texnologiya transferinin şərtləri və istehsal müddəti açıqlanmır. Bütün istiqamətlər üzrə tərəflərin siyasi razılığı ilə əməli icra arasında fərq saxlanmalıdır.",
+          "quote": "Sınaq ssenarisində texniki xidmət mərkəzinin işi mövcud avadanlığın istismarını dəstəkləməyə yönəlib; hazırlıq kursu texniki heyətin bacarıqlarına aiddir. Birgə istehsal niyyət protokolu gələcək istehsalın təşkili üzrə danışıqları nəzərdə tutur. Müqavilə qiyməti, texnologiya transferinin şərtləri və istehsal müddəti açıqlanmır. Bütün istiqamətlər üzrə tərəflərin siyasi razılığı ilə əməli icra arasında fərq saxlanmalıdır.",
+          "charStart": 0,
+          "charEnd": 424,
+          "docDate": "2026-10-01",
+          "briefDate": null,
+          "direction": "OSINT",
+          "isTable": false,
+          "attachmentCount": 0,
+          "classification": "open",
+          "sourceReliability": "B",
+          "infoCredibility": 2
+        }
+      ],
+      "startedAt": "2026-10-23T04:56:22.592Z",
+      "deadlineAt": "2026-10-23T04:58:07.592Z",
+      "systemPromptSha256": "4d1479f538ab74177ea3de998b4bc4c7bca3c44d62e37c82b04ba112ba7e4f1d",
+      "fullPromptSha256": "88dc3cbc9f49e26e967bb07953f948e95eca6787f2c7de010ded52a4c82e1fe2",
+      "configuration": {
+        "chatModel": "gemini-3.8-flash",
+        "lightModel": "gemini-3.5-flash-lite",
+        "backupModel": "gemini-3.1-flash-lite",
+        "thinkingLevel": "medium",
+        "maxOutputTokens": 4096,
+        "deadlineMs": 105000,
+        "maxAttemptsPerRoute": 1,
+        "sdkMaxRetries": 0,
+        "contextExpansion": "false"
+      },
+      "dispatches": [
+        {
+          "model": "gemini-3.8-flash",
+          "startedAt": "2026-10-23T04:56:22.595Z",
+          "startElapsedMs": 3,
+          "headersElapsedMs": 309,
+          "status": 429,
+          "elapsedMs": 309
+        },
+        {
+          "model": "gemini-3.5-flash-lite",
+          "startedAt": "2026-10-23T04:56:22.912Z",
+          "startElapsedMs": 320,
+          "headersElapsedMs": 5785,
+          "status": 200,
+          "usage": {
+            "inputTokens": 4073,
+            "candidateTokens": 500,
+            "thinkingTokens": 1552,
+            "totalTokens": 6125,
+            "cachedInputTokens": null
+          },
+          "elapsedMs": 5790
+        }
+      ],
+      "diagnostics": [
+        {
+          "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-D-comparison",
+          "stage": "generation",
+          "event": "start",
+          "model": "gemini-3.8-flash",
+          "attempt": 1,
+          "generationAttempt": 1,
+          "providerStatus": null,
+          "errorCategory": null,
+          "elapsedMs": 2
+        },
+        {
+          "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-D-comparison",
+          "stage": "generation",
+          "event": "failure",
+          "model": "gemini-3.8-flash",
+          "attempt": 1,
+          "generationAttempt": 1,
+          "providerStatus": 429,
+          "errorCategory": "quota",
+          "elapsedMs": 318
+        },
+        {
+          "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-D-comparison",
+          "stage": "generation",
+          "event": "fallback",
+          "model": "gemini-3.8-flash",
+          "attempt": null,
+          "generationAttempt": 1,
+          "providerStatus": null,
+          "errorCategory": "quota",
+          "elapsedMs": 319,
+          "fallbackModel": "gemini-3.5-flash-lite"
+        },
+        {
+          "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-D-comparison",
+          "stage": "generation",
+          "event": "start",
+          "model": "gemini-3.5-flash-lite",
+          "attempt": 1,
+          "generationAttempt": 1,
+          "providerStatus": null,
+          "errorCategory": null,
+          "elapsedMs": 319
+        },
+        {
+          "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-D-comparison",
+          "stage": "generation",
+          "event": "success",
+          "model": "gemini-3.5-flash-lite",
+          "attempt": 1,
+          "generationAttempt": 1,
+          "providerStatus": 200,
+          "errorCategory": null,
+          "elapsedMs": 6114
+        }
+      ],
+      "fallbacks": [
+        {
+          "fromModel": "gemini-3.8-flash",
+          "toModel": "gemini-3.5-flash-lite",
+          "reason": "quota",
+          "backup": false,
+          "elapsedMs": 319
+        }
+      ],
+      "semanticReview": {
+        "status": "PENDING_MANUAL_REVIEW"
+      },
+      "status": "completed",
+      "model": "gemini-3.5-flash-lite",
+      "finishReason": "stop",
+      "elapsedMs": 6115,
+      "answer": "Rusiya və İran arasında hərbi əməkdaşlıq üç əsas istiqamət – texniki xidmət, heyət hazırlığı və yeni platformaların birgə istehsalı üzrə həyata keçirilir [1]. Bu istiqamətlər eyni icra mərhələsində deyil və bütün istiqamətlər üzrə tərəflərin siyasi razılığı ilə əməli icra arasında fərq mövcuddur [1][3].\n\nİstiqamətlərin müqayisəli təhlili:\n\n*   **Texniki xidmət və heyət hazırlığı:** Bu sahələrdə konkret praktiki addımlar atılmışdır. Texniki xidmət mərkəzinin işi mövcud avadanlığın istismarını dəstəkləməyə yönəlmişdir və bu mərkəz üçün iş planı təsdiqlənib [1][3]. Heyət hazırlığı istiqamətində isə texniki heyətin bacarıqlarının artırılmasına xidmət edən ilkin kurs keçirilib [1][3].\n*   **Yeni platformaların birgə istehsalı:** Bu istiqamət digərlərindən fərqli olaraq ilkin mərhələdədir. Tərəflər arasında yalnız niyyət protokolu imzalanmışdır və gələcək istehsalın təşkili üzrə danışıqlar nəzərdə tutulur [1][3]. İstehsala başlandığına dair məlumat mövcud deyil [1]. Eyni zamanda, bu sahə üzrə müqavilə qiyməti, texnologiya transferinin şərtləri və istehsal müddəti açıqlanmır [3].\n\nMövcud məlumatlar göstərir ki, texniki xidmət və kadr hazırlığı tədbirləri praktiki mərhələdə icra olunduğu halda, birgə istehsal istiqaməti hələlik hüquqi və təşkilati razılaşma (niyyət protokolu) səviyyəsindədir [1][3].",
+      "validatedAnswer": "Rusiya və İran arasında hərbi əməkdaşlıq üç əsas istiqamət – texniki xidmət, heyət hazırlığı və yeni platformaların birgə istehsalı üzrə həyata keçirilir [1]. Bu istiqamətlər eyni icra mərhələsində deyil və bütün istiqamətlər üzrə tərəflərin siyasi razılığı ilə əməli icra arasında fərq mövcuddur [1][3].\n\nİstiqamətlərin müqayisəli təhlili:\n\n*   **Texniki xidmət və heyət hazırlığı:** Bu sahələrdə konkret praktiki addımlar atılmışdır. Texniki xidmət mərkəzinin işi mövcud avadanlığın istismarını dəstəkləməyə yönəlmişdir və bu mərkəz üçün iş planı təsdiqlənib [1][3]. Heyət hazırlığı istiqamətində isə texniki heyətin bacarıqlarının artırılmasına xidmət edən ilkin kurs keçirilib [1][3].\n*   **Yeni platformaların birgə istehsalı:** Bu istiqamət digərlərindən fərqli olaraq ilkin mərhələdədir. Tərəflər arasında yalnız niyyət protokolu imzalanmışdır və gələcək istehsalın təşkili üzrə danışıqlar nəzərdə tutulur [1][3]. İstehsala başlandığına dair məlumat mövcud deyil [1]. Eyni zamanda, bu sahə üzrə müqavilə qiyməti, texnologiya transferinin şərtləri və istehsal müddəti açıqlanmır [3].\n\nMövcud məlumatlar göstərir ki, texniki xidmət və kadr hazırlığı tədbirləri praktiki mərhələdə icra olunduğu halda, birgə istehsal istiqaməti hələlik hüquqi və təşkilati razılaşma (niyyət protokolu) səviyyəsindədir [1][3].",
+      "publicationFailureReasons": [],
+      "structuralValidation": {
+        "answer": "Rusiya və İran arasında hərbi əməkdaşlıq üç əsas istiqamət – texniki xidmət, heyət hazırlığı və yeni platformaların birgə istehsalı üzrə həyata keçirilir [1]. Bu istiqamətlər eyni icra mərhələsində deyil və bütün istiqamətlər üzrə tərəflərin siyasi razılığı ilə əməli icra arasında fərq mövcuddur [1][3].\n\nİstiqamətlərin müqayisəli təhlili:\n\n*   **Texniki xidmət və heyət hazırlığı:** Bu sahələrdə konkret praktiki addımlar atılmışdır. Texniki xidmət mərkəzinin işi mövcud avadanlığın istismarını dəstəkləməyə yönəlmişdir və bu mərkəz üçün iş planı təsdiqlənib [1][3]. Heyət hazırlığı istiqamətində isə texniki heyətin bacarıqlarının artırılmasına xidmət edən ilkin kurs keçirilib [1][3].\n*   **Yeni platformaların birgə istehsalı:** Bu istiqamət digərlərindən fərqli olaraq ilkin mərhələdədir. Tərəflər arasında yalnız niyyət protokolu imzalanmışdır və gələcək istehsalın təşkili üzrə danışıqlar nəzərdə tutulur [1][3]. İstehsala başlandığına dair məlumat mövcud deyil [1]. Eyni zamanda, bu sahə üzrə müqavilə qiyməti, texnologiya transferinin şərtləri və istehsal müddəti açıqlanmır [3].\n\nMövcud məlumatlar göstərir ki, texniki xidmət və kadr hazırlığı tədbirləri praktiki mərhələdə icra olunduğu halda, birgə istehsal istiqaməti hələlik hüquqi və təşkilati razılaşma (niyyət protokolu) səviyyəsindədir [1][3].",
+        "incomplete": false,
+        "usedLowReliability": false,
+        "failureReasons": []
+      },
+      "structuralStatus": "PASS",
+      "deadlineStatus": "PASS",
+      "usedLowReliability": false,
+      "dispatchCount": 2
+    }
+  ]
+}

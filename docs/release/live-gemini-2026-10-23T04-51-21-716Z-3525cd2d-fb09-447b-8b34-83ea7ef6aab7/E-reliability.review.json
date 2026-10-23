@@ -1,0 +1,44 @@
+{
+  "id": "E-reliability",
+  "reviewType": "Manual source entailment and Azerbaijani editorial review; no AI judge call",
+  "semanticStatus": "FAIL",
+  "reason": "The response says the acceptance act confirms the date rəsmən (officially). Neither source [1] nor its A/1 metadata establishes official status. It also changes absence of supporting evidence in the synthetic collection into unqualified nonexistence. Shared anonymous provenance and no-falsehood/M-code checks pass, but do not repair invented official status.",
+  "criticalChecks": {
+    "A1AndD5Meanings": "PASS",
+    "sourceReliabilityVersusClaimCredibility": "PASS: labels separated and acceptance versus later service distinguished",
+    "noInventedOfficialStatus": "FAIL: Akt qəbul tarixini rəsmən təsdiqləsə də",
+    "acceptanceVersusSubsequentOperation": "PASS",
+    "unconfirmedDoesNotMeanFalse": "PASS: explicitly says D/5 does not prove falsehood",
+    "sharedAnonymousOriginIsNotIndependentConfirmation": "PASS",
+    "noMCodeLeakage": "PASS",
+    "missingEvidenceDoesNotMeanGlobalNonexistence": "FAIL: mövcud deyil omits the source collection scope"
+  },
+  "evidence": [
+    {"claim": "qəbulu sənədlə təsdiqlənmiş yüksək etibarlı fakt ... istismardan çıxarılması ... təsdiqlənməmiş və ehtimal olunmayan iddiadır", "citations": [1,3,6], "sourceText": "[1] avadanlığın qəbulu 1 oktyabr tarixli qəbul aktında təsdiqlənir. Metadata A/1. [3] anonim şəxs ... iddia edir; metadata D/5. [6] eyni anonim şəxsin ... sözləri ... təkrar edilir.", "category": "SUPPORTED", "interpretation": "Separates confirmed acceptance from the low-rated unconfirmed decommissioning claim."},
+    {"claim": "1 oktyabr tarixli qəbul aktı ilə avadanlığın qəbul edildiyi faktı təsdiqlənib", "citations": [1], "sourceText": "avadanlığın qəbulu 1 oktyabr tarixli qəbul aktında təsdiqlənir.", "category": "SUPPORTED", "interpretation": "Acceptance and date are grounded."},
+    {"claim": "mənbə etibarlılığı A (Tam etibarlı), məlumat etibarlılığı ... 1 (Təsdiqlənib)", "citations": [1], "sourceText": "[1] metadata sourceReliability=A, infoCredibility=1; application labels A=Tam etibarlı, 1=Təsdiqlənib.", "category": "SUPPORTED", "interpretation": "Accurate existing ratings, no invented rating or independent provenance."},
+    {"claim": "Akt qəbul tarixini rəsmən təsdiqləsə də", "citations": [1], "sourceText": "Akt qəbul tarixini təsdiqləyir", "category": "UNSUPPORTED", "interpretation": "The added rəsmən asserts official confirmation. A/1 and document type do not establish official issuer/status. This is the explicit critical rejection."},
+    {"claim": "avadanlığın döyüş şəraitindəki nəticəsini və ya sonrakı istismar vəziyyətini əhatə etmir", "citations": [1], "sourceText": "avadanlığın döyüş şəraitində nəticəsini və ya sonrakı istismarını təsdiqləmir.", "category": "SUPPORTED", "interpretation": "Correctly limits what the act confirms; əhatə etmir is slightly broader than does not confirm but preserves intended limitation."},
+    {"claim": "istismardan çıxarılması iddiası anonim şəxsin bəyanatına əsaslanır", "citations": [3], "sourceText": "anonim şəxs avadanlığın artıq istismardan çıxarıldığını iddia edir.", "category": "SUPPORTED", "interpretation": "Claim remains attributed, not treated as an established event."},
+    {"claim": "D (Adətən etibarsız) ... 5 (Ehtimal olunmayan)", "citations": [3,6], "sourceText": "[3]/[6] metadata sourceReliability=D, infoCredibility=5; application labels D=Adətən etibarsız, 5=Ehtimal olunmayan.", "category": "SUPPORTED", "interpretation": "Both given scales interpreted accurately."},
+    {"claim": "texniki baxış aktı, rəsmi açıqlama və ya ikinci müstəqil mənbə mövcud deyil", "citations": [3], "sourceText": "Sınaq toplusunda bu iddianı təsdiqləyən texniki baxış aktı, ikinci müstəqil mənbə və ya rəsmi açıqlama yoxdur.", "category": "PARTIALLY SUPPORTED", "interpretation": "The set contains no corroboration. Unqualified mövcud deyil extends the scope to existence generally; no such global evidence exists. Prefer təqdim edilmiş sınaq toplusunda ... yoxdur."},
+    {"claim": "Eyni anonim şəxsin sözlərinin ... təkrar edilməsi ([6]) müstəqil təsdiq sayılmır ... [3] və [6] ... eyni ilkin mənbəyə aiddir", "citations": [3,6], "sourceText": "Eyni anonim şəxsin ... sözləri bu materialın başqa bölməsində təkrar edilir. Bu hissə yeni müstəqil təsdiq deyil.", "category": "SUPPORTED", "interpretation": "Correct shared provenance, with public numbered citations rather than technical M labels."},
+    {"claim": "D/5 ... iddianın birmənalı şəkildə yalan olduğunu sübut etməsə də ... əsaslandırılmamış subyektiv iddia", "citations": [3,6], "sourceText": "[3] anonim şəxs ... iddia edir; Sınaq toplusunda ... təsdiqləyən ... yoxdur. [6] yeni müstəqil təsdiq deyil.", "category": "PARTIALLY SUPPORTED", "interpretation": "Explicitly avoids treating unconfirmed as false. Uncorroborated is supported; subyektiv adds an unnecessary characterization of the speaker/claim not established by evidence."}
+  ],
+  "editorialReview": {
+    "grammar": "Generally grammatical and readable.",
+    "wordChoice": "rəsmən adds unsupported institutional status; mövcud deyil overstates scope; subyektiv is unnecessary.",
+    "terminology": "Acceptance, later operation and decommissioning distinguished accurately. Ratings retain project wording.",
+    "paragraphStructure": "Clear lead and two appropriate sections matching the reliability question.",
+    "coherence": "Good contrast between accepted fact and unconfirmed claim, weakened by overstatement of documentary authority.",
+    "analyticalDepth": "Analyzes evidential reach and shared origin rather than simply repeating the fragments.",
+    "repetition": "Repeated [1] around adjacent propositions slightly mechanical but traceable.",
+    "boilerplate": "No unrelated recommendation or generic final paragraph.",
+    "bureaucraticLanguageAndCalques": "hesab edildiyi halda and olaraq müəyyən edilib are heavier than necessary; no major calque.",
+    "completeness": "All requested reliability dimensions covered, but critical official-status acceptance criterion fails.",
+    "proportionality": "Suitable size for a two-claim evidence comparison.",
+    "status": "NEEDS_REVISION"
+  },
+  "structuralReview": {"status": "PASS", "citations": [1,3,6], "unknownCitations": [], "invalidRanges": [], "finishReason": "stop", "publicationFailureReasons": [], "mCodeLeakage": false},
+  "minimalProposedCorrection": "Add a targeted example retaining təsdiqləyir without rəsmən unless source content explicitly establishes official status, and preserve sınaq toplusunda scope for missing corroboration. Include adverbial official-status variants in the handwritten grounding counterexample. Do not infer source status from A/1 or acceptance-act type. Proposal only; no production edit or live rerun."
+}

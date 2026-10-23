@@ -1,0 +1,146 @@
+{
+  "id": "C-assessment",
+  "query": "İranın raket və pilotsuz sistemlər üzrə müdafiə-sənaye potensialını qiymətləndir.",
+  "sources": [
+    {
+      "n": 1,
+      "sourceKind": "document",
+      "documentId": "synthetic-sənaye-hesabatı",
+      "briefId": null,
+      "chunkId": "synthetic-sənaye-hesabatı-1",
+      "title": "Açıq sintetik sınaq: sənaye-hesabatı",
+      "sectionTitle": "Sınaq ssenarisi",
+      "text": "Sınaq ssenarisində İranın iki müdafiə müəssisəsində raket və pilotsuz uçuş aparatları üçün mühərrik və idarəetmə modullarının istehsal xətləri yenilənib. Hesabat yığım və texniki xidmət imkanlarının genişləndiyini göstərir. Kritik elektron komponentlərin bir hissəsi idxaldan asılıdır. Materialda istehsal həcmi, məhsuldarlıq və döyüş şəraitində sınaq nəticələri açıqlanmır.",
+      "quote": "Sınaq ssenarisində İranın iki müdafiə müəssisəsində raket və pilotsuz uçuş aparatları üçün mühərrik və idarəetmə modullarının istehsal xətləri yenilənib. Hesabat yığım və texniki xidmət imkanlarının genişləndiyini göstərir. Kritik elektron komponentlərin bir hissəsi idxaldan asılıdır. Materialda istehsal həcmi, məhsuldarlıq və döyüş şəraitində sınaq nəticələri açıqlanmır.",
+      "charStart": 0,
+      "charEnd": 374,
+      "docDate": "2026-10-01",
+      "briefDate": null,
+      "direction": "OSINT",
+      "isTable": false,
+      "attachmentCount": 0,
+      "classification": "open",
+      "sourceReliability": "B",
+      "infoCredibility": 2
+    },
+    {
+      "n": 3,
+      "sourceKind": "document",
+      "documentId": "synthetic-rəsmi-bəyanat",
+      "briefId": null,
+      "chunkId": "synthetic-rəsmi-bəyanat-3",
+      "title": "Açıq sintetik sınaq: rəsmi-bəyanat",
+      "sectionTitle": "Sınaq ssenarisi",
+      "text": "Sınaq ssenarisində bir qurum yeni pilotsuz sistemin sınaqlarının tamamlandığını və raket istehsalının artırıldığını bəyan edib. Bu, qurumun bəyanatıdır; təqdim edilmiş materialda istehsal üzrə faktiki say və texniki sınaq protokolu yoxdur. İddia olunan uçuş məsafəsi və dəqiqlik üzrə ölçülmüş göstərici verilmir.",
+      "quote": "Sınaq ssenarisində bir qurum yeni pilotsuz sistemin sınaqlarının tamamlandığını və raket istehsalının artırıldığını bəyan edib. Bu, qurumun bəyanatıdır; təqdim edilmiş materialda istehsal üzrə faktiki say və texniki sınaq protokolu yoxdur. İddia olunan uçuş məsafəsi və dəqiqlik üzrə ölçülmüş göstərici verilmir.",
+      "charStart": 0,
+      "charEnd": 312,
+      "docDate": "2026-10-01",
+      "briefDate": null,
+      "direction": "OSINT",
+      "isTable": false,
+      "attachmentCount": 0,
+      "classification": "open",
+      "sourceReliability": "C",
+      "infoCredibility": 3
+    },
+    {
+      "n": 6,
+      "sourceKind": "document",
+      "documentId": "synthetic-sənaye-hesabatı",
+      "briefId": null,
+      "chunkId": "synthetic-sənaye-hesabatı-6",
+      "title": "Açıq sintetik sınaq: sənaye-hesabatı",
+      "sectionTitle": "Sınaq ssenarisi",
+      "text": "Sınaq ssenarisində mövcud platformaların texniki xidməti və heyət hazırlığı təşkil olunub. Hesabatda istismar müddətinin uzadılması üçün texniki xidmətin əhəmiyyəti göstərilir. İdxal komponentləri üzrə tədarük fasilələrinin istehsalın sabitliyinə təsir edə biləcəyi qeyd olunur. Yeni xəttin qurulması ilə sabit kütləvi istehsalın əldə edilməsi ayrıca mərhələlərdir.",
+      "quote": "Sınaq ssenarisində mövcud platformaların texniki xidməti və heyət hazırlığı təşkil olunub. Hesabatda istismar müddətinin uzadılması üçün texniki xidmətin əhəmiyyəti göstərilir. İdxal komponentləri üzrə tədarük fasilələrinin istehsalın sabitliyinə təsir edə biləcəyi qeyd olunur. Yeni xəttin qurulması ilə sabit kütləvi istehsalın əldə edilməsi ayrıca mərhələlərdir.",
+      "charStart": 0,
+      "charEnd": 365,
+      "docDate": "2026-10-01",
+      "briefDate": null,
+      "direction": "OSINT",
+      "isTable": false,
+      "attachmentCount": 0,
+      "classification": "open",
+      "sourceReliability": "B",
+      "infoCredibility": 2
+    }
+  ],
+  "startedAt": "2026-10-23T04:51:21.718Z",
+  "deadlineAt": "2026-10-23T04:53:06.718Z",
+  "systemPromptSha256": "4d1479f538ab74177ea3de998b4bc4c7bca3c44d62e37c82b04ba112ba7e4f1d",
+  "fullPromptSha256": "8ad28a86e1433ea6c5e7be9259ca8c5c0dfa966ec2743fed6587953975a55665",
+  "configuration": {
+    "chatModel": "gemini-3.8-flash",
+    "lightModel": "gemini-3.5-flash-lite",
+    "backupModel": "gemini-3.1-flash-lite",
+    "thinkingLevel": "medium",
+    "maxOutputTokens": 4096,
+    "deadlineMs": 105000,
+    "maxAttemptsPerRoute": 1,
+    "sdkMaxRetries": 0,
+    "contextExpansion": "false"
+  },
+  "dispatches": [
+    {
+      "model": "gemini-3.8-flash",
+      "startedAt": "2026-10-23T04:51:21.733Z",
+      "startElapsedMs": 15,
+      "headersElapsedMs": 79666,
+      "status": 200,
+      "usage": {
+        "inputTokens": 4236,
+        "candidateTokens": 749,
+        "thinkingTokens": 499,
+        "totalTokens": 5484,
+        "cachedInputTokens": null
+      },
+      "elapsedMs": 79667
+    }
+  ],
+  "diagnostics": [
+    {
+      "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-C-assessment",
+      "stage": "generation",
+      "event": "start",
+      "model": "gemini-3.8-flash",
+      "attempt": 1,
+      "generationAttempt": 1,
+      "providerStatus": null,
+      "errorCategory": null,
+      "elapsedMs": 4
+    },
+    {
+      "requestId": "2026-10-23T04-51-21-716Z-3525cd2d-fb09-447b-8b34-83ea7ef6aab7-C-assessment",
+      "stage": "generation",
+      "event": "success",
+      "model": "gemini-3.8-flash",
+      "attempt": 1,
+      "generationAttempt": 1,
+      "providerStatus": 200,
+      "errorCategory": null,
+      "elapsedMs": 79688
+    }
+  ],
+  "fallbacks": [],
+  "semanticReview": {
+    "status": "PENDING_MANUAL_REVIEW"
+  },
+  "status": "completed",
+  "model": "gemini-3.8-flash",
+  "finishReason": "stop",
+  "elapsedMs": 79689,
+  "answer": "Təqdim edilmiş sınaq ssenarisinə əsasən, İranın raket və pilotsuz uçuş aparatları (PUA) üzrə müdafiə-sənaye potensialı istehsal xətlərinin modernləşdirilməsi, yığım və texniki xidmət imkanlarının genişləndirilməsi hesabına inkişaf etdirilir, lakin kritik elektron komponentlərdən xarici asılılıq və kütləvi istehsal mərhələsinə keçid amilləri bu potensial üçün əsas zəifliklər olaraq qalır [1][6].\n\n**İstehsal bazasının vəziyyəti və genişlənmə imkanları**  \nSsenaridə iki müdafiə sənayesi müəssisəsində raketlər və PUA-lar üçün mühərrik həmçinin idarəetmə modullarının istehsal xətləri yenilənmiş, yığım və texniki xidmət infrastrukturu genişləndirilmişdir [1]. Eyni zamanda mövcud platformaların istismar müddətini uzatmaq məqsədilə texniki xidmət mexanizmləri qurulmuş və müvafiq heyət hazırlığı təşkil olunmuşdur [6]. Digər tərəfdən, aidiyyəti qurum yeni pilotsuz sistemin sınaqlarının başa çatdığını və raket istehsalının artırıldığını bəyan etsə də, bu məlumatlar rəsmi iddia xarakteri daşıyır [3].\n\n**Həssaslıqlar və risk amilləri**  \nİstehsalın genişləndirilməsinə baxmayaraq, kritik elektron komponentlərin bir hissəsinin idxaldan asılı olması sənaye potensialının ən həssas nöqtəsidir [1]. Xarici tədarük zəncirində yarana biləcək fasilələr istehsal prosesinin sabitliyinə birbaşa təsir göstərmək riski daşıyır [6]. Bundan əlavə, yeni istehsal xətlərinin qurulması texniki baxımdan sabit kütləvi istehsalın əldə edilməsi demək deyil və bu keçid ayrı bir mərhələ tələb edir [6].\n\n**Qiymətləndirməni məhdudlaşdıran amillər**  \nSənayedə əldə olunan irəliləyişin real miqyasını dəqiq qiymətləndirmək üçün zəruri olan faktiki göstəricilər açıqlanmır. Materiallarda istehsal həcmi, zavodların məhsuldarlığı və sistemlərin döyüş şəraitindəki sınaq nəticələri əksini tapmamışdır [1]. Bəyan edilən yeni PUA sisteminin uçuş məsafəsi və dəqiqlik parametrləri üzrə ölçülmüş göstəricilər, eləcə də faktiki istehsal sayı və sınaq protokolları təqdim olunmadığından, elan edilmiş imkanlar təsdiqlənmiş əməliyyat qabiliyyəti kimi qəbul edilə bilməz [3].",
+  "validatedAnswer": "Təqdim edilmiş sınaq ssenarisinə əsasən, İranın raket və pilotsuz uçuş aparatları (PUA) üzrə müdafiə-sənaye potensialı istehsal xətlərinin modernləşdirilməsi, yığım və texniki xidmət imkanlarının genişləndirilməsi hesabına inkişaf etdirilir, lakin kritik elektron komponentlərdən xarici asılılıq və kütləvi istehsal mərhələsinə keçid amilləri bu potensial üçün əsas zəifliklər olaraq qalır [1][6].\n\n**İstehsal bazasının vəziyyəti və genişlənmə imkanları**  \nSsenaridə iki müdafiə sənayesi müəssisəsində raketlər və PUA-lar üçün mühərrik həmçinin idarəetmə modullarının istehsal xətləri yenilənmiş, yığım və texniki xidmət infrastrukturu genişləndirilmişdir [1]. Eyni zamanda mövcud platformaların istismar müddətini uzatmaq məqsədilə texniki xidmət mexanizmləri qurulmuş və müvafiq heyət hazırlığı təşkil olunmuşdur [6]. Digər tərəfdən, aidiyyəti qurum yeni pilotsuz sistemin sınaqlarının başa çatdığını və raket istehsalının artırıldığını bəyan etsə də, bu məlumatlar rəsmi iddia xarakteri daşıyır [3].\n\n**Həssaslıqlar və risk amilləri**  \nİstehsalın genişləndirilməsinə baxmayaraq, kritik elektron komponentlərin bir hissəsinin idxaldan asılı olması sənaye potensialının ən həssas nöqtəsidir [1]. Xarici tədarük zəncirində yarana biləcək fasilələr istehsal prosesinin sabitliyinə birbaşa təsir göstərmək riski daşıyır [6]. Bundan əlavə, yeni istehsal xətlərinin qurulması texniki baxımdan sabit kütləvi istehsalın əldə edilməsi demək deyil və bu keçid ayrı bir mərhələ tələb edir [6].\n\n**Qiymətləndirməni məhdudlaşdıran amillər**  \nSənayedə əldə olunan irəliləyişin real miqyasını dəqiq qiymətləndirmək üçün zəruri olan faktiki göstəricilər açıqlanmır. Materiallarda istehsal həcmi, zavodların məhsuldarlığı və sistemlərin döyüş şəraitindəki sınaq nəticələri əksini tapmamışdır [1]. Bəyan edilən yeni PUA sisteminin uçuş məsafəsi və dəqiqlik parametrləri üzrə ölçülmüş göstəricilər, eləcə də faktiki istehsal sayı və sınaq protokolları təqdim olunmadığından, elan edilmiş imkanlar təsdiqlənmiş əməliyyat qabiliyyəti kimi qəbul edilə bilməz [3].",
+  "publicationFailureReasons": [],
+  "structuralValidation": {
+    "answer": "Təqdim edilmiş sınaq ssenarisinə əsasən, İranın raket və pilotsuz uçuş aparatları (PUA) üzrə müdafiə-sənaye potensialı istehsal xətlərinin modernləşdirilməsi, yığım və texniki xidmət imkanlarının genişləndirilməsi hesabına inkişaf etdirilir, lakin kritik elektron komponentlərdən xarici asılılıq və kütləvi istehsal mərhələsinə keçid amilləri bu potensial üçün əsas zəifliklər olaraq qalır [1][6].\n\n**İstehsal bazasının vəziyyəti və genişlənmə imkanları**  \nSsenaridə iki müdafiə sənayesi müəssisəsində raketlər və PUA-lar üçün mühərrik həmçinin idarəetmə modullarının istehsal xətləri yenilənmiş, yığım və texniki xidmət infrastrukturu genişləndirilmişdir [1]. Eyni zamanda mövcud platformaların istismar müddətini uzatmaq məqsədilə texniki xidmət mexanizmləri qurulmuş və müvafiq heyət hazırlığı təşkil olunmuşdur [6]. Digər tərəfdən, aidiyyəti qurum yeni pilotsuz sistemin sınaqlarının başa çatdığını və raket istehsalının artırıldığını bəyan etsə də, bu məlumatlar rəsmi iddia xarakteri daşıyır [3].\n\n**Həssaslıqlar və risk amilləri**  \nİstehsalın genişləndirilməsinə baxmayaraq, kritik elektron komponentlərin bir hissəsinin idxaldan asılı olması sənaye potensialının ən həssas nöqtəsidir [1]. Xarici tədarük zəncirində yarana biləcək fasilələr istehsal prosesinin sabitliyinə birbaşa təsir göstərmək riski daşıyır [6]. Bundan əlavə, yeni istehsal xətlərinin qurulması texniki baxımdan sabit kütləvi istehsalın əldə edilməsi demək deyil və bu keçid ayrı bir mərhələ tələb edir [6].\n\n**Qiymətləndirməni məhdudlaşdıran amillər**  \nSənayedə əldə olunan irəliləyişin real miqyasını dəqiq qiymətləndirmək üçün zəruri olan faktiki göstəricilər açıqlanmır. Materiallarda istehsal həcmi, zavodların məhsuldarlığı və sistemlərin döyüş şəraitindəki sınaq nəticələri əksini tapmamışdır [1]. Bəyan edilən yeni PUA sisteminin uçuş məsafəsi və dəqiqlik parametrləri üzrə ölçülmüş göstəricilər, eləcə də faktiki istehsal sayı və sınaq protokolları təqdim olunmadığından, elan edilmiş imkanlar təsdiqlənmiş əməliyyat qabiliyyəti kimi qəbul edilə bilməz [3].",
+    "incomplete": false,
+    "usedLowReliability": false,
+    "failureReasons": []
+  },
+  "structuralStatus": "PASS",
+  "deadlineStatus": "PASS",
+  "usedLowReliability": false,
+  "dispatchCount": 1
+}

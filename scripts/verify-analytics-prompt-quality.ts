@@ -1,9 +1,11 @@
-import { createHash } from "node:crypto";
-import { writeFileSync } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { createInterface } from "node:readline/promises";
 
 import { ANALYTICS_SERVER_DEADLINE_MS, type AnalyticsSource } from "../src/lib/analytics";
 import { createGeminiProviders } from "../src/server/ai/gemini";
 import { getGeminiErrorCategory } from "../src/server/ai/gemini-gateway";
+import { withAiDiagnostics } from "../src/server/ai/diagnostics";
 import {
   analyticsPublicationFailureReasons,
   validateCitations,
@@ -165,46 +167,207 @@ const cases = [
 
 async function main() {
   const env = readServerEnv();
+  const acceptance = process.argv.includes("--acceptance");
+  const live = process.argv.includes("--live");
   const selectedIds = process.argv
     .filter((argument) => argument.startsWith("--case="))
     .map((argument) => argument.slice("--case=".length));
   if (selectedIds.some((id) => !cases.some((testCase) => testCase.id === id))) {
     throw new Error("Unknown verification case.");
   }
-  const selectedCases = selectedIds.length
+  let selectedCases = selectedIds.length
     ? cases.filter((testCase) => selectedIds.includes(testCase.id))
-    : cases;
-  if (!process.argv.includes("--live")) {
+    : [...cases];
+  if (acceptance) {
+    const order = ["C-assessment", "E-reliability", "D-comparison"];
+    if (selectedIds.some((id) => !order.includes(id))) throw new Error("Unauthorized case.");
+    selectedCases = order.flatMap((id) =>
+      cases.filter(
+        (testCase) => testCase.id === id && (!selectedIds.length || selectedIds.includes(id)),
+      ),
+    );
+  }
+  const configuration = {
+    chatModel: env.AI_CHAT_MODEL,
+    lightModel: env.AI_LIGHT_MODEL,
+    backupModel: env.AI_BACKUP_MODEL,
+    thinkingLevel: env.ANALYTICS_THINKING_LEVEL,
+    maxOutputTokens: buildAnalyticsPrompt("", []).maxOutputTokens,
+    deadlineMs: ANALYTICS_SERVER_DEADLINE_MS,
+    maxAttemptsPerRoute: 1,
+    sdkMaxRetries: 0,
+    contextExpansion: env.ENABLE_CONTEXT_EXPANSION,
+  };
+  if (!live) {
     console.log(
       JSON.stringify({
         mode: "dry-run; pass --live to send synthetic fixtures to the configured Gemini provider",
         cases: selectedCases.map(({ id }) => id),
         credentialsAvailable: Boolean(env.GOOGLE_GENERATIVE_AI_API_KEY),
         analyticsModelConfigured: Boolean(env.AI_CHAT_MODEL),
+        configuration,
         databaseReads: 0,
         providerCalls: 0,
       }),
     );
     return;
   }
-  if (!env.GOOGLE_GENERATIVE_AI_API_KEY || !env.AI_CHAT_MODEL) {
+  if (!acceptance) throw new Error("Live execution requires bounded --acceptance mode.");
+  if (env.ENABLE_CONTEXT_EXPANSION !== "false") throw new Error("Expansion must be disabled.");
+  if (
+    !env.GOOGLE_GENERATIVE_AI_API_KEY ||
+    !env.AI_CHAT_MODEL ||
+    !env.AI_LIGHT_MODEL ||
+    !env.AI_BACKUP_MODEL
+  ) {
     throw new Error("Live verification unavailable: configured Gemini credentials/model missing.");
   }
+  const runId = `${new Date().toISOString().replace(/[:.]/g, "-")}-${randomUUID()}`;
+  const reportDir = `docs/release/live-gemini-${runId}`;
+  mkdirSync(reportDir);
   const provider = createGeminiProviders().analytics;
   const results: Array<Record<string, unknown>> = [];
+  const runStartedAt = Date.now();
+  let totalDispatches = 0;
+  let logicalGenerations = 0;
+  const persist = () =>
+    writeFileSync(
+      `${reportDir}/run.json`,
+      JSON.stringify(
+        {
+          runId,
+          configuration,
+          generatedAt: new Date().toISOString(),
+          dataPolicy:
+            "Invented open fixtures only; no DB/storage/history/retrieval/embedding/rerank/indexing. Not production RAG acceptance.",
+          bounds: { logicalGenerations: 3, sdkDispatches: 9, perCaseDispatches: 3 },
+          logicalGenerations,
+          sdkDispatches: totalDispatches,
+          elapsedMs: Date.now() - runStartedAt,
+          providerUsageStats: provider.usageStats,
+          usageCaveat:
+            "Adapter usageStats coerces missing fields to zero; use per-dispatch wire usage nulls for availability. Output may include thinking; do not add thinking again.",
+          selectedCases: selectedCases.map(({ id }) => id),
+          remainingCases: selectedCases.slice(results.length).map(({ id }) => id),
+          results,
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+  persist();
+  console.log(JSON.stringify({ reportDir, configuration }));
   for (const testCase of selectedCases) {
     const startedAt = Date.now();
+    const prompt = buildAnalyticsPrompt(
+      `Yalnız açıq sintetik sınaq ssenarisini təhlil et; bu materiallar real cari xəbərlər deyil. ${testCase.query}`,
+      testCase.sources,
+      env.ANALYTICS_THINKING_LEVEL,
+    );
+    const dispatches: Array<Record<string, unknown>> = [];
+    const diagnostics: Array<Record<string, unknown>> = [];
+    const fallbacks: Array<Record<string, unknown>> = [];
+    const originalFetch = globalThis.fetch;
+    const originalConsole = { info: console.info, warn: console.warn, error: console.error };
+    const diagnosticOnly = (...args: unknown[]) => {
+      const line = args[0];
+      if (typeof line === "string" && line.startsWith("[analytics-ai] ")) {
+        diagnostics.push(JSON.parse(line.slice("[analytics-ai] ".length)));
+        originalConsole.info(line);
+      }
+    };
+    const record: Record<string, unknown> = {
+      id: testCase.id,
+      query: testCase.query,
+      sources: testCase.sources,
+      startedAt: new Date(startedAt).toISOString(),
+      deadlineAt: new Date(startedAt + ANALYTICS_SERVER_DEADLINE_MS).toISOString(),
+      systemPromptSha256: createHash("sha256").update(prompt.system).digest("hex"),
+      fullPromptSha256: createHash("sha256").update(JSON.stringify(prompt)).digest("hex"),
+      configuration,
+      dispatches,
+      diagnostics,
+      fallbacks,
+      semanticReview: { status: "PENDING_MANUAL_REVIEW" },
+    };
+    const casePath = `${reportDir}/${testCase.id}.json`;
+    writeFileSync(casePath, JSON.stringify(record, null, 2) + "\n", { flag: "wx" });
+    logicalGenerations += 1;
+    const allowedModels = [env.AI_CHAT_MODEL, env.AI_LIGHT_MODEL, env.AI_BACKUP_MODEL];
+    globalThis.fetch = (async (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : String(input));
+      const model = /^\/v1beta\/models\/([^/]+):generateContent$/.exec(url.pathname)?.[1];
+      if (
+        url.protocol !== "https:" ||
+        url.hostname !== "generativelanguage.googleapis.com" ||
+        !model ||
+        !allowedModels.includes(model) ||
+        init?.method !== "POST" ||
+        dispatches.length >= 3 ||
+        totalDispatches >= 9 ||
+        Date.now() >= startedAt + ANALYTICS_SERVER_DEADLINE_MS
+      ) {
+        throw new Error("Verification network/budget guard rejected dispatch.");
+      }
+      const sentAt = Date.now();
+      const entry: Record<string, unknown> = {
+        model,
+        startedAt: new Date(sentAt).toISOString(),
+        startElapsedMs: sentAt - startedAt,
+      };
+      dispatches.push(entry);
+      totalDispatches += 1;
+      // Persist intent immediately. No URL query, body, headers or raw error is stored.
+      writeFileSync(casePath, JSON.stringify(record, null, 2) + "\n");
+      persist();
+      try {
+        const response = await originalFetch(input, init);
+        entry["headersElapsedMs"] = Date.now() - sentAt;
+        entry["status"] = response.status;
+        if (response.ok) {
+          const body = (await response.clone().json()) as Record<string, unknown>;
+          const usage = body["usageMetadata"] as Record<string, unknown> | undefined;
+          const number = (key: string) => (typeof usage?.[key] === "number" ? usage[key] : null);
+          entry["usage"] = {
+            inputTokens: number("promptTokenCount"),
+            candidateTokens: number("candidatesTokenCount"),
+            thinkingTokens: number("thoughtsTokenCount"),
+            totalTokens: number("totalTokenCount"),
+            cachedInputTokens: number("cachedContentTokenCount"),
+          };
+        }
+        return response;
+      } catch (error) {
+        entry["errorCategory"] = getGeminiErrorCategory(error);
+        throw error;
+      } finally {
+        entry["elapsedMs"] = Date.now() - sentAt;
+        writeFileSync(casePath, JSON.stringify(record, null, 2) + "\n");
+      }
+    }) as typeof fetch;
+    console.info = console.warn = console.error = diagnosticOnly;
     try {
-      const prompt = buildAnalyticsPrompt(
-        `Yalnız açıq sintetik sınaq ssenarisini təhlil et; bu materiallar real cari xəbərlər deyil. ${testCase.query}`,
-        testCase.sources,
-        env.ANALYTICS_THINKING_LEVEL,
+      const generated = await withAiDiagnostics(
+        {
+          requestId: `${runId}-${testCase.id}`,
+          startedAt,
+          stage: "generation",
+          generationAttempt: 1,
+        },
+        () =>
+          provider.generateTextWithMetadata({
+            ...prompt,
+            maxAttempts: 1,
+            deadlineAt: startedAt + ANALYTICS_SERVER_DEADLINE_MS,
+            beforeRequest: async () => {
+              if (dispatches.length >= 3 || totalDispatches >= 9)
+                throw new Error("SDK dispatch budget exhausted.");
+            },
+            onFallback: (event) => {
+              fallbacks.push({ ...event, elapsedMs: Date.now() - startedAt });
+            },
+          }),
       );
-      const generated = await provider.generateTextWithMetadata({
-        ...prompt,
-        maxAttempts: 1,
-        deadlineAt: startedAt + ANALYTICS_SERVER_DEADLINE_MS,
-      });
       const validation = validateCitations(generated.text, testCase.sources);
       const failureReasons = analyticsPublicationFailureReasons(
         generated.text,
@@ -212,17 +375,17 @@ async function main() {
         validation,
       );
       if (failureReasons.length) process.exitCode = 1;
-      results.push({
-        id: testCase.id,
-        query: testCase.query,
-        sources: testCase.sources,
-        systemPromptSha256: createHash("sha256").update(prompt.system).digest("hex"),
+      Object.assign(record, {
+        status: "completed",
         model: generated.model,
         finishReason: generated.finishReason,
         elapsedMs: Date.now() - startedAt,
         answer: generated.text,
         validatedAnswer: validation.answer,
         publicationFailureReasons: failureReasons,
+        structuralValidation: validation,
+        structuralStatus: failureReasons.length ? "FAIL" : "PASS",
+        deadlineStatus: Date.now() - startedAt <= ANALYTICS_SERVER_DEADLINE_MS ? "PASS" : "FAIL",
         usedLowReliability: validation.usedLowReliability,
       });
       console.log(
@@ -235,44 +398,40 @@ async function main() {
     } catch (error) {
       // Provider errors can contain request data and headers; never print/store them.
       const category = getGeminiErrorCategory(error);
-      results.push({
-        id: testCase.id,
+      Object.assign(record, {
         status: "provider-failed",
         category,
+        model: dispatches.at(-1)?.["model"] ?? null,
+        answer: null,
+        validatedAnswer: null,
+        finishReason: null,
+        structuralStatus: "INCOMPLETE",
+        deadlineStatus: category === "timeout" ? "FAIL" : "INCOMPLETE",
         elapsedMs: Date.now() - startedAt,
       });
       console.log(JSON.stringify({ id: testCase.id, status: "provider-failed", category }));
       process.exitCode = 1;
-      break;
+    } finally {
+      globalThis.fetch = originalFetch;
+      Object.assign(console, originalConsole);
+      record["dispatchCount"] = dispatches.length;
+      results.push(record);
+      writeFileSync(casePath, JSON.stringify(record, null, 2) + "\n");
+      persist();
+    }
+    console.log(JSON.stringify({ id: testCase.id, casePath, dispatchCount: dispatches.length }));
+    if (record["status"] === "provider-failed") break;
+    if (process.argv.includes("--review-gate") && results.length < selectedCases.length) {
+      const reader = createInterface({ input: process.stdin, output: process.stdout });
+      const decision = await reader.question(
+        "Local review checkpoint: type continue after reviewing the saved case: ",
+      );
+      reader.close();
+      if (decision.trim() !== "continue") break;
     }
   }
-  // Selected cases write a distinct artifact so resumed checks never overwrite
-  // an earlier provider failure or silently claim an uninterrupted successful run.
-  const reportPath = selectedIds.length
-    ? `docs/analytics-prompt-live-${selectedCases.map(({ id }) => id).join("_")}-audit.json`
-    : "docs/analytics-prompt-live-audit.json";
-  writeFileSync(
-    reportPath,
-    JSON.stringify(
-      {
-        generatedAt: new Date().toISOString(),
-        dataPolicy:
-          "Invented open synthetic fixtures only; no database/storage/history access. Not real-world intelligence or proof of live RAG quality.",
-        bounds:
-          "Six sequential logical generations at most; one attempt per existing provider route; existing model/fallback/quota implementation unchanged; stop on first provider failure.",
-        semanticReview:
-          "Manual review required for relevance, grounding, Azerbaijani, synthesis, completeness, coherence, boilerplate, repetition, local caveats, citations, executive style and proportional length. Publication validation alone does not establish semantic quality.",
-        completedCases: results.filter((result) => typeof result["answer"] === "string").length,
-        selectedCases: selectedCases.map(({ id }) => id),
-        remainingCases: selectedCases.slice(results.length).map(({ id }) => id),
-        usage: provider.usageStats,
-        results,
-      },
-      null,
-      2,
-    ) + "\n",
-  );
-  console.log(`Saved synthetic-only report: ${reportPath}`);
+  persist();
+  console.log(`Saved synthetic-only report: ${reportDir}/run.json`);
 }
 
 main().catch(() => {
