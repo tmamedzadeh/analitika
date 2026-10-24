@@ -35,8 +35,8 @@ describe("analytics retrieval branch selection", () => {
       const filters = analyticsFiltersSchema.parse({
         period: "30d",
         directionIds: ["OSINT"],
-        minSourceReliability: "B",
-        minInfoCredibility: "2",
+        sourceReliabilities: ["B"],
+        infoCredibilities: [2],
         includeBriefs,
       });
       const result = await withCurrentUser(user, () =>
@@ -59,7 +59,7 @@ describe("analytics retrieval branch selection", () => {
         expect(query).toContain('"app_users"."active" = true');
         expect(query).toContain('"documents"."classification"');
         if (includeBriefs) {
-          expect(query).toContain('"daily_briefs"."classification"');
+          expect(query).not.toContain('"daily_briefs"."classification"');
           expect(query).toContain('"daily_briefs"."brief_date" >=');
         }
       }

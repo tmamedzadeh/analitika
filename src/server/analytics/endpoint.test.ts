@@ -72,7 +72,8 @@ const user: SessionUser = {
   sessionId: "session",
 };
 const filters = {
-  period: "all",
+  period: "30d",
+  includeBriefs: false,
   directionIds: [...directionIds],
   minSourceReliability: "all",
   minInfoCredibility: "all",

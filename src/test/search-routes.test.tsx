@@ -1,7 +1,7 @@
 import { plainTextDocument } from "@/lib/rich-text";
 import { QueryClient } from "@tanstack/react-query";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { routeTree } from "@/routeTree.gen";
 import {
@@ -87,6 +87,45 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("short catalog and creation route smoke with synthetic services", () => {
+  it("restores a confirmed range and exact ratings from URL on reload and Back", async () => {
+    const period = { period: "custom", from: "2026-10-01", to: "2026-10-18" };
+    const ratings = { sourceReliabilities: ["A", "C"], infoCredibilities: [1, 3] };
+    const url = `/senedler?period=${encodeURIComponent(JSON.stringify(period))}&ratings=${encodeURIComponent(JSON.stringify(ratings))}`;
+    let router = await open(url);
+    await waitFor(() =>
+      expect(listDocuments).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ ...period, ...ratings, cursor: null }),
+        }),
+      ),
+    );
+    expect(screen.getByRole("combobox", { name: "Dövr" })).toHaveValue("custom");
+    fireEvent.change(screen.getByRole("combobox", { name: "Dövr" }), { target: { value: "90d" } });
+    await waitFor(() =>
+      expect(router.state.location.search).toMatchObject({ period: { period: "90d" } }),
+    );
+    await act(async () => {
+      await router.navigate({ to: "/senedler/$id", params: { id } });
+    });
+    await act(async () => {
+      router.history.back();
+    });
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Dövr" })).toHaveValue("90d"));
+    const restored = router.state.location.href;
+    cleanup();
+    router = await open(restored);
+    await waitFor(() =>
+      expect(listDocuments).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ period: "90d", ...ratings, cursor: null }),
+        }),
+      ),
+    );
+    expect(router.state.location.search).toMatchObject({ period: { period: "90d" }, ratings });
+    const last = vi.mocked(listDocuments).mock.calls.at(-1)![0]!.data;
+    expect(last).not.toHaveProperty("from");
+    expect(last).not.toHaveProperty("to");
+  });
   it("loads later document pages and resets cursors on query/direction changes", async () => {
     vi.mocked(listDocuments)
       .mockResolvedValueOnce({ items: [card], nextCursor: { createdAt, id } })
@@ -118,7 +157,9 @@ describe("short catalog and creation route smoke with synthetic services", () =>
     });
     await waitFor(() =>
       expect(listDocuments).toHaveBeenLastCalledWith(
-        expect.objectContaining({ data: { query: "Iran", direction: "OSINT", cursor: null } }),
+        expect.objectContaining({
+          data: expect.objectContaining({ query: "Iran", direction: "OSINT", cursor: null }),
+        }),
       ),
     );
     expect(screen.queryByRole("switch")).toBeNull();
@@ -128,17 +169,17 @@ describe("short catalog and creation route smoke with synthetic services", () =>
     await open("/");
     const input = await screen.findByRole("textbox", { name: az.briefs.searchLabel });
     fireEvent.change(input, { target: { value: "müdafiə nazir təsdiq" } });
-    fireEvent.click(screen.getByRole("button", { name: az.briefs.thisWeek }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Dövr" }), { target: { value: "90d" } });
     await waitFor(() =>
       expect(listBriefs).toHaveBeenLastCalledWith(
-        expect.objectContaining({ data: { query: "", period: "week", month: "", cursor: null } }),
+        expect.objectContaining({ data: { query: "", period: "90d", cursor: null } }),
       ),
     );
     fireEvent.submit(input.closest("form")!);
     await waitFor(() =>
       expect(listBriefs).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          data: { query: "müdafiə nazir təsdiq", period: "week", month: "", cursor: null },
+          data: { query: "müdafiə nazir təsdiq", period: "90d", cursor: null },
         }),
       ),
     );
@@ -214,6 +255,8 @@ describe("short catalog and creation route smoke with synthetic services", () =>
     const direction = document.querySelector('select[name="direction"]')!;
     fireEvent.change(direction, { target: { value: "OSINT" } });
     fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [file] } });
+    fireEvent.click(document.querySelector('input[name="sourceReliability"][value="B"]')!);
+    fireEvent.click(document.querySelector('input[name="infoCredibility"][value="2"]')!);
     fireEvent.submit(document.querySelector("form")!);
     await waitFor(() => expect(router.state.location.pathname).toBe(`/senedler/${id}`));
     expect(fetch).toHaveBeenCalledWith(

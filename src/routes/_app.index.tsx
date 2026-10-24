@@ -1,55 +1,41 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useState } from "react";
 
 import { BriefCard } from "@/components/BriefCard";
 import { Shell } from "@/components/Shell";
 import { ZirveSkeleton, ZirveActionLabel, ZirveQueryIndicator } from "@/components/ZirveLoader";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PeriodFilter } from "@/components/PeriodFilter";
+import { FilterBar } from "@/components/FilterBar";
+import {
+  filterRouteSearchSchema,
+  parsePeriodSearch,
+  useFilterSearchState,
+} from "@/lib/filter-search-state";
 import { listBriefs } from "@/lib/briefs.functions";
 import { getBakuDate, briefHead, type BriefCursor } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
 
-const shortMonthsAz = [
-  "Yan",
-  "Fev",
-  "Mar",
-  "Apr",
-  "May",
-  "İyn",
-  "İyl",
-  "Avq",
-  "Sen",
-  "Okt",
-  "Noy",
-  "Dek",
-];
-
 export const Route = createFileRoute("/_app/")({
+  validateSearch: filterRouteSearchSchema,
   head: () => briefHead(az.briefs.title, az.briefs.description),
   component: DailyBriefs,
 });
 
-function DailyBriefs() {
+export function DailyBriefs() {
   const [draftQuery, setDraftQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
-  const [period, setPeriod] = useState<"all" | "week" | "month">("all");
-  const [month, setMonth] = useState("");
-  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [period, setPeriod] = useFilterSearchState("period", parsePeriodSearch);
   const today = getBakuDate();
-  const todayYear = Number(today.slice(0, 4));
-  const [monthPickerYear, setMonthPickerYear] = useState(todayYear);
-  const selectedMonthIndex = month ? Number(month.slice(5, 7)) - 1 : -1;
-  const selectedMonthYear = month ? Number(month.slice(0, 4)) : undefined;
   const briefsQuery = useInfiniteQuery({
-    queryKey: ["daily-briefs", submittedQuery, period, month],
+    queryKey: ["daily-briefs", submittedQuery, period],
     staleTime: 60_000,
     retry: false,
     initialPageParam: null as BriefCursor | null,
     queryFn: ({ pageParam, signal }) =>
-      listBriefs({ data: { query: submittedQuery, period, month, cursor: pageParam }, signal }),
+      listBriefs({ data: { query: submittedQuery, ...period, cursor: pageParam }, signal }),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
   const briefs = briefsQuery.data?.pages.flatMap((page) => page.items) ?? [];
@@ -72,7 +58,8 @@ function DailyBriefs() {
         </Button>
       }
     >
-      <div className="panel mb-6 flex flex-col gap-4 p-4 sm:flex-row sm:flex-wrap sm:items-center">
+      {/* The query indicator reserves 32px below this 8px margin: 40px to cards. */}
+      <div className="panel mb-2 flex flex-col gap-3 p-4">
         <form
           role="search"
           className="flex min-w-0 flex-1 gap-2 sm:min-w-64"
@@ -90,110 +77,19 @@ function DailyBriefs() {
             <input
               className="field pl-10"
               aria-label={az.briefs.searchLabel}
-              placeholder={az.briefs.searchPlaceholder}
+              placeholder="Bülletenlərdə axtarın"
               maxLength={200}
               value={draftQuery}
               onChange={(event) => setDraftQuery(event.target.value)}
             />
           </label>
-          <Button type="submit">{az.actions.search}</Button>
+          <Button type="submit" variant="secondary">
+            {az.actions.search}
+          </Button>
         </form>
-        <div className="flex flex-wrap gap-2" role="group" aria-label={az.briefs.periodFilters}>
-          {(
-            [
-              ["all", az.briefs.all],
-              ["week", az.briefs.thisWeek],
-              ["month", az.briefs.thisMonth],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              type="button"
-              variant={period === value ? "secondary" : "outline"}
-              className={`rounded-full ${period === value ? "border border-primary/20 bg-accent text-primary" : ""}`}
-              aria-pressed={period === value}
-              onClick={() => {
-                setPeriod(value);
-                setMonth("");
-              }}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-        <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-muted-foreground sm:ml-auto">
-          <CalendarDays size={16} aria-hidden="true" />
-          <span>{az.briefs.month}</span>
-          <Popover
-            open={monthPickerOpen}
-            onOpenChange={(open) => {
-              setMonthPickerOpen(open);
-              if (open) setMonthPickerYear(selectedMonthYear ?? todayYear);
-            }}
-          >
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className="field w-40! justify-start px-3 font-normal"
-                aria-label={
-                  selectedMonthIndex >= 0
-                    ? `${shortMonthsAz[selectedMonthIndex]} ${selectedMonthYear}`
-                    : az.briefs.chooseMonth
-                }
-              >
-                {selectedMonthIndex >= 0
-                  ? `${shortMonthsAz[selectedMonthIndex]} ${selectedMonthYear}`
-                  : az.briefs.chooseMonth}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-72 p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={az.briefs.previousYear}
-                  onClick={() => setMonthPickerYear((year) => year - 1)}
-                >
-                  <ChevronLeft aria-hidden="true" />
-                </Button>
-                <span className="text-sm font-semibold">{monthPickerYear}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={az.briefs.nextYear}
-                  onClick={() => setMonthPickerYear((year) => year + 1)}
-                >
-                  <ChevronRight aria-hidden="true" />
-                </Button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {shortMonthsAz.map((monthName, index) => {
-                  const isSelected =
-                    selectedMonthYear === monthPickerYear && selectedMonthIndex === index;
-                  return (
-                    <Button
-                      key={monthName}
-                      type="button"
-                      variant={isSelected ? "secondary" : "ghost"}
-                      className="h-10 px-2"
-                      aria-pressed={isSelected}
-                      onClick={() => {
-                        setMonth(`${monthPickerYear}-${String(index + 1).padStart(2, "0")}`);
-                        setPeriod("all");
-                        setMonthPickerOpen(false);
-                      }}
-                    >
-                      {monthName}
-                    </Button>
-                  );
-                })}
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
+        <FilterBar>
+          <PeriodFilter value={period} onChange={setPeriod} />
+        </FilterBar>
       </div>
 
       <ZirveQueryIndicator
@@ -232,17 +128,7 @@ function DailyBriefs() {
           <div className="grid h-12 w-12 place-items-center rounded-full bg-accent text-primary">
             <Search size={20} aria-hidden="true" />
           </div>
-          <p className="max-w-md text-sm leading-6 text-muted-foreground">
-            {submittedQuery || period !== "all" || month ? az.briefs.noMatches : az.briefs.empty}
-          </p>
-          {!submittedQuery && period === "all" && !month && (
-            <Button asChild className="glow">
-              <Link to="/brifler/yeni">
-                <Plus />
-                {az.briefs.add}
-              </Link>
-            </Button>
-          )}
+          <p className="max-w-md text-sm leading-6 text-muted-foreground">{az.briefs.noMatches}</p>
         </div>
       )}
       {briefsQuery.hasNextPage && (

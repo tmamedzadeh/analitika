@@ -25,7 +25,7 @@ const user: SessionUser = {
 };
 const compile = (conditions: ReturnType<typeof buildBriefListConditions>) =>
   conditions.map((condition) => new PgDialect().sqlToQuery(condition));
-const defaults = { query: "", period: "all" as const, month: "", cursor: null };
+const defaults = { query: "", period: "30d" as const, cursor: null };
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.query.mockResolvedValue({ rows: [] });
@@ -38,7 +38,9 @@ describe("catalog SQL authorization, ordering and pagination", () => {
         buildBriefListConditions({
           ...defaults,
           query: "müdafiə nazir təsdiq",
-          month: "2026-10",
+          period: "custom",
+          from: "2026-10-01",
+          to: "2026-10-18",
           cursor: { date: "2026-10-18", id: "00000000-0000-4000-8000-000000000001", score: 100 },
         }),
       );
@@ -49,7 +51,7 @@ describe("catalog SQL authorization, ordering and pagination", () => {
       expect(sql).toContain('"daily_briefs"."brief_date" >=');
       expect(sql).toContain('"daily_briefs"."brief_date" <=');
       expect(sql).toContain('"daily_briefs"."id" <');
-      expect(params).toEqual(expect.arrayContaining([user.id, "2026-10-01", "2026-10-31", 100]));
+      expect(params).toEqual(expect.arrayContaining([user.id, "2026-10-01", "2026-10-18", 100]));
       expect(
         params.filter((value) => typeof value === "string" && value.includes("nazirinin")).length,
       ).toBeGreaterThan(0);

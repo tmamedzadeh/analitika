@@ -306,10 +306,7 @@ try {
             briefId,
             isNew: false,
             status: "published",
-            classification: "open",
             date: getBakuDate(),
-            title: "Release probe brief",
-            body: "Changed synthetic release content.",
             bodyRich: plainTextDocument("Changed synthetic release content."),
             keepAttachmentIds: [],
             uploads: [],
@@ -439,7 +436,7 @@ try {
             .where(
               and(
                 eq(dailyBriefs.id, briefId),
-                ...buildBriefListConditions({ query, period: "all", month: "", cursor: null }),
+                ...buildBriefListConditions({ query, period: "30d", cursor: null }),
               ),
             ),
         );
@@ -455,8 +452,7 @@ try {
               eq(dailyBriefs.id, briefId),
               ...buildBriefListConditions({
                 query: "alfa missingterm",
-                period: "all",
-                month: "",
+                period: "30d",
                 cursor: null,
               }),
             ),
@@ -521,9 +517,6 @@ try {
                 briefId,
                 isNew: false,
                 status: "published",
-                classification: "open",
-                title: "Demoted actor must not change this",
-                body: "Synthetic",
                 bodyRich: plainTextDocument("Synthetic"),
                 date: getBakuDate(),
                 keepAttachmentIds: [],
@@ -607,7 +600,7 @@ try {
         createdBy: highUser.id,
         query: "Synthetic restricted history",
         filters: {
-          period: "all",
+          period: "30d",
           directionIds: [...directionIds],
           minSourceReliability: "all",
           minInfoCredibility: "all",

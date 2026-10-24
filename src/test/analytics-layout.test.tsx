@@ -91,18 +91,18 @@ vi.mock("@/lib/analytics.functions", async (importOriginal) => {
 });
 
 describe("analytics search layout", () => {
-  it("starts bulletin search OFF and sends its selected value in each request", async () => {
+  it("starts bulletin search ON and sends its selected value in each request", async () => {
     vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
     const transport = vi.fn(async (_url: unknown, _init?: RequestInit) => response());
     vi.stubGlobal("fetch", transport);
     await openAnalytics();
     const checkbox = screen.getByRole("checkbox", { name: "Bülletenlərdə də axtar" });
-    expect(checkbox).not.toBeChecked();
+    expect(checkbox).toBeChecked();
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "Synthetic query" } });
     fireEvent.click(screen.getByRole("button", { name: az.analytics.sourcesOnly }));
     await waitFor(() => expect(transport).toHaveBeenCalledTimes(1));
     expect(JSON.parse(transport.mock.calls[0]![1]!.body as string).filters.includeBriefs).toBe(
-      false,
+      true,
     );
     await waitFor(() =>
       expect(screen.getByRole("button", { name: az.analytics.sourcesOnly })).toBeEnabled(),
@@ -111,7 +111,7 @@ describe("analytics search layout", () => {
     fireEvent.click(screen.getByRole("button", { name: az.analytics.sourcesOnly }));
     await waitFor(() => expect(transport).toHaveBeenCalledTimes(2));
     expect(JSON.parse(transport.mock.calls[1]![1]!.body as string).filters.includeBriefs).toBe(
-      true,
+      false,
     );
   });
   it("opens available history sources by exact UUID and counts them without an empty state", async () => {
@@ -486,7 +486,7 @@ describe("analytics regeneration and transport", () => {
       }
     }
   });
-  it("regenerates history using its own request without sending an update ID", async () => {
+  it("keeps legacy history read-only until an explicit new period is selected", async () => {
     const historicalFilters = {
       includeBriefs: false,
       period: "90d" as const,
@@ -522,17 +522,23 @@ describe("analytics regeneration and transport", () => {
     fireEvent.click(historyItem);
     await screen.findByRole("button", { name: az.analytics.regenerate });
     expect(historyItem).toHaveAttribute("aria-current", "true");
-    fireEvent.change(screen.getByLabelText(az.analytics.periodLabel), { target: { value: "all" } });
-    fireEvent.change(screen.getByLabelText(az.analytics.questionLabel), {
-      target: { value: "Unrelated" },
-    });
     fireEvent.click(screen.getByRole("button", { name: az.analytics.regenerate }));
-    await screen.findByText(/Nəticə/);
-    expect(JSON.parse(fetch.mock.calls[0]![1].body)).toEqual({
-      query: record.query,
-      filters: historicalFilters,
-      mode: "answer",
+    expect(await screen.findByRole("alert")).toHaveTextContent("Dövr seçin");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.getByText("Historical answer.")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Dövr"), { target: { value: "90d" } });
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.searchButton }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    const body = JSON.parse(fetch.mock.calls[0]![1].body);
+    expect(body.query).toBe(record.query);
+    expect(body.filters).toMatchObject({
+      filterVersion: 2,
+      period: "90d",
+      includeBriefs: false,
+      sourceReliabilities: [],
+      infoCredibilities: [],
     });
+    expect(record.filters).toEqual(historicalFilters);
     expect(record.answer).toBe("Historical answer.");
   });
   it("waits beyond the server deadline and aborts on user stop", async () => {

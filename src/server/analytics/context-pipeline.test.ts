@@ -130,7 +130,8 @@ const run = (mode = "answer") =>
           query: "Synthetic plant",
           mode,
           filters: {
-            period: "all",
+            period: "30d",
+            includeBriefs: false,
             directionIds: [...directionIds],
             minSourceReliability: "all",
             minInfoCredibility: "all",

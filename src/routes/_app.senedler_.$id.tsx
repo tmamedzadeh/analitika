@@ -166,8 +166,8 @@ function DocumentPage() {
         az.documents.status[document.status],
         az.documents.step[document.step as keyof typeof az.documents.step] ?? document.step,
         directionLabel(document.direction) ?? az.directions.unassigned,
-        az.reliability.sourceBadge + " " + document.sourceReliability,
-        az.reliability.informationBadge + " " + document.infoCredibility,
+        az.reliability.sourceBadge + " " + (document.sourceReliability ?? "Qiymətləndirilməyib"),
+        az.reliability.informationBadge + " " + (document.infoCredibility ?? "Qiymətləndirilməyib"),
       ]}
     >
       <div className="mb-5 flex flex-wrap items-center gap-3">
@@ -262,7 +262,7 @@ function DocumentPage() {
             {document.photos.map((photo) => (
               <a
                 key={photo.id}
-                href={photo.url}
+                href={photo.originalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="panel overflow-hidden"

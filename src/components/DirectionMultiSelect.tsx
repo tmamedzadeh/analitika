@@ -28,7 +28,11 @@ type Props = {
   onChange: (next: DirectionId[]) => void;
 };
 
-export function DirectionMultiSelect({ value, onChange }: Props) {
+export function DirectionMultiSelect({
+  value,
+  onChange,
+  compact = false,
+}: Props & { compact?: boolean }) {
   const [open, setOpen] = useState(false);
 
   function toggle(id: DirectionId) {
@@ -37,7 +41,9 @@ export function DirectionMultiSelect({ value, onChange }: Props) {
 
   return (
     <div className="flex min-w-0 flex-col gap-1.5 text-sm">
-      <span id="direction-filter-label">{az.directions.field}</span>
+      <span className={compact ? "sr-only" : ""} id="direction-filter-label">
+        {az.directions.field}
+      </span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
@@ -46,7 +52,7 @@ export function DirectionMultiSelect({ value, onChange }: Props) {
             aria-haspopup="listbox"
             aria-expanded={open}
             aria-labelledby="direction-filter-label direction-filter-value"
-            className="field flex items-center justify-between gap-2 text-left"
+            className={`field flex items-center justify-between gap-2 text-left ${compact ? "filter-control" : ""}`}
           >
             <span
               id="direction-filter-value"

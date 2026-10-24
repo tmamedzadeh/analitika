@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { periodShape, resolvePeriod } from "./period";
+import { sourceReliabilityValues } from "./reliability";
 
 import type { InfoCredibility, SourceReliability } from "./reliability";
 import { directionIdSchema, directionIds } from "./directions";
@@ -24,7 +26,7 @@ export function citedSourceNumbers(answer: string): Set<number> {
   return new Set([...answer.matchAll(/\[(\d+)\]/gu)].map((match) => Number(match[1])));
 }
 
-export const analyticsFiltersSchema = z.object({
+export const legacyAnalyticsFiltersSchema = z.object({
   includeBriefs: z.boolean().default(false),
   period: z.enum(["7d", "30d", "90d", "12m", "all"]),
   directionIds: z
@@ -36,13 +38,56 @@ export const analyticsFiltersSchema = z.object({
   minInfoCredibility: z.enum(["all", "1", "2", "3", "4", "5", "6"]),
 });
 
+export const reliabilityFilterShape = {
+  sourceReliabilities: z
+    .array(z.enum(sourceReliabilityValues))
+    .max(5)
+    .refine((v) => new Set(v).size === v.length)
+    .default([]),
+  infoCredibilities: z
+    .array(z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]))
+    .max(5)
+    .refine((v) => new Set(v).size === v.length)
+    .default([]),
+};
+export const analyticsFiltersSchema = z
+  .object({
+    ...periodShape,
+    ...reliabilityFilterShape,
+    filterVersion: z.literal(2).default(2),
+    includeBriefs: z.boolean().default(true),
+    directionIds: legacyAnalyticsFiltersSchema.shape.directionIds,
+    minSourceReliability: z.literal("all").default("all"),
+    minInfoCredibility: z.literal("all").default("all"),
+  })
+  .superRefine((value, ctx) => {
+    try {
+      resolvePeriod(value);
+    } catch (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["period"],
+        message: (error as Error).message,
+      });
+    }
+  });
+export type NewAnalyticsFilters = z.infer<typeof analyticsFiltersSchema>;
+export type LegacyAnalyticsFilters = z.infer<typeof legacyAnalyticsFiltersSchema>;
+export type AnalyticsFilters = NewAnalyticsFilters | LegacyAnalyticsFilters;
+/** Never apply defaults for new requests to saved legacy snapshots. */
+export function parseHistoryFilters(value: unknown) {
+  return value && typeof value === "object" && "filterVersion" in value && value.filterVersion === 2
+    ? analyticsFiltersSchema.safeParse(value)
+    : legacyAnalyticsFiltersSchema.safeParse(value);
+}
+export function isNewAnalyticsFilters(value: AnalyticsFilters): value is NewAnalyticsFilters {
+  return "filterVersion" in value && value.filterVersion === 2;
+}
 export const analyticsSearchRequestSchema = z.object({
   query: z.string().trim().min(1).max(1000),
   filters: analyticsFiltersSchema,
   mode: z.enum(["answer", "sources"]),
 });
-
-export type AnalyticsFilters = z.infer<typeof analyticsFiltersSchema>;
 export type AnalyticsSearchRequest = z.infer<typeof analyticsSearchRequestSchema>;
 
 export type AnalyticsSource = {

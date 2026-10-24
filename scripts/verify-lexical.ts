@@ -40,7 +40,24 @@ try {
           tx
             .select({ id: dailyBriefs.id, date: dailyBriefs.briefDate })
             .from(dailyBriefs)
-            .where(and(...buildBriefListConditions({ query: text, period: "all", month, cursor })))
+            .where(
+              and(
+                ...buildBriefListConditions({
+                  query: text,
+                  period: "custom",
+                  from: month ? `${month}-01` : "1900-01-01",
+                  to: month
+                    ? [
+                        new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0))
+                          .toISOString()
+                          .slice(0, 10),
+                        today,
+                      ].sort()[0]!
+                    : today,
+                  cursor,
+                }),
+              ),
+            )
             .orderBy(desc(dailyBriefs.briefDate), desc(dailyBriefs.id))
             .limit(BRIEF_PAGE_SIZE + 1);
         const dotted = (await query(`${token} i`)).map((row) => row.id);

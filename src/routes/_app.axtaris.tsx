@@ -27,17 +27,21 @@ import { directionIds } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
 import type { ModelFallback } from "@/lib/ai";
 import { createFallbackNotifier } from "@/lib/ai-notifications";
-import { infoCredibilityValues, sourceReliabilityValues } from "@/lib/reliability";
+import { PeriodFilter } from "@/components/PeriodFilter";
+import { ReliabilityFilters } from "@/components/ReliabilityFilters";
+import { FilterBar } from "@/components/FilterBar";
+import { analyticsFiltersSchema, isNewAnalyticsFilters } from "@/lib/analytics";
 
-const initialFilters: AnalyticsFilters = {
-  period: "7d",
-  includeBriefs: false,
-  directionIds: [...directionIds],
-  minSourceReliability: "all",
-  minInfoCredibility: "all",
-};
+import {
+  filterRouteSearchSchema,
+  parseAnalyticsSearch,
+  useFilterSearchState,
+} from "@/lib/filter-search-state";
+
+const initialFilters = analyticsFiltersSchema.parse({ directionIds: [...directionIds] });
 
 export const Route = createFileRoute("/_app/axtaris")({
+  validateSearch: filterRouteSearchSchema,
   head: () => ({
     meta: [
       { title: "Analitika üzrə axtarış" },
@@ -80,7 +84,9 @@ export function Analytics() {
   const queryClient = useQueryClient();
   const navigationScope = useId();
   const [question, setQuestion] = useState("");
-  const [filters, setFilters] = useState<AnalyticsFilters>(initialFilters);
+  const [filters, setFilters] = useFilterSearchState("filters", (value) =>
+    parseAnalyticsSearch(value, initialFilters),
+  );
   const [sources, setSources] = useState<AnalyticsSourcePreview[]>([]);
   const [answer, setAnswer] = useState("");
   const [model, setModel] = useState("");
@@ -183,6 +189,12 @@ export function Analytics() {
     const activeFilters = override?.filters ?? filters;
     if (!normalizedQuestion || searchLock.current || activeFilters.directionIds.length === 0)
       return;
+    if (!isNewAnalyticsFilters(activeFilters)) {
+      setPageError(
+        "Bu tarixçə əvvəlki dövr və hədd filtrlərini saxlayır. Yenidən axtarış üçün Dövr seçin və etibarlılıq filtrlərini yenidən təyin edin.",
+      );
+      return;
+    }
     activeRequest.current?.abort();
     const token = ++operation.current;
     historyLock.current = null;
@@ -456,29 +468,39 @@ export function Analytics() {
         </button>
       </form>
 
-      <section className="panel mt-4 grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5">
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span>{az.analytics.periodLabel}</span>
-          <select
-            className="field"
-            value={filters.period}
-            onChange={(event) => {
-              const value = event.currentTarget.value as AnalyticsFilters["period"];
-              setFilters((current) => ({
-                ...current,
-                period: value,
-              }));
-            }}
-          >
-            <option value="7d">{az.analytics.period7d}</option>
-            <option value="30d">{az.analytics.period30d}</option>
-            <option value="90d">{az.analytics.period90d}</option>
-            <option value="12m">{az.analytics.period12m}</option>
-            <option value="all">{az.analytics.all}</option>
-          </select>
-        </label>
-        <div className="min-w-0">
+      {!isNewAnalyticsFilters(filters) && (
+        <div
+          role="status"
+          className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+        >
+          Tarixçə: {filters.period} · Mənbə həddi: {filters.minSourceReliability} · Məlumat həddi:{" "}
+          {filters.minInfoCredibility} · Bülletenlər: {filters.includeBriefs ? "ON" : "OFF"}.
+          Əvvəlki filtrlər yalnız oxuma rejimindədir. Yenidən axtarış üçün yeni Dövr seçin;
+          etibarlılıq seçimlərini yenidən təyin edin.
+        </div>
+      )}
+      <FilterBar className="panel mt-3 p-3">
+        <PeriodFilter
+          legacyLabel={isNewAnalyticsFilters(filters) ? undefined : filters.period}
+          value={isNewAnalyticsFilters(filters) ? filters : initialFilters}
+          onChange={(period) =>
+            setFilters((current) => ({
+              ...(isNewAnalyticsFilters(current)
+                ? current
+                : {
+                    ...initialFilters,
+                    includeBriefs: current.includeBriefs,
+                    directionIds: current.directionIds,
+                  }),
+              ...period,
+              from: period.from,
+              to: period.to,
+            }))
+          }
+        />
+        <div className="min-w-0 w-full sm:w-52">
           <DirectionMultiSelect
+            compact
             value={filters.directionIds}
             onChange={(next) => setFilters((current) => ({ ...current, directionIds: next }))}
           />
@@ -488,44 +510,19 @@ export function Analytics() {
             </p>
           )}
         </div>
-
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="">{az.analytics.sourceReliabilityFilter}</span>
-          <select
-            className="field"
-            value={filters.minSourceReliability}
-            onChange={(event) => {
-              const value = event.currentTarget.value as AnalyticsFilters["minSourceReliability"];
-              setFilters((current) => ({ ...current, minSourceReliability: value }));
-            }}
-          >
-            <option value="all">{az.analytics.all}</option>
-            {sourceReliabilityValues.map((value) => (
-              <option key={value} value={value}>
-                {value} · {az.reliability.source[value]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm">
-          <span className="">{az.analytics.infoReliabilityFilter}</span>
-          <select
-            className="field"
-            value={filters.minInfoCredibility}
-            onChange={(event) => {
-              const value = event.currentTarget.value as AnalyticsFilters["minInfoCredibility"];
-              setFilters((current) => ({ ...current, minInfoCredibility: value }));
-            }}
-          >
-            <option value="all">{az.analytics.all}</option>
-            {infoCredibilityValues.map((value) => (
-              <option key={value} value={value}>
-                {value} · {az.reliability.information[value]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex min-h-11 items-center gap-3 text-sm">
+        {isNewAnalyticsFilters(filters) && (
+          <ReliabilityFilters
+            value={filters}
+            onChange={(ratings) =>
+              setFilters((current) =>
+                isNewAnalyticsFilters(current)
+                  ? analyticsFiltersSchema.parse({ ...current, ...ratings })
+                  : current,
+              )
+            }
+          />
+        )}
+        <label className="flex min-h-10 items-center gap-2 px-1 text-sm">
           <input
             type="checkbox"
             className="size-4 accent-primary"
@@ -536,8 +533,33 @@ export function Analytics() {
           />
           {az.analytics.includeBriefs}
         </label>
-      </section>
-      <p className="mt-2 text-sm text-muted-foreground">{az.analytics.briefSearchNote}</p>
+        {isNewAnalyticsFilters(filters) &&
+          (filters.sourceReliabilities.length > 0 ||
+            filters.infoCredibilities.length > 0 ||
+            filters.directionIds.length !== directionIds.length) && (
+            <button
+              type="button"
+              className="min-h-10 px-2 text-xs text-muted-foreground underline underline-offset-4"
+              onClick={() =>
+                setFilters((current) =>
+                  isNewAnalyticsFilters(current)
+                    ? {
+                        ...current,
+                        sourceReliabilities: [],
+                        infoCredibilities: [],
+                        directionIds: [...directionIds],
+                      }
+                    : current,
+                )
+              }
+            >
+              Əlavə filtrləri təmizlə
+            </button>
+          )}
+      </FilterBar>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+        Sənədin tarixi yoxdursa, əlavə edilmə tarixi üzrə süzülür.
+      </p>
 
       {pageError && (
         <div role="alert" className="mt-4 rounded-xl border border-destructive/40 p-4 text-sm">

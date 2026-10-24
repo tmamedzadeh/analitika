@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import { analyticsFiltersSchema, citedSourceNumbers } from "@/lib/analytics";
+import { analyticsFiltersSchema, parseHistoryFilters, citedSourceNumbers } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
 import { canAccessClassification, getCurrentUser } from "@/server/auth";
 import { getDb } from "@/server/db";
@@ -254,7 +254,7 @@ export async function getAnalyticsHistoryRecord(id: string) {
           .select({
             title: dailyBriefs.title,
             briefDate: dailyBriefs.briefDate,
-            classification: dailyBriefs.classification,
+            classification: sql<string>`'open'`,
           })
           .from(dailyBriefs)
           .where(
@@ -352,7 +352,7 @@ export async function getAnalyticsHistoryRecord(id: string) {
             }),
       });
     }
-    const filters = analyticsFiltersSchema.safeParse(row.filters);
+    const filters = parseHistoryFilters(row.filters);
     if (!filters.success) return null;
     // All authorized parent locks above remain held. One bounded query checks the
     // complete generation context, even when expansion has since been switched OFF.

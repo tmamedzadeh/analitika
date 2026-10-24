@@ -127,7 +127,7 @@ const run = (includeBriefs: boolean, provider?: RerankProvider) =>
       "synthetic plant",
       analyticsFiltersSchema.parse({
         includeBriefs,
-        period: "all",
+        period: "30d",
         directionIds: ["OSINT"],
         minSourceReliability: "all",
         minInfoCredibility: "all",

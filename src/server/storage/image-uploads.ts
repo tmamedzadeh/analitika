@@ -1,4 +1,6 @@
 import { imageMimeFromSignature, MAX_BRIEF_PHOTO_BYTES } from "@/lib/briefs";
+import { optimizeImage } from "./optimize-image";
+import { attachmentKeys, type ImageMetadata } from "./image-metadata";
 import type { StorageProvider } from "./types";
 
 const extensions = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as const;
@@ -39,8 +41,8 @@ export async function commitImageUploads<T extends ImageUpload>(
   parentId: string,
   userId: string,
   uploads: T[],
-): Promise<T[]> {
-  const committed: T[] = [];
+): Promise<Array<T & { imageMetadata: ImageMetadata }>> {
+  const committed: Array<T & { imageMetadata: ImageMetadata }> = [];
   try {
     for (const upload of uploads) {
       if (
@@ -83,14 +85,49 @@ export async function commitImageUploads<T extends ImageUpload>(
       if (size !== upload.size || imageMimeFromSignature(bytes) !== upload.mime)
         throw new Error("Image upload signature mismatch.");
       const key = `${kind}/${parentId}/committed/${crypto.randomUUID()}.${extensions[upload.mime]}`;
+      const optimized = await optimizeImage(bytes, upload.mime);
+      const derivative = optimized.derivative
+        ? {
+            key: key + ".display.webp",
+            mime: "image/webp" as const,
+            size: optimized.derivative.bytes.length,
+            width: optimized.derivative.width,
+            height: optimized.derivative.height,
+          }
+        : null;
+      const imageMetadata: ImageMetadata = {
+        width: optimized.width,
+        height: optimized.height,
+        sha256: optimized.sha256,
+        derivative,
+      };
       // Track before PUT: a transport error can occur after the object was stored.
-      committed.push({ ...upload, key });
+      committed.push({ ...upload, key, imageMetadata });
       await storage.put({ key, body: bytes, contentType: upload.mime });
+      if (derivative && optimized.derivative)
+        await storage.put({
+          key: derivative.key,
+          body: optimized.derivative.bytes,
+          contentType: "image/webp",
+        });
     }
     return committed;
   } catch (error) {
-    await Promise.allSettled(committed.map(({ key }) => storage.delete(key)));
+    await Promise.allSettled(
+      committed
+        .flatMap((file) =>
+          attachmentKeys({ storageKey: file.key, imageMetadata: file.imageMetadata }),
+        )
+        .map((key) => storage.delete(key)),
+    );
     throw error;
+  } finally {
+    // Signed staging URLs can be retried; old re-created staging objects are also swept after 24h.
+    await Promise.allSettled(
+      uploads
+        .filter((upload) => isOwnedImageUploadKey(kind, parentId, userId, upload.key, upload.mime))
+        .map((upload) => storage.delete(upload.key)),
+    );
   }
 }
 

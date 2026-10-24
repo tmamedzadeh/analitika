@@ -23,6 +23,7 @@ import { deleteObjectsBestEffort } from "../server/storage/delete-objects";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
 import { mergeIndexProgress } from "@/server/jobs/index-state";
 import { commitImageUploads, newImageUploadKey } from "@/server/storage/image-uploads";
+import { attachmentKeys } from "@/server/storage/image-metadata";
 import { documentListSchema, listDocumentsPage } from "@/server/documents/queries";
 
 export const listDocuments = createServerFn({ method: "GET" })
@@ -67,8 +68,8 @@ export const createDocumentSchema = z.object({
   docDate: documentDateSchema.nullable().optional(),
   direction: directionIdSchema,
   classification: z.enum(["open", "secret", "top_secret", "special"]),
-  sourceReliability: z.enum(["A", "B", "C", "D", "E", "F"]),
-  infoCredibility: z.number().int().min(1).max(6),
+  sourceReliability: z.enum(["A", "B", "C", "D", "E"]),
+  infoCredibility: z.number().int().min(1).max(5),
   photos: z.array(imageInputSchema).max(10),
 });
 
@@ -275,6 +276,7 @@ export const saveDocument = createServerFn({ method: "POST" })
               id: crypto.randomUUID(),
               documentId: data.documentId,
               storageKey: upload.key,
+              imageMetadata: upload.imageMetadata,
               mime: upload.mime,
               size: upload.size,
               caption: safeFileName(upload.name),
@@ -283,7 +285,13 @@ export const saveDocument = createServerFn({ method: "POST" })
         }
       });
     } catch (error) {
-      await Promise.allSettled(committedUploads.map(({ key }) => storage.delete(key)));
+      await Promise.allSettled(
+        committedUploads
+          .flatMap((file) =>
+            attachmentKeys({ storageKey: file.key, imageMetadata: file.imageMetadata }),
+          )
+          .map((key) => storage.delete(key)),
+      );
       throw error;
     }
     await Promise.allSettled(data.uploads.map(({ key }) => storage.delete(key)));
@@ -357,6 +365,7 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
       name: attachment.caption ?? "",
       mime: attachment.mime,
       url: `/api/attachments/document/${data.documentId}/${attachment.id}`,
+      originalUrl: `/api/attachments/document/${data.documentId}/${attachment.id}?original=1`,
     }));
 
     return {
@@ -384,7 +393,7 @@ export const deleteDocument = createServerFn({ method: "POST" })
         .limit(1);
       if (!document) throw new Error(az.documents.missing);
       const files = await transaction
-        .select({ storageKey: attachments.storageKey })
+        .select({ storageKey: attachments.storageKey, imageMetadata: attachments.imageMetadata })
         .from(attachments)
         .where(eq(attachments.documentId, data.documentId));
       const [deleted] = await transaction
@@ -392,7 +401,7 @@ export const deleteDocument = createServerFn({ method: "POST" })
         .where(and(eq(documents.id, data.documentId), documentManagementFilter(user)))
         .returning({ id: documents.id });
       if (!deleted) throw new Error(az.documents.missing);
-      return files.map(({ storageKey }) => storageKey);
+      return files.flatMap(attachmentKeys);
     });
     const cleanupIncomplete = await deleteObjectsBestEffort(keys, (key) =>
       getStorage().delete(key),

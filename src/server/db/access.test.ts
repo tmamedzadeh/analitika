@@ -19,13 +19,12 @@ const user: SessionUser = {
 };
 
 describe("document visibility predicate", () => {
-  it("uses the same live clearance ceiling for briefs, including owners and admins", () => {
+  it("requires an active user for open briefs across roles", () => {
     for (const role of ["user", "admin"] as const) {
       const query = new PgDialect().sqlToQuery(
         withCurrentUser({ ...user, role }, () => briefAccessFilter()),
       );
-      expect(query.sql).toContain('case "daily_briefs"."classification"');
-      expect(query.sql).toContain('"app_users"."clearance"');
+      expect(query.sql).not.toContain("classification");
       expect(query.sql).toContain('"app_users"."active" = true');
       expect(query.sql).not.toContain('"author_id"');
       expect(query.params).toEqual([user.id]);

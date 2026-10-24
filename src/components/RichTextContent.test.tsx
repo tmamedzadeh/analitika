@@ -29,6 +29,38 @@ const doc: RichDocument = {
   ],
 };
 describe("safe rich rendering and exact citation navigation", () => {
+  it("keeps warm highlight offsets across paragraphs, lists and formatted text nodes", () => {
+    const document: RichDocument = {
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Alfa", marks: [{ type: "bold" }] }] },
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Beta", marks: [{ type: "italic" }] }],
+                },
+              ],
+            },
+          ],
+        },
+        { type: "paragraph", content: [{ type: "text", text: "Qamma" }] },
+      ],
+    };
+    const before = JSON.stringify(document);
+    const text = projectRichText(document).text;
+    const { container } = render(
+      <RichTextContent document={document} highlight={{ start: 2, end: text.length - 2 }} />,
+    );
+    const marks = [...container.querySelectorAll("mark")];
+    expect(marks.map((mark) => mark.textContent)).toEqual(["fa", "Beta", "Qam"]);
+    expect(marks.every((mark) => mark.classList.contains("chunk-highlight"))).toBe(true);
+    expect(JSON.stringify(document)).toBe(before);
+  });
   it("renders semantic structure and partial highlights across marks and line breaks", () => {
     const text = projectRichText(doc).text;
     const start = text.indexOf("fa");

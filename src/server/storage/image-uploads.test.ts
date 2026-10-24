@@ -1,8 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import sharp from "sharp";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { commitImageUploads, discardImageUploads, newImageUploadKey } from "./image-uploads";
 import type { StorageProvider } from "./types";
 
-const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+let png: Uint8Array;
+beforeAll(async () => {
+  png = new Uint8Array(
+    await sharp({ create: { width: 2, height: 2, channels: 3, background: "white" } })
+      .png()
+      .toBuffer(),
+  );
+});
 function fixture() {
   const objects = new Map<string, Uint8Array>();
   const storage = {

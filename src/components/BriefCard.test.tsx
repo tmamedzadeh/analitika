@@ -9,7 +9,6 @@ const brief: BriefListItem = {
   date: "2026-10-23",
   title: "Legacy title",
   summary: "Əməkdaşın hazırladığı xülasə.",
-  classification: "open",
   status: "published",
   indexStatus: "ready",
   indexProgress: { percent: 100, totalChunks: 1, completedChunks: 1 },
@@ -22,7 +21,7 @@ describe("bulletin summary card", () => {
     expect(screen.getByRole("heading", { name: BRIEF_SYSTEM_TITLE })).toBeInTheDocument();
     expect(screen.getByText("23")).toBeInTheDocument();
     expect(screen.getByText(brief.summary!)).toHaveClass(
-      "line-clamp-3",
+      "line-clamp-4",
       "text-sm",
       "leading-[1.6]",
     );

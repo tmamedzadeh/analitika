@@ -18,6 +18,7 @@ import { az } from "../src/lib/i18n/az";
 requireProjectEvaluationDatabase();
 const filters = {
   period: "all" as const,
+  includeBriefs: false,
   directionIds: [...directionIds],
   minSourceReliability: "all" as const,
   minInfoCredibility: "all" as const,

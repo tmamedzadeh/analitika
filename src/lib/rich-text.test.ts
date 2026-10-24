@@ -265,6 +265,9 @@ describe("plain-text projection and indexed offsets", () => {
       expect(chunk.sectionTitle).toMatch(/^Bölmə/);
     }
     expect([...text].length).toBeGreaterThan(100_000);
-    for (let i = 0; i < text.length; i++) if (!/\s/u.test(text[i]!)) expect(covered[i]).toBe(1);
+    const uncovered = [];
+    for (let i = 0; i < text.length; i++)
+      if (!/\s/u.test(text[i]!) && covered[i] !== 1) uncovered.push(i);
+    expect(uncovered).toEqual([]);
   });
 });

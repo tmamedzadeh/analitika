@@ -3,7 +3,10 @@ import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 
 import { directions, directionIds } from "@/lib/directions";
-import { analyticsFiltersSchema, type AnalyticsFilters } from "@/lib/analytics";
+import {
+  legacyAnalyticsFiltersSchema as analyticsFiltersSchema,
+  type AnalyticsFilters,
+} from "@/lib/analytics";
 import { withCurrentUser, type SessionUser } from "@/server/auth";
 import { documentConditions, hasCommittedDocumentIndex, minimumDocDate } from "./filters";
 

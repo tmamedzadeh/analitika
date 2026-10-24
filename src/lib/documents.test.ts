@@ -12,12 +12,22 @@ const validDocument = {
   docDate: null,
   direction: "OSINT",
   classification: "open",
-  sourceReliability: "F",
-  infoCredibility: 6,
+  sourceReliability: "B",
+  infoCredibility: 2,
   photos: [],
 };
 
 describe("document form validation", () => {
+  it.each([
+    { sourceReliability: undefined },
+    { sourceReliability: null },
+    { sourceReliability: "F" },
+    { infoCredibility: undefined },
+    { infoCredibility: null },
+    { infoCredibility: 6 },
+  ])("requires consciously chosen current grades: %j", (value) => {
+    expect(createDocumentSchema.safeParse({ ...validDocument, ...value }).success).toBe(false);
+  });
   it("does not expose a document direction update mutation", () => {
     expect(documentFunctions).not.toHaveProperty("updateDocumentDirection");
   });

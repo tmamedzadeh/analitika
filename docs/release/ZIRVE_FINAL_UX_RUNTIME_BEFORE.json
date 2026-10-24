@@ -1,0 +1,200 @@
+{
+  "checkedAt": "2026-10-24T04:13:29.622Z",
+  "phase": "before",
+  "github": {
+    "status": 200,
+    "sha": "d1f978186fd30db1241b7cae7f16df56dff39764",
+    "protected": false,
+    "state": "success",
+    "statuses": [
+      {
+        "context": "Vercel",
+        "state": "success",
+        "description": "Deployment has completed",
+        "targetUrl": "https://vercel.com/tm-d91f/analitika/HdYPpqwy7JcFN1TE66N3gt7Jw93T"
+      }
+    ],
+    "deploymentsStatus": 200,
+    "deployments": []
+  },
+  "inngest": {
+    "status": 200,
+    "id": "analitika",
+    "functionCount": 6,
+    "latestSync": {
+      "status": "success",
+      "syncedAt": "2026-10-23T09:16:06.441303Z",
+      "url": "https://analitika-ke4141pr0-tm-d91f.vercel.app/api/inngest"
+    },
+    "functionsStatus": 200,
+    "functions": [
+      {
+        "id": "requeue-pending-briefs",
+        "name": "requeue-pending-briefs"
+      },
+      {
+        "id": "cleanup-orphaned-uploads",
+        "name": "cleanup-orphaned-uploads"
+      },
+      {
+        "id": "cleanup-analytics-history",
+        "name": "cleanup-analytics-history"
+      },
+      {
+        "id": "process-document",
+        "name": "process-document"
+      },
+      {
+        "id": "requeue-stale-document-indexes",
+        "name": "requeue-stale-document-indexes"
+      },
+      {
+        "id": "index-brief",
+        "name": "index-brief"
+      }
+    ],
+    "runsStatus": 200,
+    "runs": [
+      {
+        "id": "01M5P11GG0A44SZYWJCPRFDRV9",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T04:00:00.001Z",
+        "endedAt": "2026-10-24T04:00:04.029Z",
+        "function": "requeue-stale-document-indexes"
+      },
+      {
+        "id": "01M5P11GG0SGR69Q8SNJV7DJWW",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T04:00:24.491Z",
+        "endedAt": "2026-10-24T04:00:26.128Z",
+        "function": "requeue-pending-briefs"
+      },
+      {
+        "id": "01M5P061K0A44SZYWJCPRFDRV9",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T03:45:06.287Z",
+        "endedAt": "2026-10-24T03:45:07.833Z",
+        "function": "requeue-stale-document-indexes"
+      },
+      {
+        "id": "01M5P061K0SGR69Q8SNJV7DJWW",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T03:45:04.264Z",
+        "endedAt": "2026-10-24T03:45:07.149Z",
+        "function": "requeue-pending-briefs"
+      },
+      {
+        "id": "01M5NZAJP0A44SZYWJCPRFDRV9",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T03:30:21.028Z",
+        "endedAt": "2026-10-24T03:30:21.582Z",
+        "function": "requeue-stale-document-indexes"
+      },
+      {
+        "id": "01M5NZAJP0SGR69Q8SNJV7DJWW",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T03:30:02.883Z",
+        "endedAt": "2026-10-24T03:30:05.967Z",
+        "function": "requeue-pending-briefs"
+      },
+      {
+        "id": "01M5NYF3S0A44SZYWJCPRFDRV9",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T03:15:05.511Z",
+        "endedAt": "2026-10-24T03:15:08.261Z",
+        "function": "requeue-stale-document-indexes"
+      },
+      {
+        "id": "01M5NYF3S0SGR69Q8SNJV7DJWW",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T03:15:04.232Z",
+        "endedAt": "2026-10-24T03:15:06.966Z",
+        "function": "requeue-pending-briefs"
+      },
+      {
+        "id": "01M5NXKMW0SGR69Q8SNJV7DJWW",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T03:00:29.259Z",
+        "endedAt": "2026-10-24T03:00:32.115Z",
+        "function": "requeue-pending-briefs"
+      },
+      {
+        "id": "01M5NXKMW0A44SZYWJCPRFDRV9",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T03:00:29.258Z",
+        "endedAt": "2026-10-24T03:00:32.065Z",
+        "function": "requeue-stale-document-indexes"
+      },
+      {
+        "id": "01M5NWR5Z0A44SZYWJCPRFDRV9",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T02:45:10.322Z",
+        "endedAt": "2026-10-24T02:45:13.088Z",
+        "function": "requeue-stale-document-indexes"
+      },
+      {
+        "id": "01M5NWR5Z0SGR69Q8SNJV7DJWW",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T02:45:09.979Z",
+        "endedAt": "2026-10-24T02:45:12.799Z",
+        "function": "requeue-pending-briefs"
+      },
+      {
+        "id": "01M5NVWQ20A44SZYWJCPRFDRV9",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T02:30:28.013Z",
+        "endedAt": "2026-10-24T02:30:28.546Z",
+        "function": "requeue-stale-document-indexes"
+      },
+      {
+        "id": "01M5NVWQ20SGR69Q8SNJV7DJWW",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T02:30:12.831Z",
+        "endedAt": "2026-10-24T02:30:15.546Z",
+        "function": "requeue-pending-briefs"
+      },
+      {
+        "id": "01M5NV1850A44SZYWJCPRFDRV9",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T02:15:04.492Z",
+        "endedAt": "2026-10-24T02:15:07.358Z",
+        "function": "requeue-stale-document-indexes"
+      },
+      {
+        "id": "01M5NV1850SGR69Q8SNJV7DJWW",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T02:15:04.494Z",
+        "endedAt": "2026-10-24T02:15:07.433Z",
+        "function": "requeue-pending-briefs"
+      },
+      {
+        "id": "01M5NT5S80A44SZYWJCPRFDRV9",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T02:00:24.564Z",
+        "endedAt": "2026-10-24T02:00:26.128Z",
+        "function": "requeue-stale-document-indexes"
+      },
+      {
+        "id": "01M5NT5S80EPRP5G7583N80YHH",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T02:00:24.566Z",
+        "endedAt": "2026-10-24T02:00:30.174Z",
+        "function": "cleanup-orphaned-uploads"
+      },
+      {
+        "id": "01M5NT5S80SGR69Q8SNJV7DJWW",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T02:00:24.170Z",
+        "endedAt": "2026-10-24T02:00:26.127Z",
+        "function": "requeue-pending-briefs"
+      },
+      {
+        "id": "01M5NT5S80140WMXW14XW8QPZC",
+        "status": "COMPLETED",
+        "startedAt": "2026-10-24T02:00:00.001Z",
+        "endedAt": "2026-10-24T02:00:03.390Z",
+        "function": "cleanup-analytics-history"
+      }
+    ]
+  }
+}

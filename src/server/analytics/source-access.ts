@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import type { AnalyticsSource } from "@/lib/analytics";
 import { getDb } from "@/server/db";
@@ -116,7 +116,7 @@ export async function readLockedAnalyticsSources(
       : Promise.resolve([]),
     briefIds.length
       ? transaction
-          .select({ id: dailyBriefs.id, classification: dailyBriefs.classification })
+          .select({ id: dailyBriefs.id, classification: sql<string>`'open'` })
           .from(dailyBriefs)
           .where(
             and(
@@ -174,7 +174,7 @@ export async function readLockedAnalyticsSources(
           {
             ...source,
             n: index + 1,
-            classification: briefById.get(source.briefId)!.classification,
+            classification: "open",
           },
         ];
       }

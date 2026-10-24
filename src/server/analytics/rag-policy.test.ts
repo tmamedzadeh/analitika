@@ -50,7 +50,8 @@ const user: SessionUser = {
   sessionId: "test",
 };
 const filters = {
-  period: "all",
+  period: "30d",
+  includeBriefs: false,
   directionIds: [...directionIds],
   minSourceReliability: "all",
   minInfoCredibility: "all",

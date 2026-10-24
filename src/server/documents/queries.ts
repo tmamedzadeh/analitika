@@ -7,8 +7,14 @@ import { documentAccessFilter, documentManagementFilter } from "@/server/db/acce
 import { attachments, documents } from "@/server/db/schema";
 import { lexicalSearchSql, afterSearchScore } from "@/server/search/sql";
 
+import { periodShape } from "@/lib/period";
+import { reliabilityFilterShape } from "@/lib/analytics";
+import { documentDateCondition, documentReliabilityConditions } from "@/server/analytics/filters";
+
 export const DOCUMENT_PAGE_SIZE = 12;
 export const documentListSchema = z.object({
+  ...periodShape,
+  ...reliabilityFilterShape,
   query: z.string().trim().max(200).default(""),
   direction: directionIdSchema.optional(),
   cursor: z
@@ -22,7 +28,11 @@ export const documentListSchema = z.object({
 });
 
 export function documentListConditions(filters: z.infer<typeof documentListSchema>) {
-  const conditions = [documentAccessFilter()];
+  const conditions = [
+    documentAccessFilter(),
+    documentDateCondition(filters),
+    ...documentReliabilityConditions(filters),
+  ];
   if (filters.direction) conditions.push(eq(documents.direction, filters.direction));
   const search = lexicalSearchSql(filters.query, { title: documents.title, body: documents.body });
   if (search.active) conditions.push(search.match);

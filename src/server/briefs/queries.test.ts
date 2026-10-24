@@ -15,7 +15,7 @@ const user: SessionUser = {
   sessionId: "brief-search-session",
 };
 
-const defaults = { query: "", period: "all" as const, month: "", cursor: null };
+const defaults = { query: "", period: "30d" as const, cursor: null };
 type Filters = Parameters<typeof buildBriefListConditions>[0];
 
 function compile(filters: Filters) {
@@ -51,8 +51,9 @@ describe("Xülasələr lexical search", () => {
     const conditions = compile({
       ...defaults,
       query: "Enerji   təhlükəsizliyi",
-      period: "month",
-      month: "2026-10",
+      period: "custom",
+      from: "2026-10-01",
+      to: "2026-10-12",
       cursor: { date: "2026-10-12", id: "00000-0000-4000-8000-000001" },
     });
     const sql = conditions.map((query) => query.sql).join(" ");

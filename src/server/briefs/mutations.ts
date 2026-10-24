@@ -19,13 +19,8 @@ import { inngest } from "@/server/inngest/client";
 import { getStorage } from "@/server/storage/s3";
 import { deleteObjectsBestEffort } from "@/server/storage/delete-objects";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
-import {
-  getCurrentUser,
-  requireAdmin,
-  canAccessClassification,
-  clearanceValues,
-  type Clearance,
-} from "@/server/auth";
+import { getCurrentUser, requireAdmin } from "@/server/auth";
+import { attachmentKeys, type ImageMetadata } from "@/server/storage/image-metadata";
 import { briefContentHash } from "./index-state";
 import { indexProgress } from "../jobs/index-state";
 import {
@@ -69,29 +64,6 @@ export function canDeleteBrief(user: { role: "admin" | "user" }) {
   return user.role === "admin";
 }
 
-export function assertBriefClassificationWrite(
-  actor: { role: "admin" | "user"; clearance: string },
-  classification: string,
-  previous?: string,
-) {
-  if (
-    !canAccessClassification({ clearance: actor.clearance as Clearance }, classification) ||
-    (previous !== undefined &&
-      !canAccessClassification({ clearance: actor.clearance as Clearance }, previous))
-  ) {
-    throw new Error(az.briefs.validation.classification);
-  }
-  // No document declassification policy exists: lowering a brief is admin-only.
-  if (
-    previous !== undefined &&
-    clearanceValues.indexOf(classification as Clearance) <
-      clearanceValues.indexOf(previous as Clearance) &&
-    actor.role !== "admin"
-  ) {
-    throw new Error(az.briefs.validation.declassification);
-  }
-}
-
 function safeFileName(value: string): string {
   const name = value
     .replaceAll("\\", "/")
@@ -133,13 +105,12 @@ export async function prepareBriefUploadUrls(
   const isNew = parsed.briefId === undefined;
   return db.transaction(async (transaction) => {
     const [actor] = await transaction
-      .select({ id: appUsers.id, role: appUsers.role, clearance: appUsers.clearance })
+      .select({ id: appUsers.id, role: appUsers.role })
       .from(appUsers)
       .where(and(eq(appUsers.id, user.id), eq(appUsers.active, true)))
       .for("share")
       .limit(1);
     if (!actor) throw new Error(az.briefs.missing);
-    assertBriefClassificationWrite(actor, parsed.classification);
     let currentAttachments: Array<typeof briefAttachments.$inferSelect> = [];
 
     if (!isNew) {
@@ -147,7 +118,6 @@ export async function prepareBriefUploadUrls(
         .select({
           id: dailyBriefs.id,
           authorId: dailyBriefs.authorId,
-          classification: dailyBriefs.classification,
         })
         .from(dailyBriefs)
         .where(
@@ -161,7 +131,6 @@ export async function prepareBriefUploadUrls(
         .limit(1);
       if (!brief) throw new Error(az.briefs.missing);
       if (!canEditBrief(actor, brief.authorId)) throw new Error(az.briefs.missing);
-      assertBriefClassificationWrite(actor, parsed.classification, brief.classification);
       currentAttachments = await transaction
         .select()
         .from(briefAttachments)
@@ -209,7 +178,7 @@ export async function saveBriefRecord(
     )
     .map((upload) => upload.key);
 
-  let committedUploads: z.infer<typeof uploadSchema>[] = [];
+  let committedUploads: Array<z.infer<typeof uploadSchema> & { imageMetadata: ImageMetadata }> = [];
   let recordCommitted = false;
   try {
     if (parsed.keepAttachmentIds.length + parsed.uploads.length > MAX_BRIEF_PHOTOS) {
@@ -233,16 +202,11 @@ export async function saveBriefRecord(
       throw new Error(az.briefs.missing);
     }
     const [currentActor] = await db
-      .select({ role: appUsers.role, clearance: appUsers.clearance })
+      .select({ role: appUsers.role })
       .from(appUsers)
       .where(and(eq(appUsers.id, user.id), eq(appUsers.active, true)))
       .limit(1);
     if (!currentActor) throw new Error(az.briefs.missing);
-    assertBriefClassificationWrite(
-      currentActor,
-      parsed.classification,
-      existingBrief?.classification,
-    );
     committedUploads = await commitImageUploads(
       getStorage(),
       "briefs",
@@ -272,7 +236,7 @@ export async function saveBriefRecord(
     const retained = parsed.keepAttachmentIds.map((id) => attachmentById.get(id)!);
     const removedKeys = existingAttachments
       .filter((file) => !parsed.keepAttachmentIds.includes(file.id))
-      .map((file) => file.storageKey);
+      .flatMap(attachmentKeys);
     const now = new Date();
     await db.transaction(async (transaction) => {
       const [actor] = await transaction
@@ -282,12 +246,10 @@ export async function saveBriefRecord(
         .for("share")
         .limit(1);
       if (!actor) throw new Error(az.briefs.missing);
-      assertBriefClassificationWrite(actor, parsed.classification);
       if (!parsed.isNew) {
         const [locked] = await transaction
           .select({
             authorId: dailyBriefs.authorId,
-            classification: dailyBriefs.classification,
             version: sql<string>`${dailyBriefs.updatedAt}::text`,
           })
           .from(dailyBriefs)
@@ -301,7 +263,6 @@ export async function saveBriefRecord(
         ) {
           throw new Error(az.briefs.saveFailed);
         }
-        assertBriefClassificationWrite(actor, parsed.classification, locked.classification);
       }
       if (parsed.isNew) {
         await transaction.insert(dailyBriefs).values({
@@ -311,7 +272,6 @@ export async function saveBriefRecord(
           summary: parsed.summary || null,
           body,
           bodyRich: parsed.bodyRich,
-          classification: parsed.classification,
           status: "published",
           authorId: user.id,
           updatedBy: user.id,
@@ -329,7 +289,6 @@ export async function saveBriefRecord(
             ...(parsed.summary !== undefined ? { summary: parsed.summary || null } : {}),
             body,
             bodyRich: parsed.bodyRich,
-            classification: parsed.classification,
             updatedBy: user.id,
             status: "published",
             ...(needsIndexing
@@ -362,6 +321,7 @@ export async function saveBriefRecord(
           id: file.id,
           briefId: parsed.briefId,
           storageKey: file.storageKey,
+          imageMetadata: file.imageMetadata,
           name: file.name,
           mime: file.mime,
           size: file.size,
@@ -370,6 +330,7 @@ export async function saveBriefRecord(
         ...committedUploads.map((file, index) => ({
           briefId: parsed.briefId,
           storageKey: file.key,
+          imageMetadata: file.imageMetadata,
           name: safeFileName(file.name),
           mime: file.mime,
           size: file.size,
@@ -410,7 +371,13 @@ export async function saveBriefRecord(
     return { ok: true, briefId: parsed.briefId, queueFailed, cleanupIncomplete };
   } catch (error) {
     if (!recordCommitted)
-      await Promise.allSettled(committedUploads.map(({ key }) => getStorage().delete(key)));
+      await Promise.allSettled(
+        committedUploads
+          .flatMap((file) =>
+            attachmentKeys({ storageKey: file.key, imageMetadata: file.imageMetadata }),
+          )
+          .map((key) => getStorage().delete(key)),
+      );
     if (uploadedKeys.length > 0)
       await discardImageUploads(getStorage(), "briefs", parsed.briefId, user.id, uploadedKeys);
     throw error;
@@ -436,7 +403,10 @@ export async function removeBrief(briefId: string): Promise<{ cleanupIncomplete:
   const db = getDb();
   const keys = await db.transaction(async (transaction) => {
     const files = await transaction
-      .select({ storageKey: briefAttachments.storageKey })
+      .select({
+        storageKey: briefAttachments.storageKey,
+        imageMetadata: briefAttachments.imageMetadata,
+      })
       .from(briefAttachments)
       .innerJoin(dailyBriefs, eq(briefAttachments.briefId, dailyBriefs.id))
       .where(and(eq(dailyBriefs.id, briefId), adminAccessFilter(user), briefAccessFilter(user)));
@@ -445,7 +415,7 @@ export async function removeBrief(briefId: string): Promise<{ cleanupIncomplete:
       .where(and(eq(dailyBriefs.id, briefId), adminAccessFilter(user), briefAccessFilter(user)))
       .returning({ id: dailyBriefs.id });
     if (!brief) throw new Error(az.briefs.missing);
-    return files.map(({ storageKey }) => storageKey);
+    return files.flatMap(attachmentKeys);
   });
   const cleanupIncomplete = await deleteObjectsBestEffort(keys, (key) => getStorage().delete(key));
   return { cleanupIncomplete };

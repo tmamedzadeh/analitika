@@ -719,6 +719,39 @@
   outline: 2px solid var(--ring);
   outline-offset: -2px;
 }
+
+/* Shared citation fragment surface; rendering offsets and Rich JSON stay unchanged. */
+.chunk-highlight {
+  --chunk-highlight-surface: #fef0bb;
+  background: var(--chunk-highlight-surface);
+  color: inherit;
+  border-radius: 0.15rem;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  box-shadow: 0 1px 0 #d49b2840;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .chunk-highlight {
+    animation: chunk-arrival 900ms ease-out;
+  }
+  @keyframes chunk-arrival {
+    from {
+      background: #f7d77f;
+    }
+    to {
+      background: var(--chunk-highlight-surface);
+    }
+  }
+}
+.filter-bar .filter-control {
+  min-height: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.65rem;
+  font-size: 0.8125rem;
+}
+.filter-bar > * {
+  max-width: 100%;
+}
 @media (max-width: 640px) {
   .rich-document {
     font-size: 0.95rem;

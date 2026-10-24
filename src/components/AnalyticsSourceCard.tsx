@@ -14,7 +14,6 @@ import {
 import { briefRouteForSearchSource } from "@/lib/briefs";
 import { directionLabel } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
-import { defaultInfoCredibility, defaultSourceReliability } from "@/lib/reliability";
 
 /**
  * One card per unique parent material (document or brief). Chunk-level citations
@@ -97,7 +96,9 @@ export function AnalyticsSourceCard({
               : az.analytics.materialDocument}
           </span>
           <span>{head?.docDate ?? head?.briefDate}</span>
-          {head?.classification && <ClassificationBadge classification={head.classification} />}
+          {group.sourceKind === "document" && head?.classification && (
+            <ClassificationBadge classification={head.classification} />
+          )}
           {group.sourceKind === "document" && head && (
             <div className="ml-auto">
               <ReliabilityBadges
@@ -298,7 +299,7 @@ function ReliabilityBadges({
         <span
           className={
             "label-mono rounded-full border px-2 py-1 " +
-            (sourceReliability === defaultSourceReliability
+            (sourceReliability === "F"
               ? "border-border text-muted-foreground/60"
               : "border-primary/30 text-primary")
           }
@@ -313,7 +314,7 @@ function ReliabilityBadges({
         <span
           className={
             "label-mono rounded-full border px-2 py-1 " +
-            (infoCredibility === defaultInfoCredibility
+            (infoCredibility === 6
               ? "border-border text-muted-foreground/60"
               : "border-primary/30 text-primary")
           }

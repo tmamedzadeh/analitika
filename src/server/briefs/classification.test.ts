@@ -48,7 +48,7 @@ const input = {
 };
 beforeEach(() => vi.clearAllMocks());
 
-describe("bulletin classification at both upload/save stages", () => {
+describe("open bulletin authorization at both upload/save stages", () => {
   it("saves canonical JSON and its server projection together with a system-generated title", async () => {
     mocks.query.mockResolvedValue({ rows: [] });
     mocks.query
@@ -92,7 +92,6 @@ describe("bulletin classification at both upload/save stages", () => {
         summary: "Köhnə xülasə.",
         body: input.body,
         bodyRich: JSON.stringify(input.bodyRich),
-        classification: input.classification,
         status: input.status,
         authorId: user.id,
         updatedBy: user.id,
@@ -111,7 +110,7 @@ describe("bulletin classification at both upload/save stages", () => {
         .mockResolvedValueOnce({ rows: [["admin", "special"]] })
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [[user.id, "admin", "special"]] })
-        .mockResolvedValueOnce({ rows: [[user.id, "secret", timestamp]] });
+        .mockResolvedValueOnce({ rows: [[user.id, timestamp]] });
       const dispatch = vi.fn(async () => {});
       await withCurrentUser(user, () =>
         saveBriefRecord(
@@ -137,8 +136,8 @@ describe("bulletin classification at both upload/save stages", () => {
       ).toBe(false);
     },
   );
-  it("rejects upload preparation above live clearance before issuing any signed URL", async () => {
-    mocks.query.mockResolvedValue({ rows: [[user.id, "admin", "open"]] });
+  it("rejects inactive users before issuing any signed URL", async () => {
+    mocks.query.mockResolvedValue({ rows: [] });
     await expect(
       withCurrentUser(user, () =>
         prepareBriefUploadUrls({
@@ -150,10 +149,10 @@ describe("bulletin classification at both upload/save stages", () => {
     expect(mocks.sign).not.toHaveBeenCalled();
     expect(mocks.query.mock.calls[0]?.[0]).toContain("for share");
   });
-  it("checks live clearance again inside the save transaction after storage preparation", async () => {
+  it("checks active user again inside the save transaction after storage preparation", async () => {
     mocks.query
       .mockResolvedValueOnce({ rows: [["admin", "special"]] })
-      .mockResolvedValueOnce({ rows: [[user.id, "admin", "open"]] });
+      .mockResolvedValueOnce({ rows: [] });
     await expect(
       withCurrentUser(user, () =>
         saveBriefRecord({

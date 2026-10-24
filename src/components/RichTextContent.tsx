@@ -21,7 +21,11 @@ export function RichTextContent({
         content = (
           <>
             {text.slice(0, from)}
-            <mark data-chunk-highlight="true" className="rounded-sm bg-primary/20 text-inherit">
+            <mark
+              key={`${highlight.start}:${highlight.end}`}
+              data-chunk-highlight="true"
+              className="chunk-highlight"
+            >
               {node.type === "hardBreak" ? <br /> : text.slice(from, to)}
             </mark>
             {text.slice(to)}

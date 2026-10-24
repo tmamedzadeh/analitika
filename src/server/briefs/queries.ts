@@ -8,11 +8,11 @@ export {
 import {
   BRIEF_PAGE_SIZE,
   getBakuDate,
-  getWeekStartDate,
   type BriefCursor,
   type Brief,
   type BriefListItem,
 } from "@/lib/briefs";
+import { resolvePeriod, type PeriodFilter } from "@/lib/period";
 import { briefAccessFilter } from "@/server/db/access";
 import { getDb } from "@/server/db";
 import { getCurrentUser } from "@/server/auth";
@@ -20,25 +20,13 @@ import { briefAttachments, chunks, dailyBriefs } from "@/server/db/schema";
 import { afterBriefPosition, beforeBriefPosition } from "./pagination";
 import { hasCommittedBriefIndex } from "./index-state";
 
-export type BriefListFilters = {
+export type BriefListFilters = PeriodFilter & {
   query: string;
-  period: "all" | "week" | "month";
-  month: string;
   cursor: BriefCursor | null;
 };
 
-export function briefWindow(filters: Pick<BriefListFilters, "period" | "month">, now = new Date()) {
-  const today = getBakuDate(now);
-  if (/^\d{4}-\d{2}$/.test(filters.month)) {
-    const monthStart = new Date(`${filters.month}-01T00:00:00.000Z`);
-    const nextMonth = new Date(monthStart);
-    nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
-    nextMonth.setUTCDate(0);
-    return { from: `${filters.month}-01`, through: nextMonth.toISOString().slice(0, 10) };
-  }
-  if (filters.period === "week") return { from: getWeekStartDate(today), through: today };
-  if (filters.period === "month") return { from: `${today.slice(0, 7)}-01`, through: today };
-  return null;
+export function briefWindow(filters: PeriodFilter, now = new Date()) {
+  return resolvePeriod(filters, now);
 }
 
 export function buildBriefListConditions(filters: BriefListFilters) {
@@ -82,7 +70,6 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
       date: dailyBriefs.briefDate,
       title: dailyBriefs.title,
       summary: dailyBriefs.summary,
-      classification: dailyBriefs.classification,
       status: dailyBriefs.status,
       indexStatus: dailyBriefs.indexStatus,
       indexProgress: dailyBriefs.indexProgress,
@@ -126,7 +113,6 @@ export async function listBriefsPage(filters: BriefListFilters): Promise<{
     id: row.id,
     date: row.date,
     title: row.title,
-    classification: row.classification as BriefListItem["classification"],
     summary: row.summary,
     status: row.status as BriefListItem["status"],
     indexStatus: row.indexStatus as BriefListItem["indexStatus"],
@@ -180,6 +166,7 @@ export async function getBriefDetails(
     id: file.id,
     name: file.name,
     url: `/api/attachments/brief/${briefId}/${file.id}`,
+    originalUrl: `/api/attachments/brief/${briefId}/${file.id}?original=1`,
   }));
   const [highlightChunk] = chunkId
     ? await db
@@ -218,7 +205,6 @@ export async function getBriefDetails(
       summary: row.summary,
       body: row.body,
       bodyRich: row.bodyRich,
-      classification: row.classification as Brief["classification"],
       status: row.status as Brief["status"],
       indexStatus: row.indexStatus as Brief["indexStatus"],
       indexProgress: briefProgress(row.indexProgress),

@@ -1,3 +1,4 @@
+import type { ImageMetadata } from "@/server/storage/image-metadata";
 import { sql } from "drizzle-orm";
 import type { RichDocument } from "@/lib/rich-text";
 import {
@@ -103,8 +104,8 @@ export const documents = pgTable(
     docDate: date("doc_date"),
     language: text("language").notNull().default("az"),
     classification: text("classification").notNull().default("open"),
-    sourceReliability: char("source_reliability", { length: 1 }).notNull().default("F"),
-    infoCredibility: smallint("info_credibility").notNull().default(6),
+    sourceReliability: char("source_reliability", { length: 1 }),
+    infoCredibility: smallint("info_credibility"),
     ownerId: text("owner_id")
       .notNull()
       .references(() => appUsers.id, { onDelete: "restrict" }),
@@ -144,9 +145,12 @@ export const documents = pgTable(
     ),
     check(
       "documents_source_reliability_check",
-      sql.raw("source_reliability IN ('A', 'B', 'C', 'D', 'E', 'F')"),
+      sql.raw("source_reliability IS NULL OR source_reliability IN ('A', 'B', 'C', 'D', 'E')"),
     ),
-    check("documents_info_credibility_check", sql.raw("info_credibility BETWEEN 1 AND 6")),
+    check(
+      "documents_info_credibility_check",
+      sql.raw("info_credibility IS NULL OR info_credibility BETWEEN 1 AND 5"),
+    ),
   ],
 ).enableRLS();
 
@@ -159,7 +163,6 @@ export const dailyBriefs = pgTable(
     summary: text("summary"),
     body: text("body").notNull(),
     bodyRich: jsonb("body_rich").$type<RichDocument>().notNull(),
-    classification: text("classification").notNull().default("open"),
     status: text("status").notNull().default("published"),
     authorId: text("author_id")
       .notNull()
@@ -188,10 +191,6 @@ export const dailyBriefs = pgTable(
     check("daily_briefs_body_length_check", sql.raw("char_length(body) <= 200000")),
     check("daily_briefs_summary_length_check", sql.raw("char_length(summary) <= 400")),
     check("daily_briefs_status_check", sql.raw("status = 'published'")),
-    check(
-      "daily_briefs_classification_check",
-      sql.raw("classification IN ('open', 'secret', 'top_secret', 'special')"),
-    ),
     check(
       "daily_briefs_index_status_check",
       sql.raw("index_status IN ('none', 'queued', 'processing', 'ready', 'failed')"),
@@ -241,6 +240,7 @@ export const attachments = pgTable(
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
     storageKey: text("storage_key").notNull().unique(),
+    imageMetadata: jsonb("image_metadata").$type<ImageMetadata>(),
     mime: text("mime").notNull(),
     size: integer("size").notNull(),
     caption: text("caption"),
@@ -259,6 +259,7 @@ export const briefAttachments = pgTable(
       .notNull()
       .references(() => dailyBriefs.id, { onDelete: "cascade" }),
     storageKey: text("storage_key").notNull().unique(),
+    imageMetadata: jsonb("image_metadata").$type<ImageMetadata>(),
     name: text("name").notNull(),
     mime: text("mime").notNull(),
     size: integer("size").notNull(),

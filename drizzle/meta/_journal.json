@@ -190,6 +190,20 @@
       "when": 1792746465889,
       "tag": "0026_brief_summary",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1792810718599,
+      "tag": "0027_unified_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792810724242,
+      "tag": "0028_unified_contract",
+      "breakpoints": true
     }
   ]
 }

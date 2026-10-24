@@ -36,7 +36,6 @@ const brief: Brief = {
   summary: "Mövcud sintetik xülasə.",
   body: "Synthetic alfa beta.",
   bodyRich: plainTextDocument("Synthetic alfa beta."),
-  classification: "open",
   status: "published",
   indexStatus: "ready",
   indexProgress: { percent: 100, totalChunks: 1, completedChunks: 1 },
@@ -109,7 +108,6 @@ describe("isolated bulletin create/edit navigation", () => {
       expect(prepareBriefUploads).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            classification: "open",
             summary: "Yeni sintetik xülasə.",
             bodyRich: expect.objectContaining({ type: "doc" }),
             ...(editing ? { briefId: id } : {}),
@@ -122,7 +120,6 @@ describe("isolated bulletin create/edit navigation", () => {
             briefId: id,
             isNew: !editing,
             summary: "Yeni sintetik xülasə.",
-            classification: "open",
             uploads: [],
           }),
         }),

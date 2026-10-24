@@ -1,8 +1,9 @@
-import { inArray, lt } from "drizzle-orm";
+import { inArray, lt, or, sql } from "drizzle-orm";
 
 import { getDb } from "@/server/db";
 import { attachments, briefAttachments, rateLimits } from "@/server/db/schema";
 import { getStorage } from "@/server/storage/s3";
+import { attachmentKeys } from "@/server/storage/image-metadata";
 import { findStaleUnreferencedStorageObjects } from "@/server/storage/orphans";
 
 const STORAGE_PREFIXES = ["documents/", "briefs/"] as const;
@@ -12,15 +13,28 @@ async function referencedKeysInBatch(keys: string[]): Promise<Set<string>> {
   const db = getDb();
   const [documentFiles, briefFiles] = await Promise.all([
     db
-      .select({ key: attachments.storageKey })
+      .select({ storageKey: attachments.storageKey, imageMetadata: attachments.imageMetadata })
       .from(attachments)
-      .where(inArray(attachments.storageKey, keys)),
+      .where(
+        or(
+          inArray(attachments.storageKey, keys),
+          inArray(sql<string>`${attachments.imageMetadata}->'derivative'->>'key'`, keys),
+        ),
+      ),
     db
-      .select({ key: briefAttachments.storageKey })
+      .select({
+        storageKey: briefAttachments.storageKey,
+        imageMetadata: briefAttachments.imageMetadata,
+      })
       .from(briefAttachments)
-      .where(inArray(briefAttachments.storageKey, keys)),
+      .where(
+        or(
+          inArray(briefAttachments.storageKey, keys),
+          inArray(sql<string>`${briefAttachments.imageMetadata}->'derivative'->>'key'`, keys),
+        ),
+      ),
   ]);
-  return new Set([...documentFiles, ...briefFiles].map(({ key }) => key));
+  return new Set([...documentFiles, ...briefFiles].flatMap(attachmentKeys));
 }
 
 export async function cleanupOrphanedStorageUploads(now = new Date()): Promise<{

@@ -1,8 +1,9 @@
-import { and, eq, gt, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 
-import type { AnalyticsFilters } from "@/lib/analytics";
+import { isNewAnalyticsFilters, type AnalyticsFilters } from "@/lib/analytics";
 import { directions } from "@/lib/directions";
 import { documentAccessFilter } from "@/server/db/access";
+import { resolvePeriod, type PeriodFilter } from "@/lib/period";
 import { documents } from "@/server/db/schema";
 import { getBakuDate } from "@/lib/briefs";
 
@@ -29,23 +30,27 @@ export function hasCommittedDocumentIndex() {
 
 export function documentConditions(filters: AnalyticsFilters, now = new Date()) {
   const conditions = [hasCommittedDocumentIndex(), documentAccessFilter()];
-  const today = getBakuDate(now);
-  conditions.push(
-    or(
-      lte(documents.docDate, today),
-      and(isNull(documents.docDate), lte(documents.createdAt, now)),
-    )!,
-  );
-  const fromDate = minimumDocDate(filters.period, now);
-  if (fromDate) {
-    const periodCondition = or(
-      gte(documents.docDate, fromDate),
-      and(
-        isNull(documents.docDate),
-        gte(documents.createdAt, new Date(`${fromDate}T00:00:00.000+04:00`)),
-      ),
+  if (isNewAnalyticsFilters(filters)) {
+    conditions.push(documentDateCondition(filters, now));
+  } else {
+    const today = getBakuDate(now);
+    conditions.push(
+      or(
+        lte(documents.docDate, today),
+        and(isNull(documents.docDate), lte(documents.createdAt, now)),
+      )!,
     );
-    if (periodCondition) conditions.push(periodCondition);
+    const fromDate = minimumDocDate(filters.period, now);
+    if (fromDate) {
+      const periodCondition = or(
+        gte(documents.docDate, fromDate),
+        and(
+          isNull(documents.docDate),
+          gte(documents.createdAt, new Date(`${fromDate}T00:00:00.000+04:00`)),
+        ),
+      );
+      if (periodCondition) conditions.push(periodCondition);
+    }
   }
   const selectedDirections = new Set(filters.directionIds);
   const validDirectionIds = new Set(directions.map(({ id }) => id));
@@ -58,14 +63,41 @@ export function documentConditions(filters: AnalyticsFilters, now = new Date()) 
     conditions.push(inArray(documents.direction, filters.directionIds));
   }
 
-  if (filters.minSourceReliability !== "all") {
-    const grades = ["A", "B", "C", "D", "E", "F"] as const;
-    const index = grades.indexOf(filters.minSourceReliability);
-    conditions.push(inArray(documents.sourceReliability, grades.slice(0, index + 1)));
+  if (isNewAnalyticsFilters(filters)) {
+    conditions.push(...documentReliabilityConditions(filters));
+  } else {
+    if (filters.minSourceReliability !== "all") {
+      const grades = ["A", "B", "C", "D", "E", "F"] as const;
+      const index = grades.indexOf(filters.minSourceReliability);
+      conditions.push(inArray(documents.sourceReliability, grades.slice(0, index + 1)));
+    }
+    if (filters.minInfoCredibility !== "all") {
+      conditions.push(lte(documents.infoCredibility, Number(filters.minInfoCredibility)));
+    }
   }
-  if (filters.minInfoCredibility !== "all") {
-    conditions.push(lte(documents.infoCredibility, Number(filters.minInfoCredibility)));
-  }
+  return conditions;
+}
 
+/** Missing document dates consistently fall back to created_at, in Baku. */
+export function documentDateCondition(filter: PeriodFilter, now = new Date()) {
+  const window = resolvePeriod(filter, now);
+  return or(
+    and(gte(documents.docDate, window.from), lte(documents.docDate, window.through)),
+    and(
+      isNull(documents.docDate),
+      gte(documents.createdAt, window.start),
+      lt(documents.createdAt, window.endExclusive),
+    ),
+  )!;
+}
+export function documentReliabilityConditions(filters: {
+  sourceReliabilities: readonly string[];
+  infoCredibilities: readonly number[];
+}) {
+  const conditions = [];
+  if (filters.sourceReliabilities.length)
+    conditions.push(inArray(documents.sourceReliability, [...filters.sourceReliabilities]));
+  if (filters.infoCredibilities.length)
+    conditions.push(inArray(documents.infoCredibility, [...filters.infoCredibilities]));
   return conditions;
 }

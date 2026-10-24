@@ -43,7 +43,7 @@ export function BriefCard({
           <h2 className="text-sm font-medium leading-6 text-foreground [overflow-wrap:anywhere]">
             {BRIEF_SYSTEM_TITLE}
           </h2>
-          <p className="mt-2 line-clamp-3 text-sm leading-[1.6] text-neutral-600 [overflow-wrap:anywhere]">
+          <p className="mt-2 line-clamp-4 text-sm leading-[1.6] text-neutral-600 [overflow-wrap:anywhere]">
             {brief.summary?.trim() || az.briefs.summaryEmpty}
           </p>
         </div>
@@ -53,7 +53,7 @@ export function BriefCard({
   const className = `panel flex h-full flex-col gap-5 p-4 sm:p-5 ${
     featured
       ? "panel-glow sm:flex-row sm:items-stretch sm:gap-6 sm:p-6"
-      : "transition-colors hover:border-primary/25 hover:shadow-sm"
+      : "transition-[transform,box-shadow,border-color] motion-safe:hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-sm"
   }`;
 
   return preview ? (

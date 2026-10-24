@@ -3,6 +3,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Paperclip, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { PeriodFilter } from "@/components/PeriodFilter";
+import { ReliabilityFilters, type ReliabilitySelection } from "@/components/ReliabilityFilters";
+import { FilterBar } from "@/components/FilterBar";
+import {
+  filterRouteSearchSchema,
+  parsePeriodSearch,
+  parseRatingsSearch,
+  parseDirectionSearch,
+  useFilterSearchState,
+} from "@/lib/filter-search-state";
 import { Shell } from "@/components/Shell";
 import { ZirveSkeleton, ZirveActionLabel, ZirveQueryIndicator } from "@/components/ZirveLoader";
 import { Button } from "@/components/ui/button";
@@ -14,6 +24,7 @@ import { az } from "@/lib/i18n/az";
 type DocumentCursor = { createdAt: string; id: string; score?: number | undefined };
 
 export const Route = createFileRoute("/_app/senedler")({
+  validateSearch: filterRouteSearchSchema,
   head: () => ({
     meta: [
       { title: `${az.navigation.documents} · Analitika` },
@@ -23,18 +34,26 @@ export const Route = createFileRoute("/_app/senedler")({
   component: DocumentLibrary,
 });
 
-function DocumentLibrary() {
+export function DocumentLibrary() {
   const queryClient = useQueryClient();
   const [draftQuery, setDraftQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
-  const [direction, setDirection] = useState<DirectionId | "">("");
+  const [direction, setDirection] = useFilterSearchState("direction", parseDirectionSearch);
+  const [period, setPeriod] = useFilterSearchState("period", parsePeriodSearch);
+  const [ratings, setRatings] = useFilterSearchState("ratings", parseRatingsSearch);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const documents = useInfiniteQuery({
-    queryKey: ["documents", "catalog", submittedQuery, direction],
+    queryKey: ["documents", "catalog", submittedQuery, direction, period, ratings],
     initialPageParam: null as DocumentCursor | null,
     queryFn: ({ pageParam, signal }) =>
       listDocuments({
-        data: { query: submittedQuery, direction: direction || undefined, cursor: pageParam },
+        data: {
+          query: submittedQuery,
+          direction: direction || undefined,
+          ...period,
+          ...ratings,
+          cursor: pageParam,
+        },
         signal,
       }),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
@@ -75,7 +94,8 @@ function DocumentLibrary() {
         </Button>
       }
     >
-      <div className="panel mb-6 flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+      {/* The query indicator reserves 32px below this 8px margin: 40px to cards. */}
+      <div className="panel mb-2 flex flex-col gap-3 p-4">
         <form
           role="search"
           className="flex min-w-0 flex-1 gap-2"
@@ -101,19 +121,41 @@ function DocumentLibrary() {
           </label>
           <Button type="submit">{az.actions.search}</Button>
         </form>
-        <select
-          className="field sm:w-56!"
-          aria-label={az.directions.field}
-          value={direction}
-          onChange={(event) => setDirection(event.target.value as DirectionId | "")}
-        >
-          <option value="">{az.directions.all}</option>
-          {directions.map(({ id, label }) => (
-            <option key={id} value={id}>
-              {label}
-            </option>
-          ))}
-        </select>
+        <FilterBar>
+          <PeriodFilter value={period} onChange={setPeriod} />
+          <select
+            className="field filter-control w-auto! max-w-full sm:max-w-56"
+            aria-label={az.directions.field}
+            value={direction}
+            onChange={(event) => setDirection(event.target.value as DirectionId | "")}
+          >
+            <option value="">{az.directions.all}</option>
+            {directions.map(({ id, label }) => (
+              <option key={id} value={id}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <ReliabilityFilters value={ratings} onChange={setRatings} />
+          {(ratings.sourceReliabilities.length > 0 ||
+            ratings.infoCredibilities.length > 0 ||
+            direction) && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setRatings({ sourceReliabilities: [], infoCredibilities: [] });
+                setDirection("");
+              }}
+            >
+              Əlavə filtrləri təmizlə
+            </Button>
+          )}
+        </FilterBar>
+        <p className="text-xs leading-5 text-muted-foreground">
+          Sənədin tarixi yoxdursa, əlavə edilmə tarixi üzrə süzülür.
+        </p>
       </div>
       <ZirveQueryIndicator
         fetching={!documents.isPending && documents.isFetching && !documents.isFetchingNextPage}
@@ -141,6 +183,7 @@ function DocumentLibrary() {
           >
             <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
               <time dateTime={document.docDate ?? document.createdAt}>
+                {!document.docDate && <span>Əlavə edilib: </span>}
                 {new Date(
                   document.docDate ? `${document.docDate}T12:00:00Z` : document.createdAt,
                 ).toLocaleDateString("az-AZ", { timeZone: "Asia/Baku" })}

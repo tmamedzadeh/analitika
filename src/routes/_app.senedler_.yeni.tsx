@@ -54,8 +54,8 @@ function AddDoc() {
   const queryClient = useQueryClient();
   const [classification, setClassification] =
     useState<(typeof formContext.classifications)[number]>("open");
-  const [sourceReliability, setSourceReliability] = useState<SourceReliability>("F");
-  const [infoCredibility, setInfoCredibility] = useState<InfoCredibility>(6);
+  const [sourceReliability, setSourceReliability] = useState<SourceReliability | null>(null);
+  const [infoCredibility, setInfoCredibility] = useState<InfoCredibility | null>(null);
   const [docDate, setDocDate] = useState("");
   const [bodyRich, setBodyRich] = useState(emptyRichDocument);
   const [photos, setPhotos] = useState<File[]>([]);
@@ -150,8 +150,8 @@ function AddDoc() {
       setBodyRich(emptyRichDocument());
       setPhotos([]);
       setClassification("open");
-      setSourceReliability("F");
-      setInfoCredibility(6);
+      setSourceReliability(null);
+      setInfoCredibility(null);
       if (photoInputRef.current) photoInputRef.current.value = "";
       await queryClient.invalidateQueries({ queryKey: ["documents"] });
       await navigate({ to: "/senedler/$id", params: { id: result.documentId } });
@@ -237,9 +237,11 @@ function AddDoc() {
                     value={value}
                     checked={classification === value}
                     onChange={() => setClassification(value)}
-                    className="sr-only"
+                    className="peer sr-only"
                   />
-                  <span className={classification === value ? "pill pill-active" : "pill"}>
+                  <span
+                    className={`${classification === value ? "pill pill-active" : "pill"} peer-focus-visible:ring-2 peer-focus-visible:ring-ring`}
+                  >
                     {az.documents.classification[value]}
                   </span>
                 </label>
@@ -259,9 +261,11 @@ function AddDoc() {
                     value={value}
                     checked={sourceReliability === value}
                     onChange={() => setSourceReliability(value)}
-                    className="sr-only"
+                    className="peer sr-only"
                   />
-                  <span className={sourceReliability === value ? "pill pill-active" : "pill"}>
+                  <span
+                    className={`${sourceReliability === value ? "pill pill-active" : "pill"} peer-focus-visible:ring-2 peer-focus-visible:ring-ring`}
+                  >
                     {value} · {sourceReliabilityLabels[value]}
                   </span>
                 </label>
@@ -282,9 +286,11 @@ function AddDoc() {
                     value={value}
                     checked={infoCredibility === value}
                     onChange={() => setInfoCredibility(value)}
-                    className="sr-only"
+                    className="peer sr-only"
                   />
-                  <span className={infoCredibility === value ? "pill pill-active" : "pill"}>
+                  <span
+                    className={`${infoCredibility === value ? "pill pill-active" : "pill"} peer-focus-visible:ring-2 peer-focus-visible:ring-ring`}
+                  >
                     {value} · {infoCredibilityLabels[value]}
                   </span>
                 </label>
@@ -292,7 +298,17 @@ function AddDoc() {
             </div>
             <p className="label-mono mt-1">{az.documents.form.infoNote}</p>
           </fieldset>
-          <label className="block cursor-pointer rounded-xl border border-dashed border-primary/30 bg-accent/20 p-7 text-center">
+          <label
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                photoInputRef.current?.click();
+              }
+            }}
+            className="block cursor-pointer rounded-xl border border-dashed border-primary/30 bg-accent/20 p-7 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <input
               ref={photoInputRef}
               type="file"
@@ -342,8 +358,8 @@ function AddDoc() {
                 setDocDate("");
                 setBodyRich(emptyRichDocument());
                 setClassification("open");
-                setSourceReliability("F");
-                setInfoCredibility(6);
+                setSourceReliability(null);
+                setInfoCredibility(null);
                 if (photoInputRef.current) photoInputRef.current.value = "";
               }}
               className="pill"

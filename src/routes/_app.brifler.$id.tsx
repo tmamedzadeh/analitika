@@ -5,7 +5,6 @@ import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { z } from "zod";
 
 import { RichTextContent } from "@/components/RichTextContent";
-import { ClassificationBadge } from "@/components/ClassificationBadge";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader } from "@/components/ZirveLoader";
 import {
@@ -156,9 +155,7 @@ function BriefDetail() {
           <Link to="/">{az.briefs.backToList}</Link>
         </Button>
 
-        <div>
-          <ClassificationBadge classification={brief.classification} />
-        </div>
+        <div></div>
 
         <p className="label-mono tracking-normal!">
           {date.day} {date.month} · {date.weekday}
@@ -206,7 +203,21 @@ function BriefDetail() {
         <DialogContent className="max-w-4xl">
           <DialogTitle>{photo?.name}</DialogTitle>
           {photo && (
-            <img src={photo.url} alt={photo.name} className="max-h-[75vh] w-full object-contain" />
+            <>
+              <a
+                className="mb-3 inline-flex min-h-10 items-center text-sm underline"
+                href={photo.originalUrl ?? photo.url + "?original=1"}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Orijinalı aç
+              </a>
+              <img
+                src={photo.url}
+                alt={photo.name}
+                className="max-h-[75vh] w-full object-contain"
+              />
+            </>
           )}
         </DialogContent>
       </Dialog>

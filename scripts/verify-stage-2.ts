@@ -1,6 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 
-import type { AnalyticsFilters } from "../src/lib/analytics";
+import { analyticsFiltersSchema, type AnalyticsFilters } from "../src/lib/analytics";
 import { directions } from "../src/lib/directions";
 import { isLowReliability } from "../src/lib/reliability";
 import { handleAnalyticsSearchRequest } from "../src/server/analytics/endpoint";
@@ -24,18 +24,12 @@ type SearchEvent = {
   message?: string;
 };
 
-const filteredDemoFilters: AnalyticsFilters = {
+const filteredDemoFilters = analyticsFiltersSchema.parse({
   includeBriefs: false,
-  period: "all",
+  period: "12m",
   directionIds: directions.map(({ id }) => id),
-  minSourceReliability: "all",
-  minInfoCredibility: "all",
-};
-const answerDemoFilters: AnalyticsFilters = {
-  ...filteredDemoFilters,
-  minSourceReliability: "all",
-  minInfoCredibility: "all",
-};
+});
+const answerDemoFilters = { ...filteredDemoFilters };
 
 async function readEvents(response: Response): Promise<{
   events: SearchEvent[];
@@ -110,8 +104,8 @@ async function verifyStage2(): Promise<void> {
       filterQuery,
       {
         ...filteredDemoFilters,
-        minSourceReliability: "B",
-        minInfoCredibility: "4",
+        sourceReliabilities: ["A", "B"],
+        infoCredibilities: [1, 2, 3, 4],
       },
       "sources",
     );

@@ -35,8 +35,14 @@ export async function readAuthorizedAttachment(
   kind: string,
   parentId: string,
   attachmentId: string,
+  original = false,
 ): Promise<BufferedAttachment | null> {
-  if (!uuidPattern.test(parentId) || !uuidPattern.test(attachmentId)) return null;
+  if (
+    !["brief", "document"].includes(kind) ||
+    !uuidPattern.test(parentId) ||
+    !uuidPattern.test(attachmentId)
+  )
+    return null;
   const user = getCurrentUser();
   return getDb().transaction(async (transaction) => {
     const [activeUser] = await transaction
@@ -51,6 +57,7 @@ export async function readAuthorizedAttachment(
         ? await transaction
             .select({
               key: briefAttachments.storageKey,
+              imageMetadata: briefAttachments.imageMetadata,
               mime: briefAttachments.mime,
               name: briefAttachments.name,
               size: briefAttachments.size,
@@ -69,6 +76,7 @@ export async function readAuthorizedAttachment(
         : await transaction
             .select({
               key: attachments.storageKey,
+              imageMetadata: attachments.imageMetadata,
               mime: attachments.mime,
               name: attachments.caption,
               size: attachments.size,
@@ -85,7 +93,24 @@ export async function readAuthorizedAttachment(
             .for("share")
             .limit(1);
     if (!file || file.size <= 0 || file.size > 10 * 1024 * 1024) return null;
-    const object = await getStorage().getObjectStream(file.key);
+    const derivative =
+      !original && file.mime.startsWith("image/") ? file.imageMetadata?.derivative : null;
+    let selected = { key: file.key, mime: file.mime, size: file.size, name: file.name };
+    if (derivative)
+      selected = {
+        key: derivative.key,
+        mime: derivative.mime,
+        size: derivative.size,
+        name: (file.name ?? "photo") + ".webp",
+      };
+    let object;
+    try {
+      object = await getStorage().getObjectStream(selected.key);
+    } catch (error) {
+      if (!derivative) throw error;
+      selected = { key: file.key, mime: file.mime, size: file.size, name: file.name };
+      object = await getStorage().getObjectStream(selected.key);
+    }
     const reader = object.body.getReader();
     const parts: Uint8Array[] = [];
     let total = 0;
@@ -94,7 +119,7 @@ export async function readAuthorizedAttachment(
         const { done, value } = await reader.read();
         if (done) break;
         total += value.byteLength;
-        if (total > file.size || total > 10 * 1024 * 1024) {
+        if (total > selected.size || total > 10 * 1024 * 1024) {
           await reader.cancel();
           return null;
         }
@@ -110,19 +135,24 @@ export async function readAuthorizedAttachment(
       output.set(part, offset);
       offset += part.byteLength;
     }
-    if (body.byteLength !== file.size) return null;
-    return { ...file, name: file.name ?? "photo", body, size: body.byteLength };
+    if (body.byteLength !== selected.size) return null;
+    return { ...selected, name: selected.name ?? "photo", body, size: body.byteLength };
   });
 }
 
 export const Route = createFileRoute("/api/attachments/$kind/$parentId/$attachmentId")({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      GET: async ({ params, request }) => {
         let bufferedFile: BufferedAttachment | null = null;
         try {
           bufferedFile = ["document", "brief"].includes(params.kind)
-            ? await readAuthorizedAttachment(params.kind, params.parentId, params.attachmentId)
+            ? await readAuthorizedAttachment(
+                params.kind,
+                params.parentId,
+                params.attachmentId,
+                new URL(request.url).searchParams.get("original") === "1",
+              )
             : null;
         } catch {
           return new Response(null, {

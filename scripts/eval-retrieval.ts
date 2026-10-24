@@ -97,6 +97,7 @@ const labelTargets = new Map<string, { kind: "document" | "brief"; date: string;
 ]);
 const filters: AnalyticsFilters = {
   period: "all",
+  includeBriefs: false,
   directionIds: directions.map(({ id }) => id),
   minSourceReliability: "all",
   minInfoCredibility: "all",

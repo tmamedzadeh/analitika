@@ -15,7 +15,11 @@ import {
   type SQL,
 } from "drizzle-orm";
 
-import type { AnalyticsFilters, AnalyticsSource } from "@/lib/analytics";
+import {
+  isNewAnalyticsFilters,
+  type AnalyticsFilters,
+  type AnalyticsSource,
+} from "@/lib/analytics";
 import { getAppConfig } from "@/server/config";
 import {
   GeminiRerankProvider,
@@ -35,6 +39,7 @@ import {
   withAnalyticsSourceAccess,
 } from "./source-access";
 import { hasCommittedBriefIndex } from "../briefs/index-state";
+import { resolvePeriod } from "@/lib/period";
 import { getBakuDate } from "@/lib/briefs";
 import { withAiDiagnostics } from "@/server/ai/diagnostics";
 import { selectAnalyticsEvidence } from "./evidence-selection";
@@ -75,7 +80,7 @@ function sourceProjection() {
     isTable: chunks.isTable,
     sourceReliability: documents.sourceReliability,
     infoCredibility: documents.infoCredibility,
-    classification: sql<string>`coalesce(${documents.classification}, ${dailyBriefs.classification})`,
+    classification: sql<string>`coalesce(${documents.classification}, 'open')`,
   };
 }
 
@@ -88,9 +93,10 @@ export function searchSourceConditions(filters: AnalyticsFilters, now = new Date
     hasCommittedBriefIndex(),
     briefAccessFilter(),
   ];
-  const fromDate = minimumDocDate(filters.period, now);
+  const window = isNewAnalyticsFilters(filters) ? resolvePeriod(filters, now) : null;
+  const fromDate = window?.from ?? minimumDocDate(filters.period, now);
   if (fromDate) briefConditions.push(sql`${dailyBriefs.briefDate} >= ${fromDate}`);
-  briefConditions.push(lte(dailyBriefs.briefDate, getBakuDate(now)));
+  briefConditions.push(lte(dailyBriefs.briefDate, window?.through ?? getBakuDate(now)));
   return or(documentSource, and(...briefConditions));
 }
 

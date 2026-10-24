@@ -2,7 +2,6 @@ import { z } from "zod";
 import { richDocumentSchema, type RichDocument } from "./rich-text";
 
 import { az } from "./i18n/az";
-import { clearanceValues, type Clearance } from "./classification";
 
 export const BRIEF_SYSTEM_TITLE = "İnformasiya bülleteni";
 
@@ -18,7 +17,7 @@ export const briefIndexStatuses = ["none", "queued", "processing", "ready", "fai
 export type BriefStatus = (typeof briefStatuses)[number];
 export type BriefIndexStatus = (typeof briefIndexStatuses)[number];
 export type BriefIndexProgress = { percent: number; totalChunks: number; completedChunks: number };
-export type BriefPhoto = { id: string; name: string; url: string };
+export type BriefPhoto = { id: string; name: string; url: string; originalUrl?: string };
 export type Brief = {
   id: string;
   date: string;
@@ -26,7 +25,6 @@ export type Brief = {
   summary: string | null;
   body: string;
   bodyRich: RichDocument;
-  classification: Clearance;
   status: BriefStatus;
   indexStatus: BriefIndexStatus;
   indexProgress: BriefIndexProgress;
@@ -54,7 +52,6 @@ export const briefDateSchema = z
   });
 
 export const briefInputSchema = z.object({
-  classification: z.enum(clearanceValues).default("open"),
   date: briefDateSchema,
   summary: z.string().max(MAX_BRIEF_SUMMARY_LENGTH).trim().nullable().optional(),
   bodyRich: richDocumentSchema(MAX_BRIEF_BODY_LENGTH),

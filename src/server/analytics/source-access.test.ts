@@ -130,7 +130,7 @@ describe("source publication authorization", () => {
     const sql = mocks.query.mock.calls.map(([query]) => query).join(" ");
     expect(sql.match(/for share/gu)).toHaveLength(3);
     expect(sql).toContain('"app_users"."active" = true');
-    expect(sql).toContain('"app_users"."clearance"');
+    expect(sql).toContain('"app_users"."active"');
     expect(sql).toContain('"documents"."chunk_count" >');
   });
 
@@ -172,11 +172,11 @@ describe("source publication authorization", () => {
       briefId: source.documentId,
     };
     const result = await withAnalyticsSourceAccess([brief], "reader", (available) => available);
-    expect(result.sources).toEqual([{ ...brief, classification: "secret" }]);
+    expect(result.sources).toEqual([{ ...brief, classification: "open" }]);
     const sql = mocks.query.mock.calls.map(([query]) => query).join(" ");
     expect(sql).toContain('"daily_briefs"."status" =');
     expect(sql).toContain('"daily_briefs"."index_status"');
-    expect(sql).toContain('"app_users"."clearance"');
+    expect(sql).toContain('"app_users"."active"');
   });
 });
 
