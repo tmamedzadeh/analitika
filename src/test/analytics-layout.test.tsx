@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
 import { routeTree } from "@/routeTree.gen";
@@ -91,6 +91,62 @@ vi.mock("@/lib/analytics.functions", async (importOriginal) => {
 });
 
 describe("analytics search layout", () => {
+  it("renders saved sparse citations consistently without changing the history snapshot", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([
+      {
+        id: "sparse",
+        query: "Sparse history",
+        status: "done",
+        createdAt: "2026-10-22T08:00:00Z",
+        durationMs: 10,
+      },
+    ]);
+    const record = {
+      id: "sparse",
+      query: "Sparse history",
+      status: "done" as const,
+      answer: "Saved [1][2][7]. Again [7].",
+      model: "test",
+      durationMs: 10,
+      createdAt: "2026-10-22T08:00:00Z",
+      filters: {
+        includeBriefs: false,
+        period: "all" as const,
+        directionIds: [...directionIds],
+        minSourceReliability: "all" as const,
+        minInfoCredibility: "all" as const,
+      },
+      sources: [1, 2, 7].map((n) => {
+        const preview = groupedSources[n - 1]!;
+        return {
+          ...preview,
+          available: true,
+          caption: "Section",
+          usedInAnswer: true,
+          maxClassification: "open",
+          model: "test",
+          durationMs: 10,
+          createdAt: "2026-10-22T08:00:00Z",
+          preview,
+        };
+      }),
+    };
+    const snapshot = JSON.stringify(record);
+    vi.mocked(getAnalyticsQueryHistory).mockResolvedValue(record);
+    await openAnalytics();
+    fireEvent.click(await screen.findByRole("button", { name: /Sparse history/ }));
+    await screen.findByText(/Saved/);
+    const links = screen.getAllByRole("link", {
+      name: az.analytics.openSource.replace("{n}", "3"),
+    });
+    expect(links).toHaveLength(3); // Two references in the answer and one card link.
+    for (const link of links) {
+      expect(link).toHaveTextContent("[3]");
+      expect(link).toHaveAttribute("href", expect.stringContaining("document%3Adocument-7-7"));
+    }
+    expect(JSON.stringify(record)).toBe(snapshot);
+  });
+
   it("starts bulletin search ON and sends its selected value in each request", async () => {
     vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
     const transport = vi.fn(async (_url: unknown, _init?: RequestInit) => response());
@@ -405,6 +461,68 @@ describe("analytics search layout", () => {
 });
 
 describe("analytics regeneration and transport", () => {
+  it("applies one display mapping after the validated SSE final event and leaves source-only numbers intact", async () => {
+    vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
+    let controller!: ReadableStreamDefaultController<Uint8Array>;
+    const sparseSources = syntheticSources.filter(({ n }) => [1, 2, 7].includes(n));
+    const transport = vi.fn().mockResolvedValue(
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(value) {
+            controller = value;
+          },
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", transport);
+    await openAnalytics();
+    fireEvent.change(screen.getByLabelText(az.analytics.questionLabel), {
+      target: { value: "Sparse live query" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.searchButton }));
+    const send = async (event: unknown) =>
+      act(async () =>
+        controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`)),
+      );
+    await send({ type: "sources", sources: sparseSources });
+    await send({ type: "delta", text: "Unvalidated [7]." });
+    expect(screen.queryByText(/Unvalidated/)).toBeNull();
+    expect(
+      screen.getByRole("link", { name: az.analytics.openSource.replace("{n}", "7") }),
+    ).toHaveTextContent("[7]");
+    await send({ type: "final", answer: "Validated [1][2][7]." });
+    const renumbered = screen.getAllByRole("link", {
+      name: az.analytics.openSource.replace("{n}", "3"),
+    });
+    expect(renumbered).toHaveLength(2);
+    for (const link of renumbered)
+      expect(link).toHaveAttribute("href", expect.stringContaining("document%3Adocument-7-7"));
+    expect(
+      screen.queryByRole("link", { name: az.analytics.openSource.replace("{n}", "7") }),
+    ).toBeNull();
+    await act(async () => controller.close());
+
+    transport.mockResolvedValue(
+      new Response(
+        [
+          { type: "sources", sources: sparseSources },
+          { type: "final", answer: "" },
+        ]
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join(""),
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.sourcesOnly }));
+    await screen.findByText(az.analytics.fragmentsOnly);
+    const original = screen.getByRole("link", {
+      name: az.analytics.openSource.replace("{n}", "7"),
+    });
+    expect(original).toHaveTextContent("[7]");
+    expect(
+      within(screen.getAllByRole("article")[2]!).getByText("[7]", { selector: "span" }),
+    ).toBeVisible();
+  });
+
   it("retains the displayed question and filters after form edits, prevents duplicate runs and preserves source numbers", async () => {
     vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
     let finish: ((value: Response) => void) | undefined;
@@ -433,7 +551,7 @@ describe("analytics regeneration and transport", () => {
     // [1] was returned by retrieval but never cited, so it is neither counted nor listed.
     expect(document.getElementById("source-1")).toBeNull();
     for (const link of screen.getAllByRole("link", {
-      name: az.analytics.openSource.replace("{n}", "8"),
+      name: az.analytics.openSource.replace("{n}", "2"),
     })) {
       expect(link).toHaveAttribute("href", expect.stringContaining("document%3Ashared-document-8"));
     }
@@ -475,9 +593,12 @@ describe("analytics regeneration and transport", () => {
       screen.getByText(az.analytics.citedFragmentsCount.replace("{count}", "2")),
     ).toBeInTheDocument();
     expect(screen.queryByText(materialCounts(7, 8, "cited"))).toBeNull();
-    for (const n of [2, 8]) {
+    for (const [n, displayN] of [
+      [2, 1],
+      [8, 2],
+    ]) {
       for (const link of screen.getAllByRole("link", {
-        name: az.analytics.openSource.replace("{n}", String(n)),
+        name: az.analytics.openSource.replace("{n}", String(displayN)),
       })) {
         expect(link).toHaveAttribute(
           "href",

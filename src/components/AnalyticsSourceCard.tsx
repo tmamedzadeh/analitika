@@ -17,19 +17,21 @@ import { az } from "@/lib/i18n/az";
 
 /**
  * One card per unique parent material (document or brief). Chunk-level citations
- * inside keep their original numbers; each fragment is addressable by
+ * inside keep their original identities; each fragment is addressable by
  * `#fragment-<group key>-<n>` so in-text citations and "Mənbə kartı" land on it.
  */
 export function AnalyticsSourceCard({
   group,
   fragmentLabel,
   navigationScope = "",
+  displayNumbers,
 }: {
   group: AnalyticsSourceGroup;
   /** `tapılmış` for sources-only, `istinad edilmiş` for answer mode. */
   fragmentLabel: string;
   openLabel: "document" | "brief";
   navigationScope?: string | undefined;
+  displayNumbers?: ReadonlyMap<number, number> | undefined;
 }) {
   const head = group.chunks[0];
   const multi = group.chunks.length > 1;
@@ -123,7 +125,7 @@ export function AnalyticsSourceCard({
           className="flex flex-wrap items-center gap-1"
           aria-label={az.analytics.materialCitationNumbers.replace(
             "{numbers}",
-            numbers.map((n) => String(n)).join(", "),
+            numbers.map((n) => String(displayNumbers?.get(n) ?? n)).join(", "),
           )}
         >
           {numbers.map((n) => (
@@ -131,13 +133,16 @@ export function AnalyticsSourceCard({
               key={n}
               className="cite "
               href={analyticsFragmentAnchor(group.key, n, navigationScope)}
-              aria-label={az.analytics.openSource.replace("{n}", String(n))}
+              aria-label={az.analytics.openSource.replace(
+                "{n}",
+                String(displayNumbers?.get(n) ?? n),
+              )}
               onClick={(event) => {
                 event.preventDefault();
                 navigateToAnalyticsFragment(analyticsFragmentAnchor(group.key, n, navigationScope));
               }}
             >
-              [{n}]
+              [{displayNumbers?.get(n) ?? n}]
             </a>
           ))}
         </p>
@@ -172,6 +177,7 @@ export function AnalyticsSourceCard({
             numbers={numbers.filter((n) => group.citationChunks.get(n) === chunk)}
             navigationScope={navigationScope}
             headerHref={headerHref}
+            displayNumbers={displayNumbers}
           />
         ))}
       </ul>
@@ -185,14 +191,18 @@ function FragmentRow({
   numbers,
   navigationScope,
   headerHref,
+  displayNumbers,
 }: {
   chunk: AnalyticsSourcePreview;
   groupKey: string;
   numbers: number[];
   navigationScope: string;
   headerHref: string | null;
+  displayNumbers?: ReadonlyMap<number, number> | undefined;
 }) {
   const href = chunkRoute(chunk);
+  const sectionTitle = fragmentSectionTitle(chunk.sectionTitle, chunk.quote);
+  const quote = chunk.quote.length > 300 ? `${chunk.quote.slice(0, 299).trimEnd()}…` : chunk.quote;
   return (
     <li
       id={analyticsFragmentId(groupKey, chunk.n, navigationScope)}
@@ -207,18 +217,18 @@ function FragmentRow({
             tabIndex={n === chunk.n ? undefined : -1}
             className="cite ml-0! scroll-mt-24 focus-visible:outline-2"
           >
-            [{n}]
+            [{displayNumbers?.get(n) ?? n}]
           </span>
         ))}
-        {chunk.sectionTitle && (
-          <span className="min-w-0 break-words [overflow-wrap:anywhere]">{chunk.sectionTitle}</span>
+        {sectionTitle && (
+          <span className="min-w-0 break-words [overflow-wrap:anywhere]">{sectionTitle}</span>
         )}
         {chunk.isTable && <span>· {az.analytics.table}</span>}
       </div>
       <div className="mt-1 flex flex-wrap items-start gap-x-3 gap-y-1">
-        {chunk.quote && (
+        {quote && (
           <p className="min-w-0 flex-1 text-sm leading-relaxed text-neutral-700 [overflow-wrap:anywhere]">
-            «{chunk.quote}»
+            «{quote}»
           </p>
         )}
         {href && href !== headerHref && (
@@ -235,6 +245,31 @@ function FragmentRow({
       </div>
     </li>
   );
+}
+
+/** Display-only filtering; compare against the full quote, before truncating it. */
+function fragmentSectionTitle(sectionTitle: string, quote: string): string | null {
+  const title = sectionTitle.trim();
+  if (!title || title.length > 120) return null;
+
+  const normalize = (text: string) =>
+    text
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
+  const normalizedTitle = normalize(title);
+  if (!normalizedTitle) return null;
+  const normalizedQuote = normalize(quote);
+  const [shorter, longer] =
+    normalizedTitle.length <= normalizedQuote.length
+      ? [normalizedTitle, normalizedQuote]
+      : [normalizedQuote, normalizedTitle];
+
+  // Allow small additions around duplicate text, while keeping actual section
+  // headings that also occur within a substantially longer quote.
+  if (shorter.length >= longer.length * 0.8 && longer.includes(shorter)) return null;
+  return title;
 }
 
 /** Chunk-scoped route when known, otherwise the material itself (legacy history). */

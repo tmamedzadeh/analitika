@@ -4,6 +4,7 @@ import { AnalyticsAnswer } from "./AnalyticsAnswer";
 import { AnalyticsCitation } from "./AnalyticsCitation";
 import { AnalyticsSourceCard } from "./AnalyticsSourceCard";
 import { az } from "@/lib/i18n/az";
+import { analyticsCitedNumbers, analyticsCitationDisplayNumbers } from "@/lib/analytics-citations";
 import {
   analyticsFragmentId,
   groupAnalyticsSources,
@@ -34,6 +35,108 @@ afterEach(() => {
 });
 
 describe("analytics citation links", () => {
+  it("shares display numbers across the answer, cards and popovers while navigating by original n", async () => {
+    const sources = [1, 2, 7].map((n) => {
+      const item = { ...preview, n, chunkId: `chunk-${n}`, quote: `Quote ${n}` };
+      return { ...item, preview: item, available: true };
+    });
+    const answer = "Fact [1][2][7]. Again [7].";
+    const cited = analyticsCitedNumbers(answer);
+    const displayNumbers = analyticsCitationDisplayNumbers(sources, cited);
+    const [group] = groupAnalyticsSources(sources, cited);
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const { container } = render(
+      <>
+        <AnalyticsAnswer
+          answer={answer}
+          sources={sources}
+          displayNumbers={displayNumbers}
+          navigationScope="history"
+        />
+        <AnalyticsSourceCard
+          group={group!}
+          fragmentLabel="3 fraqment"
+          openLabel="document"
+          displayNumbers={displayNumbers}
+          navigationScope="history"
+        />
+      </>,
+    );
+    const renderedAnswer = within(container.querySelector(".analytics-answer") as HTMLElement);
+    const citations = renderedAnswer.getAllByRole("link", {
+      name: az.analytics.openSource.replace("{n}", "3"),
+    });
+    expect(citations).toHaveLength(2);
+    for (const link of citations) {
+      expect(link).toHaveTextContent("[3]");
+      expect(link).toHaveAttribute("href", "#history-fragment-document%3Atrusted-document-7");
+    }
+    const card = screen.getByRole("article");
+    expect(
+      within(card).getByRole("link", { name: az.analytics.openSource.replace("{n}", "3") }),
+    ).toHaveAttribute("href", "#history-fragment-document%3Atrusted-document-7");
+    expect(renderedAnswer.getByLabelText(az.analytics.reliabilityLimitations)).toHaveTextContent(
+      "[3] Synthetic budget report",
+    );
+    fireEvent.focus(citations[0]!);
+    expect(
+      await screen.findByText("[3] Synthetic budget report", { selector: "p" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: az.analytics.openFullSource })).toHaveAttribute(
+      "href",
+      "/senedler/trusted-document?chunk=chunk-7",
+    );
+    fireEvent.click(screen.getByRole("link", { name: az.analytics.sourceCard }));
+    const fragment = document.getElementById(analyticsFragmentId(group!.key, 7, "history"))!;
+    await waitFor(() => expect(fragment).toHaveFocus());
+    expect(within(fragment).getByText("[3]")).toBeVisible();
+    expect(within(fragment).getByText("«Quote 7»")).toBeVisible();
+    expect(document.getElementById(analyticsFragmentId(group!.key, 3, "history"))).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: az.analytics.copy }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(answer));
+    expect(sources.map((s) => s.n)).toEqual([1, 2, 7]);
+  });
+
+  it("renumbers only parsed citation nodes and preserves Markdown code, links and ordinary numbers", () => {
+    const answer =
+      "2026 **Fact [7]**. `code [7]`\n\n```text\nconst n = [7];\n```\n\n[Report [7]](https://example.test/[7])\n\n\\[7]\n\n[7][ref]\n\n[ref]: #citation-7\n\n| Fact | Source |\n| --- | --- |\n| A | [7] |";
+    const { container } = render(
+      <AnalyticsAnswer
+        answer={answer}
+        sources={[{ n: 7, documentId: "doc", chunkId: "chunk" }]}
+        displayNumbers={new Map([[7, 1]])}
+      />,
+    );
+    expect(screen.getAllByRole("link")).toHaveLength(2);
+    expect(container.querySelector("strong")).toHaveTextContent("Fact [1]");
+    expect(container.querySelector("td:last-child")).toHaveTextContent("[1]");
+    expect(container.querySelector("code")).toHaveTextContent("code [7]");
+    expect(container.querySelector("pre code")).toHaveTextContent("const n = [7];");
+    expect(container).toHaveTextContent("Report [7]");
+    expect(container).toHaveTextContent("2026");
+    expect(screen.getByText("[7]", { selector: "p" })).toBeInTheDocument();
+    expect(screen.getByText("7", { selector: "p" })).toBeInTheDocument();
+  });
+
+  it("keeps ambiguous duplicated source numbers inert and retains revoked original numbers", () => {
+    render(
+      <AnalyticsAnswer
+        answer="Fact [7][8]."
+        sources={[
+          { n: 7, documentId: "a" },
+          { n: 7, documentId: "b" },
+          { n: 8, available: false, preview },
+        ]}
+        displayNumbers={new Map()}
+      />,
+    );
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByText("[7]")).toBeInTheDocument();
+    expect(screen.getByText("[8]")).toBeInTheDocument();
+    expect(screen.queryByText(preview.quote)).toBeNull();
+  });
+
   it.each(["document", "brief"] as const)(
     "renders citations 1–20 and opens the exact twentieth %s fragment and parent",
     async (kind) => {

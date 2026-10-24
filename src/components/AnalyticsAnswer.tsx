@@ -5,7 +5,8 @@ import { AnalyticsCitation, type AnalyticsCitationSource } from "./AnalyticsCita
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { az } from "@/lib/i18n/az";
 import { modelDisplayName } from "@/lib/ai";
-import { analyticsSourceGroupKey, citedSourceNumbers } from "@/lib/analytics";
+import { analyticsSourceGroupKey } from "@/lib/analytics";
+import { analyticsCitedNumbers, remarkAnalyticsCitations } from "@/lib/analytics-citations";
 import { isLowReliability } from "@/lib/reliability";
 
 export function AnalyticsAnswer({
@@ -15,6 +16,7 @@ export function AnalyticsAnswer({
   onRegenerate,
   busy = false,
   navigationScope,
+  displayNumbers,
 }: {
   answer: string;
   sources: readonly AnalyticsCitationSource[];
@@ -22,6 +24,7 @@ export function AnalyticsAnswer({
   onRegenerate?: (() => void) | undefined;
   busy?: boolean;
   navigationScope?: string | undefined;
+  displayNumbers?: ReadonlyMap<number, number> | undefined;
 }) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const copying = useRef(false);
@@ -46,7 +49,7 @@ export function AnalyticsAnswer({
       copying.current = false;
     }
   }
-  const cited = citedSourceNumbers(answer);
+  const cited = analyticsCitedNumbers(answer);
   const weakSources = sources.filter(
     (source) =>
       source.available !== false &&
@@ -54,21 +57,28 @@ export function AnalyticsAnswer({
       source.preview &&
       isLowReliability(source.preview.sourceReliability, source.preview.infoCredibility),
   );
-  // Ignore any model-authored URL, including URLs attached to citation labels.
-  const markdown = answer.replace(/\[(\d+)\](?:\([^\r\n)]*\))?/gu, "[$1](#citation-$1)");
   return (
     <div className="analytics-answer">
       <BriefMarkdown
-        markdown={markdown}
-        linkRenderer={(href, children) => {
+        markdown={answer}
+        remarkPlugins={[remarkAnalyticsCitations]}
+        linkRenderer={(href, children, node) => {
           const match = /^#citation-(\d+)$/u.exec(href ?? "");
-          if (!match || children !== match[1]) return <>{children}</>;
-          const source = sources.find(
-            (candidate) => candidate.n === Number(match[1]) && candidate.available !== false,
-          );
+          if (
+            !match ||
+            children !== match[1] ||
+            node?.properties["data-analytics-citation"] !== true
+          )
+            return <>{children}</>;
+          const candidates = sources.filter((candidate) => candidate.n === Number(match[1]));
+          const source =
+            candidates.length === 1 && candidates[0]?.available !== false
+              ? candidates[0]
+              : undefined;
           return source ? (
             <AnalyticsCitation
               source={source}
+              displayN={displayNumbers?.get(source.n)}
               groupKey={
                 source.preview || source.documentId || source.briefId || source.chunkId
                   ? analyticsSourceGroupKey({ ...source, ...source.preview, n: source.n })
@@ -91,7 +101,7 @@ export function AnalyticsAnswer({
           <ul className="mt-2 space-y-1">
             {weakSources.map((source) => (
               <li key={source.n}>
-                [{source.n}] {source.preview!.title} ·{" "}
+                [{displayNumbers?.get(source.n) ?? source.n}] {source.preview!.title} ·{" "}
                 {source.preview!.sourceReliability ?? az.analytics.unrated} /{" "}
                 {source.preview!.infoCredibility ?? az.analytics.unrated}
               </li>

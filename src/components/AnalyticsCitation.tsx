@@ -27,11 +27,13 @@ export function AnalyticsCitation({
   source,
   groupKey,
   navigationScope = "",
+  displayN = source.n,
 }: {
   source: AnalyticsCitationSource;
   /** Grouped source card this chunk belongs to, when known. */
   groupKey?: AnalyticsSourceGroupKey | undefined;
   navigationScope?: string | undefined;
+  displayN?: number | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const hovering = useRef(false);
@@ -55,7 +57,7 @@ export function AnalyticsCitation({
       : source.briefId
         ? `/brifler/${encodeURIComponent(source.briefId)}`
         : null;
-  const label = az.analytics.openSource.replace("{n}", String(source.n));
+  const label = az.analytics.openSource.replace("{n}", String(displayN));
   // In-text citation anchor, kept for compatibility with existing deep links.
   const citationAnchor = `#${encodeURIComponent(`${navigationScope ? `${navigationScope}-` : ""}source-${source.n}`)}`;
   const fragmentAnchor = groupKey
@@ -74,7 +76,7 @@ export function AnalyticsCitation({
           navigateToAnalyticsFragment(fragmentAnchor);
         }}
       >
-        [{source.n}]
+        [{displayN}]
       </a>
     );
 
@@ -114,7 +116,7 @@ export function AnalyticsCitation({
             window.setTimeout(() => content.current?.querySelector("a")?.focus(), 0);
           }}
         >
-          [{source.n}]
+          [{displayN}]
         </a>
       </PopoverTrigger>
       <PopoverContent
@@ -139,7 +141,7 @@ export function AnalyticsCitation({
         }}
       >
         <p className="font-semibold break-words [overflow-wrap:anywhere]">
-          [{source.n}] {title}
+          [{displayN}] {title}
         </p>
         <p className="mt-1 text-xs break-words text-muted-foreground [overflow-wrap:anywhere]">
           {[date, section].filter(Boolean).join(" · ") || az.analytics.sectionUnknown}

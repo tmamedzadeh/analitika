@@ -46,17 +46,20 @@ export function BriefMarkdown({
   markdown,
   highlight = null,
   linkRenderer,
+  remarkPlugins = [],
 }: {
   markdown: string;
   highlight?: MarkdownHighlight;
+  remarkPlugins?: NonNullable<React.ComponentProps<typeof ReactMarkdown>["remarkPlugins"]>;
   linkRenderer?: (
     href: string | undefined,
     children: React.ReactNode,
+    node: ExtraProps["node"],
   ) => React.ReactNode | undefined;
 }) {
   const components: Components = {
-    a: ({ href, children }) => {
-      const customLink = linkRenderer?.(href, children);
+    a: ({ href, children, node }) => {
+      const customLink = linkRenderer?.(href, children, node);
       if (customLink !== undefined) return customLink;
 
       const url = safeHref(href);
@@ -101,7 +104,7 @@ export function BriefMarkdown({
 
   return (
     <div className="markdown-content max-w-none wrap-break-word leading-7 **:data-[chunk-highlight=true]:rounded **:data-[chunk-highlight=true]:bg-primary/10 **:data-[chunk-highlight=true]:outline **:data-[chunk-highlight=true]:outline-primary/40">
-      <ReactMarkdown skipHtml remarkPlugins={[remarkGfm]} components={components}>
+      <ReactMarkdown skipHtml remarkPlugins={[remarkGfm, ...remarkPlugins]} components={components}>
         {markdown}
       </ReactMarkdown>
     </div>

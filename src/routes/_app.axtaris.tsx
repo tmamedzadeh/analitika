@@ -19,9 +19,9 @@ import {
   ANALYTICS_CLIENT_DEADLINE_MS,
   analyticsSourceCounts,
   isAnalyticsProgressStage,
-  citedSourceNumbers,
   groupAnalyticsSources,
 } from "@/lib/analytics";
+import { analyticsCitedNumbers, analyticsCitationDisplayNumbers } from "@/lib/analytics-citations";
 import { getAnalyticsQueryHistory, listRecentAnalyticsQueries } from "@/lib/analytics.functions";
 import { directionIds } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
@@ -118,7 +118,13 @@ export function Analytics() {
   const [selectedHistory, setSelectedHistory] =
     useState<Awaited<ReturnType<typeof getAnalyticsQueryHistory>>>(null);
   const noDirections = filters.directionIds.length === 0;
-  const usedSourceNumbers = citedSourceNumbers(answer);
+  const usedSourceNumbers = analyticsCitedNumbers(answer);
+  const citationSources =
+    selectedHistory?.sources ?? sources.map((source) => ({ ...source, preview: source }));
+  const displayNumbers = analyticsCitationDisplayNumbers(
+    citationSources,
+    sourceOnly ? new Set() : usedSourceNumbers,
+  );
   // History has its own authorized mappings; the live SSE list is empty when it opens.
   // Legacy parent-only snapshots remain navigable without inventing a fragment preview.
   const availableSources: AnalyticsSourcePreview[] = selectedHistory
@@ -633,10 +639,8 @@ export function Analytics() {
                   <AnalyticsAnswer
                     navigationScope={navigationScope}
                     answer={answer}
-                    sources={
-                      selectedHistory?.sources ??
-                      sources.map((source) => ({ ...source, preview: source }))
-                    }
+                    sources={citationSources}
+                    displayNumbers={displayNumbers}
                     model={sourceOnly ? undefined : model}
                     busy={busy || historyLoading}
                     onRegenerate={
@@ -671,6 +675,7 @@ export function Analytics() {
                 <AnalyticsSourceCard
                   key={group.key}
                   group={group}
+                  displayNumbers={displayNumbers}
                   navigationScope={navigationScope}
                   fragmentLabel={shownFragmentLabel.replace(
                     "{count}",

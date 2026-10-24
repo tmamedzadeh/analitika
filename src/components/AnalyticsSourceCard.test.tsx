@@ -71,6 +71,111 @@ function renderGroup(
 }
 
 describe("grouped analytics source card", () => {
+  it.each([1, 120])("keeps a distinct section heading of %i characters", (length) => {
+    const sectionTitle = "A".repeat(length);
+    renderGroup([source({ n: 1, sectionTitle })]);
+    expect(screen.getByText(sectionTitle, { selector: "span" })).toBeVisible();
+    expect(screen.getByText("«Fraqment mətni 1»")).toBeVisible();
+  });
+
+  it("hides a section heading longer than 120 characters without hiding its quote", () => {
+    const sectionTitle = "A".repeat(121);
+    renderGroup([source({ n: 1, sectionTitle })]);
+    expect(screen.queryByText(sectionTitle)).toBeNull();
+    expect(screen.getByText("«Fraqment mətni 1»")).toBeVisible();
+  });
+
+  it("hides a multiline body used as a heading and shows its quote only once", () => {
+    const sectionTitle = `Qısa qiymətləndirmə\n\n${"Analitik mətn. ".repeat(50)}\n\n## Faktoloji baza`;
+    const quote = sectionTitle.slice(0, 360);
+    const { container } = renderGroup([source({ n: 1, sectionTitle, quote })]);
+    const fragment = container.querySelector("li")!;
+    expect(fragment.querySelectorAll("span")).toHaveLength(1);
+    expect(within(fragment).getByText("[1]")).toBeVisible();
+    expect(fragment.querySelector("p")?.textContent).toBe(`«${quote.slice(0, 299).trimEnd()}…»`);
+    expect(fragment.querySelectorAll("p")).toHaveLength(1);
+  });
+
+  it.each(["", "   ", "… — !!!"])(
+    "omits an empty or punctuation-only heading: %j",
+    (sectionTitle) => {
+      const { container } = renderGroup([source({ n: 1, sectionTitle })]);
+      const fragment = container.querySelector("li")!;
+      expect(fragment.querySelectorAll("span")).toHaveLength(1);
+      expect(within(fragment).getByText("[1]")).toBeVisible();
+      expect(within(fragment).getByText("«Fraqment mətni 1»")).toBeVisible();
+    },
+  );
+
+  it.each([
+    ["Production increased in the third quarter", "Production increased in the third quarter"],
+    ["  PRODUCTION:   increased!  ", "Production increased."],
+    [
+      "Production increased in the third quarter",
+      "Production increased in the third quarter of 2026.",
+    ],
+    [
+      "Production increased in the third quarter of 2026.",
+      "Production increased in the third quarter",
+    ],
+  ])("hides a heading that duplicates its quote: %j", (sectionTitle, quote) => {
+    renderGroup([source({ n: 1, sectionTitle, quote })]);
+    expect(screen.queryByText(sectionTitle.trim(), { selector: "span" })).toBeNull();
+    expect(screen.getByText(`«${quote}»`)).toBeVisible();
+  });
+
+  it("keeps a meaningful short heading that occurs inside a longer quote", () => {
+    const sectionTitle = "Production";
+    const quote = "Production increased in the third quarter as demand for exports recovered.";
+    renderGroup([source({ n: 1, sectionTitle, quote })]);
+    expect(screen.getByText(sectionTitle, { selector: "span" })).toBeVisible();
+    expect(screen.getByText(`«${quote}»`)).toBeVisible();
+  });
+
+  it("compares headings against the full quote rather than its truncated preview", () => {
+    const sectionTitle = "Production";
+    const quote = " ".repeat(289) + sectionTitle + " increased in the third quarter.";
+    renderGroup([source({ n: 1, sectionTitle, quote })]);
+    expect(screen.getByText(sectionTitle, { selector: "span" })).toBeVisible();
+  });
+
+  it.each([299, 300, 301, 1000])(
+    "caps a quote of %i characters at 300 including the ellipsis",
+    (length) => {
+      const quote = "Q".repeat(length);
+      renderGroup([source({ n: 1, quote })]);
+      const preview = length > 300 ? `${quote.slice(0, 299)}…` : quote;
+      expect(screen.getByText(`«${preview}»`)).toBeVisible();
+      if (length > 300) expect(screen.queryByText(`«${quote}»`)).toBeNull();
+    },
+  );
+
+  it("keeps grouping, citation numbers and exact chunk navigation when headings are hidden", async () => {
+    const sectionTitle = "Long heading ".repeat(20);
+    renderGroup([
+      source({ n: 1, sectionTitle, quote: "Q".repeat(500) }),
+      source({ n: 3, sectionTitle: "Duplicate quote", quote: "Duplicate quote" }),
+    ]);
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.queryByText(sectionTitle.trim())).toBeNull();
+    expect(screen.getByRole("link", { name: az.analytics.openDocument })).toHaveAttribute(
+      "href",
+      "/senedler/document-a?chunk=chunk-1",
+    );
+    const jump = screen.getByRole("link", { name: az.analytics.openSource.replace("{n}", "3") });
+    expect(jump).toHaveTextContent("[3]");
+    fireEvent.click(jump);
+    const fragment = document.getElementById(analyticsFragmentId("document:document-a", 3))!;
+    await waitFor(() => expect(fragment).toHaveFocus());
+    expect(within(fragment).getByText("[3]")).toBeVisible();
+    expect(within(fragment).getByText("«Duplicate quote»")).toBeVisible();
+    expect(within(fragment).queryByText("Duplicate quote", { selector: "span" })).toBeNull();
+    expect(within(fragment).getByRole("link", { name: az.analytics.openFragment })).toHaveAttribute(
+      "href",
+      "/senedler/document-a?chunk=chunk-3",
+    );
+  });
+
   it.each(["brief", "document"] as const)(
     "opens a %s with one icon beside its heading and no duplicate destination",
     (sourceKind) => {
