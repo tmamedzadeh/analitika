@@ -153,9 +153,7 @@ export function DocumentLibrary() {
             </Button>
           )}
         </FilterBar>
-        <p className="text-xs leading-5 text-muted-foreground">
-          Sənədin tarixi yoxdursa, əlavə edilmə tarixi üzrə süzülür.
-        </p>
+
       </div>
       <ZirveQueryIndicator
         fetching={!documents.isPending && documents.isFetching && !documents.isFetchingNextPage}

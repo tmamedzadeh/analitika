@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-24",
+  "timezone": "Asia/Baku",
+  "source": {
+    "branch": "main",
+    "localAndGithubHead": "86c7f49587dc82c7fd9bee70915547bd283612f5",
+    "initialWorktreeClean": true,
+    "productionDeploymentSourceVerified": false
+  },
+  "userEvidence": {
+    "originalFailedFileSizeAndFormat": "unknown",
+    "originalRequestTrace": "unavailable",
+    "laterDifferentImage": "User reports successful upload of approximately 45 KB image from Google"
+  },
+  "existingTests": {
+    "command": "bun --no-env-file run scripts/test.ts src/server/storage/image-uploads.test.ts src/server/storage/optimize-image.test.ts src/server/storage/orphans.test.ts src/lib/documents.test.ts src/server/jobs/process-document.test.ts src/server/inngest/functions.test.ts src/routes/attachments.test.ts src/test/search-routes.test.tsx",
+    "filesPassed": 8,
+    "testsPassed": 48,
+    "durationSeconds": 7.55
+  },
+  "temporaryUiDiagnostics": {
+    "testsPassed": 2,
+    "durationSeconds": 6.58,
+    "checks": [
+      "Browser PUT TypeError(fetch error) becomes localized photoUploadFailed and saveDocument is not called",
+      "saveDocument TypeError(fetch error) is displayed raw; second submit calls prepare again and passes a different documentId"
+    ],
+    "sourceFileRemovedAfterRun": true,
+    "note": "First temporary test run had leftover mockResolvedValueOnce queue between cases; fixture mockReset corrected it, then both passed. No application change was made."
+  },
+  "localStorageFaultInjection": {
+    "checksPassed": 5,
+    "scope": "Synthetic in-memory StorageProvider, no network",
+    "checks": [
+      "Unsettled GET leaves commit pending",
+      "Unsettled stream read leaves commit pending",
+      "Completed original PUT cannot return before staging DELETE settles",
+      "Invalid second image removes valid staging and earlier committed objects; replay fails",
+      "Successful commit consumes staging; same-payload replay needs another upload"
+    ],
+    "pendingObservationMs": 150,
+    "note": "Short pending observations plus source inspection establish lack of application deadline, not elapsed production duration"
+  },
+  "sharpSanityChecks": {
+    "scope": "Local solid-color JPEG, not a production benchmark",
+    "samples": [
+      { "width": 2000, "height": 1500, "bytes": 17891, "elapsedMs": 74 },
+      { "width": 4000, "height": 4000, "bytes": 94016, "elapsedMs": 123 }
+    ]
+  },
+  "postgresReadOnly": {
+    "productionDeploymentIdentityVerified": false,
+    "settingsObservedBeforeDiagnosticLocalTimeouts": {
+      "statement_timeout": "2min",
+      "lock_timeout": "0",
+      "idle_in_transaction_session_timeout": "0",
+      "transaction_read_only": "on"
+    },
+    "snapshots": [
+      {
+        "checkedAt": "2026-10-24T06:53:50.014Z",
+        "readyDocumentsLast24h": 16,
+        "documentsWithPhotosLast24h": 0,
+        "visibleLockWaiters": 0,
+        "visibleIdleTransactions": 0
+      },
+      {
+        "checkedAt": "2026-10-24T07:00:02.465Z",
+        "readyDocumentsLast24h": 16,
+        "documentsWithPhotosLast24h": 1,
+        "visibleLockWaiters": 0,
+        "visibleIdleTransactions": 0
+      }
+    ],
+    "contentRead": false,
+    "writes": false
+  },
+  "existingLocalVercelArtifact": {
+    "runtime": "nodejs24.x",
+    "serverFunctionMaxDurationExplicit": null,
+    "inngestMaxDurationSeconds": 300,
+    "analyticsMaxDurationSeconds": 300,
+    "newBuildPerformed": false,
+    "deployedSettingsVerified": false
+  },
+  "notVerified": [
+    "Root cause of original failed request",
+    "Current production function plan, Fluid setting, duration, memory, region and source SHA",
+    "Current S3 CORS, bucket permissions and signed requests",
+    "Sharp processing on deployed runtime for original failed file"
+  ],
+  "productionMutations": false,
+  "runtimeCodeChanges": false,
+  "commits": false,
+  "pushes": false,
+  "deployments": false
+}

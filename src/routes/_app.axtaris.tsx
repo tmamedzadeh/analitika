@@ -563,9 +563,6 @@ export function Analytics() {
             </button>
           )}
       </FilterBar>
-      <p className="mt-2 text-xs leading-5 text-muted-foreground">
-        Sənədin tarixi yoxdursa, əlavə edilmə tarixi üzrə süzülür.
-      </p>
 
       {pageError && (
         <div role="alert" className="mt-4 rounded-xl border border-destructive/40 p-4 text-sm">
