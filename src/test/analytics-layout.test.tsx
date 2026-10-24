@@ -666,7 +666,8 @@ describe("analytics regeneration and transport", () => {
     expect(ANALYTICS_CLIENT_DEADLINE_MS).toBeGreaterThanOrEqual(
       ANALYTICS_SERVER_DEADLINE_MS + 5000,
     );
-    expect(ANALYTICS_CLIENT_DEADLINE_MS).toBeLessThanOrEqual(120_000);
+    expect(ANALYTICS_SERVER_DEADLINE_MS).toBe(240_000);
+    expect(ANALYTICS_CLIENT_DEADLINE_MS).toBe(255_000);
     vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
     let signal: AbortSignal | undefined;
     vi.stubGlobal(
@@ -887,7 +888,12 @@ describe("phase 2b history and progress lifecycle", () => {
         target: { value: "Question" },
       });
       fireEvent.click(screen.getByRole("button", { name: az.analytics.searchButton }));
-      await act(async () => vi.advanceTimersByTimeAsync(ANALYTICS_CLIENT_DEADLINE_MS));
+      await act(async () => vi.advanceTimersByTimeAsync(105_000));
+      expect(screen.queryByRole("alert")).toBeNull();
+      await act(async () => vi.advanceTimersByTimeAsync(149_999));
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(document.querySelector(".analytics-progress")).not.toBeNull();
+      await act(async () => vi.advanceTimersByTimeAsync(1));
       expect(screen.getByRole("alert")).toHaveTextContent(az.analytics.timeout);
       expect(document.querySelector(".analytics-progress")).toBeNull();
       expect(screen.getByRole("button", { name: az.analytics.searchButton })).toBeEnabled();
@@ -895,4 +901,38 @@ describe("phase 2b history and progress lifecycle", () => {
       vi.useRealTimers();
     }
   });
+
+  it.each(["sse", "http"])(
+    "displays the localized server timeout and releases pending (%s)",
+    async (transport) => {
+      vi.mocked(listRecentAnalyticsQueries).mockResolvedValue([]);
+      const error = {
+        type: "error",
+        code: "timeout",
+        message: az.analytics.timeout,
+        requestId: "timeout-test",
+      };
+      vi.stubGlobal(
+        "fetch",
+        vi
+          .fn()
+          .mockResolvedValue(
+            transport === "http"
+              ? Response.json(error, { status: 504 })
+              : new Response(
+                  `data: ${JSON.stringify(error)}\n\ndata: ${JSON.stringify({ type: "final", answer: "Late answer" })}\n\n`,
+                ),
+          ),
+      );
+      await openAnalytics();
+      fireEvent.change(screen.getByLabelText(az.analytics.questionLabel), {
+        target: { value: "Question" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: az.analytics.searchButton }));
+      expect(await screen.findByRole("alert")).toHaveTextContent(az.analytics.timeout);
+      expect(screen.queryByText("Late answer")).toBeNull();
+      expect(document.querySelector(".analytics-progress")).toBeNull();
+      expect(screen.getByRole("button", { name: az.analytics.searchButton })).toBeEnabled();
+    },
+  );
 });

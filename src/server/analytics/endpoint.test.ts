@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AnalyticsSource } from "@/lib/analytics";
+import { ANALYTICS_SERVER_DEADLINE_MS } from "@/lib/analytics";
 import { az } from "@/lib/i18n/az";
 
 const mocks = vi.hoisted(() => ({
@@ -110,6 +111,20 @@ function request(signal?: AbortSignal, mode: "answer" | "sources" = "answer") {
   });
 }
 
+function streamEvents(stream: string): Record<string, unknown>[] {
+  return stream
+    .split(/\r?\n\r?\n/)
+    .filter((frame) => frame.startsWith("data: "))
+    .map((frame) => JSON.parse(frame.slice(6)));
+}
+
+function timeoutDiagnostics(): Record<string, unknown>[] {
+  return vi
+    .mocked(console.error)
+    .mock.calls.map(([message]) => JSON.parse(String(message).replace("[analytics-ai] ", "")))
+    .filter((event) => event.errorCategory === "timeout");
+}
+
 describe("analytics stream access and cancellation", () => {
   it("rechecks the budget if authorization removes the original owner of duplicated text", async () => {
     const text = source.text.replace(" ", " ".repeat(25_000));
@@ -186,6 +201,31 @@ describe("analytics stream access and cancellation", () => {
       expect.objectContaining({ status: "failed" }),
     );
   });
+  it.each([
+    [429, az.analytics.quotaExceeded, "quota"],
+    [503, az.analytics.providerUnavailable, "provider_unavailable"],
+    [504, az.analytics.answerFailed, "provider_transient"],
+    [400, az.analytics.answerFailed, "provider_request"],
+  ] as const)(
+    "does not relabel provider HTTP %s as the overall deadline",
+    async (statusCode, message, category) => {
+      mocks.generate.mockRejectedValueOnce(
+        Object.assign(new Error("private provider details"), { statusCode }),
+      );
+      const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+      const output = await response.text();
+      expect(output).toContain(message);
+      expect(output).not.toContain('"code":"timeout"');
+      expect(timeoutDiagnostics()).toEqual([]);
+      expect(vi.mocked(console.error).mock.calls.join(" ")).toContain(
+        `"errorCategory":"${category}"`,
+      );
+      expect(mocks.updateHistory).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ status: "failed" }),
+      );
+    },
+  );
   it("sends backend fallback events and persists the actual completing model", async () => {
     mocks.generate.mockImplementation(async (input) => {
       input.onFallback({
@@ -282,18 +322,12 @@ describe("analytics stream access and cancellation", () => {
       .trim()
       .split("\n\n")
       .map((frame) => JSON.parse(frame.slice(6)));
-    expect(events.map((event) => (event.type === "progress" ? event.stage : event.type))).toEqual([
-      "starting",
-      "retrieval",
-      "sources",
-      "sources",
-      "generation",
-      "validation",
-      "final",
-    ]);
+    expect(
+      events.map((event) => (event["type"] === "progress" ? event.stage : event["type"])),
+    ).toEqual(["starting", "retrieval", "sources", "sources", "generation", "validation", "final"]);
     expect(
       events
-        .filter((event) => event.type === "progress")
+        .filter((event) => event["type"] === "progress")
         .every((event) => Object.keys(event).sort().join() === "stage,type"),
     ).toBe(true);
     expect(mocks.search).toHaveBeenCalledOnce();
@@ -459,7 +493,7 @@ describe("analytics stream access and cancellation", () => {
     );
     const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
     const output = response.text();
-    await vi.advanceTimersByTimeAsync(105_000);
+    await vi.advanceTimersByTimeAsync(ANALYTICS_SERVER_DEADLINE_MS);
     const stream = await output;
 
     expect(response.status).toBe(200);
@@ -468,13 +502,244 @@ describe("analytics stream access and cancellation", () => {
     expect(stream).not.toContain('"type":"final"');
     expect(mocks.generate).toHaveBeenCalledOnce();
     expect(vi.mocked(console.error).mock.calls.join(" ")).toContain('"errorCategory":"timeout"');
+    expect(streamEvents(stream).filter((event) => event["type"] === "error")).toEqual([
+      {
+        type: "error",
+        code: "timeout",
+        message: az.analytics.timeout,
+        requestId: response.headers.get("x-analytics-request-id"),
+      },
+    ]);
+    expect(timeoutDiagnostics()).toEqual([
+      expect.objectContaining({
+        requestId: response.headers.get("x-analytics-request-id"),
+        stage: "generation",
+        model: "test-model",
+        generationAttempt: 1,
+        elapsedMs: 240_000,
+        errorCategory: "timeout",
+        timeoutScope: "overall",
+        outcome: "failed",
+        providerStatus: null,
+      }),
+    ]);
+    expect(timeoutDiagnostics()[0]).not.toHaveProperty("finishReason");
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed", durationMs: 240_000 }),
+    );
+    expect(vi.getTimerCount()).toBe(0);
   });
+
+  it("completes after the former 105-second deadline within the shared 240-second budget", async () => {
+    vi.useFakeTimers();
+    const startedAt = Date.now();
+    mocks.search.mockImplementationOnce(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 18_019));
+      return [source];
+    });
+    mocks.generate.mockImplementationOnce((input: TextGenerationInput) => {
+      expect(input.timeoutMs).toBeUndefined();
+      expect(input.deadlineAt).toBe(startedAt + 240_000);
+      return new Promise((resolve) =>
+        setTimeout(() => resolve({ text: "answer [1]", finishReason: "stop" }), 120_000),
+      );
+    });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = response.text();
+    await vi.advanceTimersByTimeAsync(105_000);
+    expect(mocks.generate).toHaveBeenCalledOnce();
+    expect(mocks.updateHistory).not.toHaveBeenCalled();
+    expect(timeoutDiagnostics()).toEqual([]);
+    await vi.advanceTimersByTimeAsync(33_019);
+    const events = streamEvents(await output);
+    expect(events.filter((event) => event["type"] === "final")).toEqual([
+      expect.objectContaining({ answer: "answer [1]", durationMs: 138_019 }),
+    ]);
+    expect(events.some((event) => event["type"] === "error")).toBe(false);
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "done", durationMs: 138_019 }),
+    );
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each(["provider-first", "server-first"] as const)(
+    "sends one overall timeout when timers share the deadline (%s)",
+    async (order) => {
+      vi.useFakeTimers();
+      let rejectProvider!: (reason: unknown) => void;
+      const providerTimeout = () =>
+        rejectProvider(
+          new Error("private provider wrapper", {
+            cause: new DOMException("private provider body", "TimeoutError"),
+          }),
+        );
+      if (order === "provider-first") setTimeout(providerTimeout, 240_000);
+      mocks.generate.mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject) => {
+            rejectProvider = reject;
+          }),
+      );
+      const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+      const output = response.text();
+      await vi.advanceTimersByTimeAsync(0);
+      if (order === "server-first") setTimeout(providerTimeout, 240_000);
+      await vi.advanceTimersByTimeAsync(239_999);
+      expect(timeoutDiagnostics()).toEqual([]);
+      await vi.advanceTimersByTimeAsync(1);
+      const events = streamEvents(await output);
+      expect(events.filter((event) => ["error", "final"].includes(String(event["type"])))).toEqual([
+        expect.objectContaining({ type: "error", code: "timeout", message: az.analytics.timeout }),
+      ]);
+      expect(timeoutDiagnostics()).toEqual([
+        expect.objectContaining({
+          timeoutScope: "overall",
+          outcome: "failed",
+          generationAttempt: 1,
+        }),
+      ]);
+      expect(mocks.updateHistory).toHaveBeenCalledOnce();
+      expect(mocks.updateHistory).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ status: "failed" }),
+      );
+      expect(mocks.generate).toHaveBeenCalledOnce();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(JSON.stringify(timeoutDiagnostics())).not.toContain("private");
+    },
+  );
+
+  it("distinguishes an early provider timeout from the overall deadline", async () => {
+    vi.useFakeTimers();
+    mocks.generate.mockRejectedValueOnce(
+      new DOMException("private provider failure", "TimeoutError"),
+    );
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const events = streamEvents(await response.text());
+    expect(events.filter((event) => event["type"] === "error")).toEqual([
+      expect.objectContaining({ code: "timeout", message: az.analytics.timeout }),
+    ]);
+    expect(timeoutDiagnostics()).toEqual([
+      expect.objectContaining({ event: "failure", timeoutScope: "model", outcome: "failed" }),
+    ]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("records the active fallback model and validation retry on deadline without source content", async () => {
+    vi.useFakeTimers();
+    mocks.generate.mockResolvedValueOnce({
+      text: "private incomplete draft",
+      finishReason: "length",
+    });
+    mocks.generate.mockImplementationOnce((input: TextGenerationInput) => {
+      input.onFallback?.({
+        fromModel: "test-model",
+        toModel: "fallback-model",
+        reason: "quota",
+        backup: false,
+      });
+      return new Promise(() => {});
+    });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = response.text();
+    await vi.advanceTimersByTimeAsync(240_000);
+    expect(await output).toContain('"code":"timeout"');
+    expect(timeoutDiagnostics()).toEqual([
+      expect.objectContaining({
+        model: "fallback-model",
+        generationAttempt: 2,
+        stage: "generation",
+      }),
+    ]);
+    const logs = JSON.stringify(timeoutDiagnostics());
+    for (const secret of [
+      "private incomplete draft",
+      source.text,
+      source.quote,
+      "question",
+      "prompt",
+      "system",
+    ])
+      expect(logs).not.toContain(secret);
+    expect(timeoutDiagnostics()[0]).not.toHaveProperty("finishReason");
+  });
+
+  it("ignores a provider completion after the deadline and keeps failed history", async () => {
+    vi.useFakeTimers();
+    let finish!: (value: { text: string; finishReason: string }) => void;
+    mocks.generate.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = response.text();
+    await vi.advanceTimersByTimeAsync(240_000);
+    const stream = await output;
+    finish({ text: "late private answer [1]", finishReason: "stop" });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(
+      streamEvents(stream).filter((event) => ["error", "final"].includes(String(event["type"]))),
+    ).toEqual([expect.objectContaining({ type: "error", code: "timeout" })]);
+    expect(stream).not.toContain("late private answer");
+    expect(mocks.generate).toHaveBeenCalledOnce();
+    expect(mocks.updateHistory).toHaveBeenCalledOnce();
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed" }),
+    );
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("refuses a late completion even when the deadline timer has not run", async () => {
+    vi.useFakeTimers();
+    const startedAt = Date.now();
+    mocks.generate.mockImplementationOnce(async () => {
+      vi.setSystemTime(startedAt + 240_001);
+      return { text: "late private answer [1]", finishReason: "stop" };
+    });
+    const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
+    const output = await response.text();
+    expect(output).toContain('"code":"timeout"');
+    expect(output).not.toContain('"type":"final"');
+    expect(output).not.toContain("late private answer");
+    expect(mocks.updateHistory).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: "failed" }),
+    );
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each(["AbortError", "TimeoutError"])(
+    "keeps client cancellation distinct from server timeout (%s)",
+    async (name) => {
+      vi.useFakeTimers();
+      const client = new AbortController();
+      mocks.generate.mockImplementationOnce(() => new Promise(() => {}));
+      const response = await withCurrentUser(user, () =>
+        handleAnalyticsSearchRequest(request(client.signal)),
+      );
+      const output = response.text();
+      await vi.advanceTimersByTimeAsync(0);
+      client.abort(new DOMException("client stopped", name));
+      expect(await output).not.toContain('"type":"error"');
+      expect(timeoutDiagnostics()).toEqual([]);
+      expect(mocks.updateHistory).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ status: "cancelled" }),
+      );
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
 
   it("enforces the overall deadline when retrieval ignores its abort signal", async () => {
     vi.useFakeTimers();
     mocks.search.mockImplementation(() => new Promise(() => {}));
     const pending = withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
-    await vi.advanceTimersByTimeAsync(105_000);
+    await vi.advanceTimersByTimeAsync(ANALYTICS_SERVER_DEADLINE_MS);
     const response = await pending;
     expect(response.status).toBe(200);
     expect(await response.text()).toContain('"type":"error"');
@@ -489,10 +754,49 @@ describe("analytics stream access and cancellation", () => {
     vi.useFakeTimers();
     vi.mocked(consumeAnalyticsRateLimit).mockImplementationOnce(() => new Promise(() => {}));
     const pending = withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
-    await vi.advanceTimersByTimeAsync(105_000);
-    expect((await pending).status).toBe(504);
+    await vi.advanceTimersByTimeAsync(ANALYTICS_SERVER_DEADLINE_MS);
+    const response = await pending;
+    expect(response.status).toBe(504);
+    expect(await response.json()).toEqual({
+      code: "timeout",
+      message: az.analytics.timeout,
+      requestId: response.headers.get("x-analytics-request-id"),
+    });
+    expect(timeoutDiagnostics()).toEqual([
+      expect.objectContaining({
+        stage: "retrieval",
+        model: null,
+        generationAttempt: null,
+        elapsedMs: 240_000,
+        timeoutScope: "overall",
+        outcome: "failed",
+        providerStatus: null,
+      }),
+    ]);
+    expect(timeoutDiagnostics()[0]).not.toHaveProperty("finishReason");
+    expect(vi.getTimerCount()).toBe(0);
     expect(mocks.createHistory).not.toHaveBeenCalled();
     expect(mocks.search).not.toHaveBeenCalled();
+  });
+
+  it("times out request body parsing before opening SSE", async () => {
+    vi.useFakeTimers();
+    const input = request();
+    vi.spyOn(input, "json").mockImplementationOnce(() => new Promise(() => {}));
+    const pending = withCurrentUser(user, () => handleAnalyticsSearchRequest(input));
+    await vi.advanceTimersByTimeAsync(240_000);
+    const response = await pending;
+    expect(response.status).toBe(504);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(await response.json()).toEqual({
+      code: "timeout",
+      message: az.analytics.timeout,
+      requestId: response.headers.get("x-analytics-request-id"),
+    });
+    expect(mocks.createHistory).not.toHaveBeenCalled();
+    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(timeoutDiagnostics()).toHaveLength(1);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("terminates SSE even when the provider ignores cancellation", async () => {
@@ -500,7 +804,7 @@ describe("analytics stream access and cancellation", () => {
     mocks.generate.mockImplementation(() => new Promise(() => {}));
     const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
     const output = response.text();
-    await vi.advanceTimersByTimeAsync(105_000);
+    await vi.advanceTimersByTimeAsync(ANALYTICS_SERVER_DEADLINE_MS);
     expect(await output).toContain('"type":"error"');
     expect(mocks.generate).toHaveBeenCalledOnce();
     expect(mocks.updateHistory).toHaveBeenCalledWith(
@@ -514,11 +818,12 @@ describe("analytics stream access and cancellation", () => {
     mocks.updateHistory.mockImplementationOnce(() => new Promise<undefined>(() => {}));
     const response = await withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
     const output = response.text();
-    await vi.advanceTimersByTimeAsync(105_000);
+    await vi.advanceTimersByTimeAsync(ANALYTICS_SERVER_DEADLINE_MS);
     const stream = await output;
     expect(stream).toContain('"type":"final"');
     expect(stream).not.toContain('"type":"error"');
     expect(mocks.updateHistory).toHaveBeenCalledOnce();
+    expect(timeoutDiagnostics()).toEqual([]);
     expect(mocks.updateHistory).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ status: "done" }),
@@ -535,7 +840,7 @@ describe("analytics stream access and cancellation", () => {
         }),
     );
     const pending = withCurrentUser(user, () => handleAnalyticsSearchRequest(request()));
-    await vi.advanceTimersByTimeAsync(105_000);
+    await vi.advanceTimersByTimeAsync(ANALYTICS_SERVER_DEADLINE_MS);
     const response = await pending;
     expect(response.status).toBe(200);
     expect(await response.text()).toContain('"type":"error"');
@@ -545,7 +850,7 @@ describe("analytics stream access and cancellation", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(mocks.updateHistory).toHaveBeenCalledWith(
       expect.any(String),
-      expect.objectContaining({ status: "failed", durationMs: 105_000 }),
+      expect.objectContaining({ status: "failed", durationMs: ANALYTICS_SERVER_DEADLINE_MS }),
     );
   });
 
@@ -622,7 +927,7 @@ describe("analytics stream access and cancellation", () => {
     });
     mocks.generate.mockImplementation((input: { timeoutMs?: number; deadlineAt: number }) => {
       expect(input.timeoutMs).toBeUndefined();
-      expect(input.deadlineAt - Date.now()).toBe(94_000);
+      expect(input.deadlineAt - Date.now()).toBe(ANALYTICS_SERVER_DEADLINE_MS - 11_000);
       return new Promise((resolve) =>
         setTimeout(
           () =>
@@ -657,7 +962,7 @@ describe("analytics stream access and cancellation", () => {
     );
   });
 
-  it("includes history setup time in the 105-second overall budget", async () => {
+  it("includes history setup time in the 240-second overall budget", async () => {
     vi.useFakeTimers();
     mocks.createHistory.mockImplementationOnce(async () => {
       await new Promise((resolve) => setTimeout(resolve, 20_000));
@@ -672,11 +977,11 @@ describe("analytics stream access and cancellation", () => {
     await vi.advanceTimersByTimeAsync(20_000);
     const response = await pending;
     const output = response.text();
-    await vi.advanceTimersByTimeAsync(85_000);
+    await vi.advanceTimersByTimeAsync(ANALYTICS_SERVER_DEADLINE_MS - 20_000);
     expect(await output).toContain('"type":"error"');
     expect(mocks.updateHistory).toHaveBeenCalledWith(
       expect.any(String),
-      expect.objectContaining({ status: "failed", durationMs: 105_000 }),
+      expect.objectContaining({ status: "failed", durationMs: ANALYTICS_SERVER_DEADLINE_MS }),
     );
   });
 

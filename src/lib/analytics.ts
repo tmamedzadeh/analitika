@@ -5,9 +5,9 @@ import { sourceReliabilityValues } from "./reliability";
 import type { InfoCredibility, SourceReliability } from "./reliability";
 import { directionIdSchema, directionIds } from "./directions";
 
-// Leave time for the server's terminal SSE event within Vercel's 120s function limit.
-export const ANALYTICS_SERVER_DEADLINE_MS = 105_000;
-export const ANALYTICS_CLIENT_DEADLINE_MS = 115_000;
+// Leave time for the terminal SSE event within Vercel's 300s function limit.
+export const ANALYTICS_SERVER_DEADLINE_MS = 240_000;
+export const ANALYTICS_CLIENT_DEADLINE_MS = 255_000;
 
 export const analyticsProgressStages = [
   "starting",

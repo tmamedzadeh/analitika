@@ -20,6 +20,7 @@ import { hashPassword } from "../src/server/auth/password";
 import { getStorage, closeStorage } from "../src/server/storage/s3";
 import { requireProjectEvaluationDatabase } from "../src/server/evaluation-safety";
 import { az } from "../src/lib/i18n/az";
+import { ANALYTICS_CLIENT_DEADLINE_MS, ANALYTICS_SERVER_DEADLINE_MS } from "../src/lib/analytics";
 import { getBakuDate } from "../src/lib/briefs";
 
 requireProjectEvaluationDatabase();
@@ -313,14 +314,21 @@ try {
     await waitHistory(query, "cancelled");
   });
   await check(
-    "actual 105-second endpoint deadline fails history and closes HTTP stream",
+    "actual 240-second endpoint deadline fails history and closes HTTP stream",
     async () => {
       const query = `${token} rcdeadline`;
-      const stream = await (await search(query, "answer", AbortSignal.timeout(125_000))).text();
+      const stream = await (
+        await search(query, "answer", AbortSignal.timeout(ANALYTICS_CLIENT_DEADLINE_MS))
+      ).text();
+      assert.ok(stream.includes('"code":"timeout"'));
+      assert.ok(stream.includes(az.analytics.timeout));
       assert.ok(!stream.includes('"type":"final"'));
       assert.ok(!stream.includes("Synthetic invalid claim"));
       const row = await waitHistory(query, "failed");
-      assert.ok(row.durationMs! >= 100_000 && row.durationMs! < 120_000);
+      assert.ok(
+        row.durationMs! >= ANALYTICS_SERVER_DEADLINE_MS &&
+          row.durationMs! < ANALYTICS_CLIENT_DEADLINE_MS,
+      );
       assert.equal((await counts())["rcdeadline_generation"], 2);
     },
   );

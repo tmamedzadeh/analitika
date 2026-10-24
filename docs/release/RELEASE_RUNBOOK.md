@@ -16,7 +16,7 @@ Target checks to changed behavior. Relevant scoped scripts:
 
 - `bun run scripts/verify-storage.ts`: private/signed/unsigned access, signature-bound PUT size/type, immutable committed images and exact object cleanup.
 - `bun run scripts/verify-lexical.ts`: rollback-only AZ lexical/date/pagination/EXPLAIN checks.
-- `bun run scripts/verify-runtime-edges.ts`: real local artifact HTTP and real DB/history, with a separate subprocess's synthetic provider transport. Includes the actual 105-second deadline. Port 4176 must be free. This does not prove cloud workers or external Gemini availability.
+- `bun run scripts/verify-runtime-edges.ts`: real local artifact HTTP and real DB/history, with a separate subprocess's synthetic provider transport. Includes the actual 240-second deadline. Port 4176 must be free. This does not prove cloud workers or external Gemini availability.
 - `bun run scripts/verify-retrieval-edges.ts`: injected vectors/local rerank checks, access/filters/no-match/HNSW, exact fixture cleanup.
 - `bun run scripts/verify-index-edges.ts`: delete/edit races, invalid vectors/quota retention and DB pool reconnect. Reconnecting a pool does not prove a cloud process restart.
 - `bun run scripts/verify-release-integration.ts <new-evidence-path>`: changed indexing/access/history integration; preserve earlier evidence when rerunning.
@@ -46,7 +46,7 @@ Before release approval, record:
 
 1. Exact production project, target, deployment ID and Git revision matching the reviewed candidate.
 2. Deployed model/policy/DB/signing env checks as safe flags only; do not copy values into evidence. Confirm the trusted DB role and private storage target.
-3. Generated route functions: analytics streaming with 120-second maxDuration and Inngest with 300 seconds. These are present in the local Vercel artifact; verify hosting uses them.
+3. Generated route functions: analytics streaming with 300-second maxDuration and Inngest with 300 seconds. These are present in the local Vercel artifact; verify hosting uses them.
 4. Six current Inngest jobs registered, signing enabled, and actual synthetic open document plus brief event→claim→ready runs without a manual worker invocation.
 5. Scheduled recovery at `*/15 * * * *`, durable recovery after actual worker restart, and exact fixture cleanup. Do not run global recovery/reindex merely to obtain a green check.
 6. Successful current Gemini generation, citation/source navigation, no-answer, session/clearance and private attachment smoke on the actual deployed revision.

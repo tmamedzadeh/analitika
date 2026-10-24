@@ -4,6 +4,7 @@ import { asSource, contextId, contextFixture } from "@/test/fixtures/analytics-c
 import { directionIds } from "@/lib/directions";
 import type { TextGenerationInput } from "@/server/ai/types";
 import { handleAnalyticsSearchRequest } from "./endpoint";
+import { ANALYTICS_SERVER_DEADLINE_MS } from "@/lib/analytics";
 import type { AnalyticsContextChunk } from "./context-identity";
 
 const state = vi.hoisted(() => ({
@@ -350,7 +351,7 @@ describe("context expansion through verified SSE pipeline", () => {
         : original(...args),
     );
     const output = (await run()).text();
-    await vi.advanceTimersByTimeAsync(105000);
+    await vi.advanceTimersByTimeAsync(ANALYTICS_SERVER_DEADLINE_MS);
     const stream = await output;
     expect(stream).toContain('"type":"error"');
     expect(stream).not.toContain('"type":"final"');

@@ -46,9 +46,9 @@ import {
 
 const encoder = new TextEncoder();
 
-function jsonError(status: number, message: string, requestId: string): Response {
+function jsonError(status: number, message: string, requestId: string, code?: string): Response {
   return Response.json(
-    { message, requestId },
+    { message, requestId, ...(code ? { code } : {}) },
     { status, headers: { "cache-control": "no-store", "x-analytics-request-id": requestId } },
   );
 }
@@ -78,22 +78,30 @@ export async function handleAnalyticsSearchRequest(request: Request): Promise<Re
   const startedAt = Date.now();
   // Include rate-limit DB reads and request-body parsing in the same absolute budget.
   const preflight = new AbortController();
+  let preflightTimedOut = false;
   const abort = () => preflight.abort(request.signal.reason);
   if (request.signal.aborted) abort();
   else request.signal.addEventListener("abort", abort, { once: true });
-  const deadline = setTimeout(
-    () => preflight.abort(new DOMException("Analytics deadline exceeded.", "TimeoutError")),
-    ANALYTICS_SERVER_DEADLINE_MS,
-  );
+  const deadline = setTimeout(() => {
+    if (preflight.signal.aborted) return;
+    preflightTimedOut = true;
+    preflight.abort(new DOMException("Analytics deadline exceeded.", "TimeoutError"));
+  }, ANALYTICS_SERVER_DEADLINE_MS);
   return withAiDiagnostics({ requestId, startedAt, stage: "retrieval" }, async () => {
     try {
       return await handleAnalyticsSearch(request, requestId, startedAt, preflight.signal);
     } catch (error) {
       if (!preflight.signal.aborted) throw error;
-      const timedOut = getGeminiErrorCategory(error, preflight.signal) === "timeout";
-      return timedOut
-        ? jsonError(504, az.analytics.searchFailed, requestId)
-        : new Response(null, { status: 499, headers: { "x-analytics-request-id": requestId } });
+      if (preflightTimedOut) {
+        logAiDiagnostic({
+          event: "deadline",
+          errorCategory: "timeout",
+          timeoutScope: "overall",
+          outcome: "failed",
+        });
+        return jsonError(504, az.analytics.timeout, requestId, "timeout");
+      }
+      return new Response(null, { status: 499, headers: { "x-analytics-request-id": requestId } });
     } finally {
       clearTimeout(deadline);
       request.signal.removeEventListener("abort", abort);
@@ -133,25 +141,35 @@ async function handleAnalyticsSearch(
   let activeStage: NonNullable<AiDiagnosticEvent["stage"]> = "retrieval";
   let activeAttempt = 0;
   const aborter = new AbortController();
-  // Keep both generation attempts inside the deployed 120-second function limit.
-  const deadline = setTimeout(
-    () => {
-      withAiDiagnostics({ requestId, startedAt, stage: activeStage }, () =>
-        logAiDiagnostic({
-          event: "deadline",
-          attempt: activeAttempt,
-          errorCategory: "timeout",
-          timeoutScope: "overall",
-        }),
-      );
-      aborter.abort(new DOMException("Analytics deadline exceeded.", "TimeoutError"));
-    },
-    Math.max(0, startedAt + ANALYTICS_SERVER_DEADLINE_MS - Date.now()),
-  );
+  const deadlineAt = startedAt + ANALYTICS_SERVER_DEADLINE_MS;
+  let overallTimedOut = false;
+  let timeoutLogged = false;
+  const expireDeadline = () => {
+    if (aborter.signal.aborted) return;
+    overallTimedOut = true;
+    aborter.abort(new DOMException("Analytics deadline exceeded.", "TimeoutError"));
+  };
+  const checkDeadline = () => {
+    if (Date.now() >= deadlineAt) expireDeadline();
+  };
+  const logTimeout = (timeoutScope: "model" | "overall") => {
+    if (timeoutLogged) return;
+    timeoutLogged = true;
+    logAiDiagnostic({
+      event: timeoutScope === "overall" ? "deadline" : "failure",
+      stage: activeStage,
+      model,
+      generationAttempt: activeAttempt,
+      errorCategory: "timeout",
+      timeoutScope,
+      outcome: "failed",
+    });
+  };
+  // Retrieval, generation, retries and publication share one absolute deadline.
+  const deadline = setTimeout(expireDeadline, Math.max(0, deadlineAt - Date.now()));
   const abortedHistoryStatus = () =>
-    getGeminiErrorCategory(aborter.signal.reason, aborter.signal) === "timeout"
-      ? ("failed" as const)
-      : ("cancelled" as const);
+    overallTimedOut ? ("failed" as const) : ("cancelled" as const);
+  const timeoutEvent = { type: "error", code: "timeout", message: az.analytics.timeout, requestId };
   let heartbeat: ReturnType<typeof setInterval> | undefined;
   // A delayed insert must precede its terminal update, including after a timeout.
   const historyCreated = createAnalyticsHistoryRecord({
@@ -196,9 +214,11 @@ async function handleAnalyticsSearch(
       let terminalSent = false;
       const close = () => {
         if (closed) return;
+        checkDeadline();
         // A server deadline still needs a terminal event on a connected SSE stream.
-        if (aborter.signal.aborted && abortedHistoryStatus() === "failed" && !terminalSent) {
-          send({ type: "error", message: az.analytics.answerFailed, requestId });
+        if (overallTimedOut && !terminalSent) {
+          logTimeout("overall");
+          send(timeoutEvent);
         }
         closed = true;
         clearTimeout(deadline);
@@ -211,10 +231,11 @@ async function handleAnalyticsSearch(
         }
       };
       const send = (event: Record<string, unknown>) => {
+        if (closed || terminalSent) return false;
+        checkDeadline();
+        if (overallTimedOut && event["type"] === "error") event = timeoutEvent;
         const deadlineError =
-          event["type"] === "error" &&
-          abortedHistoryStatus() === "failed" &&
-          !request.signal.aborted;
+          event["type"] === "error" && overallTimedOut && !request.signal.aborted;
         if (
           closed ||
           terminalSent ||
@@ -223,6 +244,7 @@ async function handleAnalyticsSearch(
         )
           return false;
         try {
+          if (event["code"] === "timeout") logTimeout(overallTimedOut ? "overall" : "model");
           controller.enqueue(encoder.encode("data: " + JSON.stringify(event) + "\n\n"));
           if (event["type"] === "error" || event["type"] === "final") terminalSent = true;
           if (event["type"] === "final") {
@@ -531,20 +553,24 @@ async function handleAnalyticsSearch(
                   providers.analytics.generateTextWithMetadata({
                     ...generationPrompt,
                     signal: aborter.signal,
-                    deadlineAt: startedAt + ANALYTICS_SERVER_DEADLINE_MS,
-                    onFallback: (fallback) => send({ type: "model-fallback", fallback }),
+                    deadlineAt,
+                    onFallback: (fallback) => {
+                      if (send({ type: "model-fallback", fallback })) model = fallback.toModel;
+                    },
                     beforeRequest: async () => {
                       sources = await requireAnalyticsSourceAccess(
                         sources,
                         user,
                         expandedContext ? contextChunks(expandedContext) : [],
                       );
+                      checkDeadline();
                       aborter.signal.throwIfAborted();
                     },
                   }),
                 ),
               aborter.signal,
             );
+            checkDeadline();
             aborter.signal.throwIfAborted();
             if (generated.model) model = generated.model;
             activeStage = "answer_validation";
@@ -647,13 +673,16 @@ async function handleAnalyticsSearch(
               durationMs: Date.now() - startedAt,
             });
           } else {
-            logAiDiagnostic({
-              event: "failure",
-              stage: activeStage,
-              attempt: activeAttempt,
-              providerStatus: getGeminiFailureInfo(error).statusCode,
-              errorCategory: getGeminiErrorCategory(error),
-            });
+            const timedOut = getGeminiErrorCategory(error, aborter.signal) === "timeout";
+            if (timedOut) send(timeoutEvent);
+            else
+              logAiDiagnostic({
+                event: "failure",
+                stage: activeStage,
+                attempt: activeAttempt,
+                providerStatus: getGeminiFailureInfo(error).statusCode,
+                errorCategory: getGeminiErrorCategory(error),
+              });
             const snapshot = buildAnalyticsHistorySnapshot(
               sources,
               "",
@@ -669,14 +698,15 @@ async function handleAnalyticsSearch(
               model,
               durationMs: Date.now() - startedAt,
             });
-            send({
-              type: "error",
-              message:
-                activeStage === "generation"
-                  ? answerFailureMessage(error)
-                  : az.analytics.answerFailed,
-              requestId,
-            });
+            if (!timedOut)
+              send({
+                type: "error",
+                message:
+                  activeStage === "generation"
+                    ? answerFailureMessage(error)
+                    : az.analytics.answerFailed,
+                requestId,
+              });
           }
         } finally {
           close();

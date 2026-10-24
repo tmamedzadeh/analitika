@@ -10,7 +10,7 @@ const vercelNitroOptions = {
   vercel: {
     functionRules: {
       "/api/inngest": { maxDuration: 300 },
-      "/api/analytics/search": { maxDuration: 120 },
+      "/api/analytics/search": { maxDuration: 300 },
     },
   },
 };

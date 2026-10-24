@@ -4,6 +4,41 @@ import { logAiDiagnostic, withAiDiagnostics } from "./diagnostics";
 afterEach(() => vi.restoreAllMocks());
 
 describe("analytics AI diagnostic context", () => {
+  it("logs timeout outcome and attempt without fabricating provider completion metadata", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    withAiDiagnostics(
+      { requestId: "timeout-test", startedAt: Date.now(), stage: "generation" },
+      () =>
+        logAiDiagnostic({
+          event: "deadline",
+          model: "gemini-3.8-flash",
+          generationAttempt: 2,
+          errorCategory: "timeout",
+          timeoutScope: "overall",
+          outcome: "failed",
+          ...{
+            prompt: "private prompt",
+            answer: "private answer",
+            apiKey: "secret",
+            source: "classified",
+          },
+        }),
+    );
+    const event = JSON.parse(String(error.mock.calls[0]?.[0]).replace("[analytics-ai] ", ""));
+    expect(event).toMatchObject({
+      requestId: "timeout-test",
+      stage: "generation",
+      model: "gemini-3.8-flash",
+      generationAttempt: 2,
+      errorCategory: "timeout",
+      timeoutScope: "overall",
+      outcome: "failed",
+      providerStatus: null,
+    });
+    expect(event).not.toHaveProperty("finishReason");
+    for (const field of ["prompt", "answer", "apiKey", "source"])
+      expect(event).not.toHaveProperty(field);
+  });
   it("keeps concurrent request IDs and nested stages separate and logs only selected fields", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     await Promise.all(

@@ -1,6 +1,7 @@
 /** Test subprocess only. Never imported by the application or production bundle. */
 import { writeFile } from "node:fs/promises";
 import { az } from "../src/lib/i18n/az";
+import { ANALYTICS_SERVER_DEADLINE_MS } from "../src/lib/analytics";
 
 if (process.env["RELEASE_CONTROLLED_AI"] !== "synthetic-only")
   throw new Error("Controlled provider requires explicit test subprocess.");
@@ -54,7 +55,7 @@ globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: RequestIni
       { status: 429, headers: { "retry-after": "45" } },
     );
   if (scenario === "rccancel" || (scenario === "rcdeadline" && counts[key]! > 1))
-    await pause(120_000, init?.signal);
+    await pause(ANALYTICS_SERVER_DEADLINE_MS, init?.signal);
   if (scenario === "rcdeadline" && counts[key] === 1) await pause(55_000, init?.signal);
   const malformed =
     scenario === "rcmalformed" ||
