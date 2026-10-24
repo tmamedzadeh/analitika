@@ -6,7 +6,7 @@
 
 Завершены единые фильтры Bülletenlər, Məlumat bazası и Analitika во всех слоях: React, Zod, SQL, pagination/cache keys, history, Drizzle и storage. Сохранены архитектура TanStack Start, визуальная идентичность navy/teal, classification документов, authentication и citation protections.
 
-Владелец новым запросом разрешил production migrations и обычный push в main. Применена совместимая миграция `0027_unified_expand`; фактическая схема и неизменность данных подтверждены. Удаляющая колонку фаза `0028_unified_contract` допускается только после подтверждения новой версии web/workers и завершения старых запросов. Окончательный статус этой фазы и публикации фиксируется ниже после rollout.
+Владелец новым запросом разрешил production migrations и обычный push в main. **Обе миграции 0027/0028 применены к production, реализация отправлена в main обычным push.** Ready для commit `ab3fcf60070d86321520d8c0cb65ea5bda55d9cf` подтверждён владельцем в разговоре, GitHub показывает Vercel success, Inngest автоматически синхронизирован. Contract применён после интервала 300 секунд и проверки отсутствия старых активных runs. Итоговая схема, контрольные суммы всех шести таблиц и неизменность RLS подтверждены.
 
 Подробный технический разбор первоначальной реализации и её исходных причин: [ZIRVE_UNIFIED_UX_FILTERS_REPORT.md](../ZIRVE_UNIFIED_UX_FILTERS_REPORT.md). Этот файл определяет актуальный production-статус.
 
@@ -73,21 +73,21 @@ Preflight production: 19 бюллетеней, non-open=0. У колонки т�
 
 Порядок: read-only preflight → 0027 expand → push/deploy web + Inngest → подтверждение новой версии и drain старых запросов → 0028 contract → read-only сверка.
 
-| Фаза                  | Содержание                                                                                                         | Статус                                            |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
-| 0027_unified_expand   | Убирает reliability defaults/NOT NULL, добавляет image_metadata в обе attachment tables, временный open-only CHECK | **Применена 2026-10-24 04:21:55Z; journal id=28** |
-| 0028_unified_contract | Удаляет исключительно brief classification и её CHECK, F/6→NULL, сужает rating CHECK                               | Ожидает подтверждения нового runtime              |
+| Фаза                  | Содержание                                                                                                         | Статус                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| 0027_unified_expand   | Убирает reliability defaults/NOT NULL, добавляет image_metadata в обе attachment tables, временный open-only CHECK | **Применена; проверена 2026-10-24 04:21:55Z; journal id=28** |
+| 0028_unified_contract | Удаляет исключительно brief classification и её CHECK, F/6→NULL, сужает rating CHECK                               | **Применена; проверена 2026-10-24 04:31:18Z; journal id=29** |
 
-Фактическая production-схема до/после expand, checks, RLS и journal: [BEFORE](ZIRVE_FINAL_UX_DB_BEFORE.json), [EXPAND](ZIRVE_FINAL_UX_DB_EXPAND.json). Connection fingerprint совпадает. До миграции legacy F=0 и 6=0; автоматической переоценки нет.
+Фактическая production-схема, checks, RLS и journal: [BEFORE](ZIRVE_FINAL_UX_DB_BEFORE.json), [EXPAND](ZIRVE_FINAL_UX_DB_EXPAND.json), [CONTRACT](ZIRVE_FINAL_UX_DB_CONTRACT.json). Connection fingerprint совпадает. До и после миграций legacy F=0 и 6=0; существующие оценки не изменились. Итоговый столбец brief classification отсутствует, обе image_metadata добавлены, ratings nullable без defaults и с CHECK A–E/1–5.
 
-| Таблица           | Строк до/после expand | Контрольная сумма содержимого    |
-| ----------------- | --------------------- | -------------------------------- |
-| documents         | 15 / 15               | 73fbfe88feab7b576949cd526a5058dd |
-| daily_briefs      | 19 / 19               | 20823b3735fde887c93245fee2d3ddc5 |
-| chunks            | 378 / 378             | 1493102ba86d36717e56a86dcbcb8b2b |
-| attachments       | 0 / 0                 | d41d8cd98f00b204e9800998ecf8427e |
-| brief_attachments | 0 / 0                 | d41d8cd98f00b204e9800998ecf8427e |
-| analytics_queries | 0 / 0                 | d41d8cd98f00b204e9800998ecf8427e |
+| Таблица           | Строк до/после обеих фаз | Контрольная сумма содержимого    |
+| ----------------- | ------------------------ | -------------------------------- |
+| documents         | 15 / 15                  | 73fbfe88feab7b576949cd526a5058dd |
+| daily_briefs      | 19 / 19                  | 20823b3735fde887c93245fee2d3ddc5 |
+| chunks            | 378 / 378                | 1493102ba86d36717e56a86dcbcb8b2b |
+| attachments       | 0 / 0                    | d41d8cd98f00b204e9800998ecf8427e |
+| brief_attachments | 0 / 0                    | d41d8cd98f00b204e9800998ecf8427e |
+| analytics_queries | 0 / 0                    | d41d8cd98f00b204e9800998ecf8427e |
 
 Digest использует все поля строк, кроме разрешённых изменяемых колонок: document ratings, brief classification, attachment image_metadata. Chunks включают существующие embeddings. Это контроль неизменности, не backup/export пользовательского содержимого. Для исторической совместимости и private attachments production сейчас не содержит записей; эти случаи проверены адресными synthetic tests.
 
@@ -107,7 +107,9 @@ Digest использует все поля строк, кроме разреш�
 | Production build                                                    | PASS, exit=0, включая Sharp в server artifact                          |
 | Финальный компактный Edge smoke                                     | 8/8, console errors=0, overflow отсутствует                            |
 | git diff --check                                                    | PASS                                                                   |
-| Production expand data/RLS comparison                               | Все шесть digests и RLS без изменений                                  |
+| Production expand и contract data/RLS comparison                    | Все шесть digests и RLS без изменений                                  |
+
+Дополнительно после contract: live `/login` HTTP 200, production CSS содержит новую золотистую подсветку, запрос attachment без сессии получает HTTP 401. [HTTP smoke receipt](ZIRVE_FINAL_UX_HTTP_SMOKE.json). Проверка не создавала материалы и не запускала analytics/indexing.
 
 Тесты не вызывают реальный Gemini. Не менялись модели, 105s timeout, semantic hardening prompts, RRF/rerank, evidence selection до 20 chunks, embedding model/dimensions, SSE/progress или citation protections. Reindex, массовая image conversion, corpus benchmarks и дополнительный общий security audit не запускались.
 
@@ -115,9 +117,13 @@ Digest использует все поля строк, кроме разреш�
 
 Исходный main и origin/main совпадали: `d1f978186fd30db1241b7cae7f16df56dff39764`. Remote: tmamedzadeh/analitika. Force push и переписывание истории не используются. Существующие пользовательские edits az.ts/axtaris сохранены.
 
-Перед rollout GitHub сообщает Vercel success для исходного SHA; Inngest app analitika содержит шесть функций и успешный sync от 2026-10-23T09:16:06Z. [Runtime BEFORE](ZIRVE_FINAL_UX_RUNTIME_BEFORE.json) содержит только безопасные metadata без токенов, query strings или пользовательского содержимого. Новые Ready/SHA и sync будут зафиксированы после push; прежний success не является доказательством новой публикации.
+Реализация: **`ab3fcf60070d86321520d8c0cb65ea5bda55d9cf`**, commit `feat: unify Zirve filters and optimize private images`, обычный `git push origin main` выполнен. Local/remote main после этого push совпали. [Vercel deployment](https://vercel.com/tm-d91f/analitika/EweBNsXTnYhFtA95Nqw4zD3wMQAY) имеет GitHub status success (`Deployment has completed`) для этого SHA. В ответ на запрос, явно указывавший SHA и Production deployment, владелец подтвердил **Ready**. Vercel API в сессии возвращает 403 без авторизации; прямой API-read Ready не заявляется.
 
-Commit/push и конечное совпадение local/remote main фиксируются после завершения rollout. Deploy запускается существующей Git integration; принудительный ручной deploy не выполняется.
+Inngest app analitika автоматически синхронизирован **2026-10-24T04:25:26.241415Z** с новым immutable URL `https://analitika-9cltpg0is-tm-d91f.vercel.app/api/inngest`; все шесть прежних функций сохранены. [Runtime DEPLOYED](ZIRVE_FINAL_UX_RUNTIME_DEPLOYED.json), [проверка drain](ZIRVE_FINAL_UX_RUNTIME_DRAINED.json). Для всех RUNNING/QUEUED/PAUSED за срок существования app (с 2026-10-17) API вернул 0 runs и hasMore=false. Contract запускался после 04:30:26Z, то есть спустя более 300 секунд после sync; это покрывает maxDuration Inngest worker. DB pending/running counters также 0. API list-runs параметры проверены по [официальному Inngest API reference](https://api-docs.inngest.com/api-specs/v2.json).
+
+Результаты rollout добавляются отдельным документационным commit после contract. Web/worker код в нём не меняется относительно подтверждённого Ready SHA. Последующий документационный deployment может автоматически запускаться Vercel; Ready реализации и состояние последнего docs deployment различаются и не подменяются друг другом. Конечный SHA документационного commit сообщается в ответе и определяется через git HEAD, чтобы не создавать циклическую ссылку на собственный hash.
+
+Deploy/sync выполнены существующей Git integration. Ручной deploy, ручной sync, force push и переписывание истории не выполнялись. В receipts нет токенов, query strings или пользовательского содержимого. [Runtime BEFORE](ZIRVE_FINAL_UX_RUNTIME_BEFORE.json) сохраняет исходную точку сравнения.
 
 ## 11. Ограничения, отклонения и приёмка
 
@@ -137,9 +143,13 @@ Commit/push и конечное совпадение local/remote main фикс�
 
 - `bun.lock`
 - `docs/release/ZIRVE_FINAL_UX_DB_BEFORE.json`
+- `docs/release/ZIRVE_FINAL_UX_DB_CONTRACT.json`
 - `docs/release/ZIRVE_FINAL_UX_DB_EXPAND.json`
+- `docs/release/ZIRVE_FINAL_UX_HTTP_SMOKE.json`
 - `docs/release/ZIRVE_FINAL_UX_PRODUCTION_REPORT.md`
 - `docs/release/ZIRVE_FINAL_UX_RUNTIME_BEFORE.json`
+- `docs/release/ZIRVE_FINAL_UX_RUNTIME_DEPLOYED.json`
+- `docs/release/ZIRVE_FINAL_UX_RUNTIME_DRAINED.json`
 - `docs/ZIRVE_UNIFIED_UX_FILTERS_REPORT.md`
 - `drizzle/0027_unified_expand.sql`
 - `drizzle/0028_unified_contract.sql`

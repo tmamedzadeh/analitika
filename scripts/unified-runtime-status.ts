@@ -80,6 +80,18 @@ try {
     const functions = await get("https://api.inngest.com/v2/apps/analitika/functions", key);
     const runs = await get("https://api.inngest.com/v2/runs?limit=20", key);
     const data = app.body.data;
+    const activeRunsFrom = data?.createdAt ?? "2020-01-01T00:00:00.000Z";
+    const active = await get(
+      "https://api.inngest.com/v2/runs?appId=analitika&status=RUNNING&status=QUEUED&status=PAUSED&limit=100&from=" +
+        encodeURIComponent(activeRunsFrom),
+      key,
+    );
+    // Inngest omits optional data/hasMore fields for an empty successful page.
+    const activePageValid =
+      active.status === 200 &&
+      active.body.page &&
+      !active.body.errors &&
+      (active.body.data === undefined || Array.isArray(active.body.data));
     receipt["inngest"] = {
       status: app.status,
       id: data?.id,
@@ -97,6 +109,17 @@ try {
         name: item["name"],
       })),
       runsStatus: runs.status,
+      activeRunsStatus: active.status,
+      activeRunsFrom,
+      activeRunsCount: activePageValid ? (active.body.data?.length ?? 0) : undefined,
+      activeRunsHasMore: activePageValid ? active.body.page.hasMore === true : undefined,
+      activeRuns: (activePageValid ? (active.body.data ?? []) : undefined)?.map(
+        (item: Record<string, unknown>) => ({
+          id: item["id"],
+          status: item["status"],
+          startedAt: item["startedAt"],
+        }),
+      ),
       runs: runs.body.data?.map((item: Record<string, unknown>) => ({
         id: item["id"],
         status: item["status"],

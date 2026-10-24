@@ -1,0 +1,128 @@
+{
+  "phase": "contract",
+  "checkedAt": "2026-10-24T04:31:18.839Z",
+  "connectionFingerprint": "0a5b6be6c6fb5581",
+  "columns": [
+    {
+      "table_name": "attachments",
+      "column_name": "image_metadata",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "brief_attachments",
+      "column_name": "image_metadata",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "documents",
+      "column_name": "info_credibility",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "documents",
+      "column_name": "source_reliability",
+      "is_nullable": "YES",
+      "column_default": null
+    }
+  ],
+  "briefs": {
+    "total": 19
+  },
+  "ratings": {
+    "source_f": 0,
+    "info_6": 0,
+    "source_null": 0,
+    "info_null": 0
+  },
+  "digests": {
+    "documents": {
+      "count": 15,
+      "digest": "73fbfe88feab7b576949cd526a5058dd"
+    },
+    "daily_briefs": {
+      "count": 19,
+      "digest": "20823b3735fde887c93245fee2d3ddc5"
+    },
+    "chunks": {
+      "count": 378,
+      "digest": "1493102ba86d36717e56a86dcbcb8b2b"
+    },
+    "attachments": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "brief_attachments": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "analytics_queries": {
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+  },
+  "dependencies": [],
+  "policies": [],
+  "rls": [
+    {
+      "relname": "analytics_queries",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "attachments",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "brief_attachments",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "chunks",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "daily_briefs",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "documents",
+      "relrowsecurity": true
+    }
+  ],
+  "constraints": [
+    {
+      "table_name": "documents",
+      "conname": "documents_info_credibility_check",
+      "definition": "CHECK (((info_credibility IS NULL) OR ((info_credibility >= 1) AND (info_credibility <= 5))))"
+    },
+    {
+      "table_name": "documents",
+      "conname": "documents_source_reliability_check",
+      "definition": "CHECK (((source_reliability IS NULL) OR (source_reliability = ANY (ARRAY['A'::bpchar, 'B'::bpchar, 'C'::bpchar, 'D'::bpchar, 'E'::bpchar]))))"
+    }
+  ],
+  "journal": [
+    {
+      "id": 29,
+      "hash": "ab42540156dc72ff3801451bd60a84649e2c3b58722dc3804b994d797ffe896d",
+      "created_at": "1792810724242"
+    },
+    {
+      "id": 28,
+      "hash": "4cd90fb2a577e2438c5a9a4e4053e3dbd07c82da80112b3fb3d9882f09663830",
+      "created_at": "1792810718599"
+    },
+    {
+      "id": 27,
+      "hash": "d3534246b800481a0e9bf3fe9174da7b3b020af1599090fe7352a7802e6aeab5",
+      "created_at": "1792746465889"
+    }
+  ],
+  "activity": {
+    "documents_pending": 0,
+    "briefs_pending": 0,
+    "analytics_running": 0
+  }
+}
