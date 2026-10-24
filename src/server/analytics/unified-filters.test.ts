@@ -169,4 +169,15 @@ describe("real PostgreSQL unified date and exact set filtering", () => {
       await db.exec("update app_users set active=true");
     }
   });
+  it("removes all date constraints for a new archive request while keeping ACL", async () => {
+    await withCurrentUser(user, async () => {
+      const full = filters({ period: "all", from: undefined, to: undefined });
+      const documentSql = new PgDialect().sqlToQuery(and(...documentConditions(full, now))!).sql;
+      const sourceSql = new PgDialect().sqlToQuery(searchSourceConditions(full, now)!).sql;
+      expect(documentSql).not.toContain("doc_date");
+      expect(sourceSql).not.toMatch(/"daily_briefs"\."brief_date"\s*(?:>=|<=|>|<)/);
+      expect(documentSql).toContain('"app_users"."clearance"');
+      expect(await select("documents", and(...documentConditions(full, now)))).toHaveLength(7);
+    });
+  });
 });

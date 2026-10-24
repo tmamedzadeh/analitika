@@ -105,7 +105,7 @@ describe("original bytes + bounded private display WebP", () => {
     expect(4001 * 4000).toBeGreaterThan(MAX_IMAGE_PIXELS);
     await expect(optimizeImage(large, "image/png")).rejects.toThrow();
   });
-  it("tracks and deletes both immutable objects after a partial derivative PUT failure", async () => {
+  it("keeps the validated original after an optional derivative PUT failure", async () => {
     const bytes = await sharp(randomBytes(300 * 200 * 3), {
       raw: { width: 300, height: 200, channels: 3 },
     })
@@ -132,13 +132,13 @@ describe("original bytes + bounded private display WebP", () => {
         objects.delete(next);
       }),
     } as unknown as StorageProvider;
-    await expect(
-      commitImageUploads(storage, "documents", "parent", "owner", [
-        { key, size: bytes.length, mime: "image/png" },
-      ]),
-    ).rejects.toThrow(/partial PUT/);
+    const [saved] = await commitImageUploads(storage, "documents", "parent", "owner", [
+      { key, size: bytes.length, mime: "image/png" },
+    ]);
+    expect(saved!.imageMetadata.derivative).toBeNull();
+    expect(objects.has(saved!.key)).toBe(true);
     expect(storage.put).toHaveBeenCalledTimes(2);
-    expect(objects.size).toBe(0);
+    expect(storage.delete).not.toHaveBeenCalled();
   });
   it("lists originals for legacy attachments and both objects for new attachments", () => {
     expect(attachmentKeys({ storageKey: "original" })).toEqual(["original"]);

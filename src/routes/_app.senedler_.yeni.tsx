@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { LocalizedDatePicker } from "@/components/LocalizedDatePicker";
 import { RichTextEditor } from "@/components/RichTextEditor";
@@ -24,6 +24,8 @@ import {
   getDocumentFormContext,
   saveDocument,
 } from "@/lib/documents.functions";
+import { createDocumentText, recoverDocumentText } from "@/lib/document-images.functions";
+import { useDocumentImageUploads } from "@/lib/document-image-context";
 
 const acceptedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxImageSize = 10 * 1024 * 1024;
@@ -52,6 +54,32 @@ function AddDoc() {
   const formRef = useRef<HTMLFormElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const imageUploads = useDocumentImageUploads();
+  const creationKey = useRef<string>(crypto.randomUUID());
+  const photoIds = useRef(new WeakMap<File, string>());
+  const preparedLegacy = useRef<Awaited<ReturnType<typeof prepareDocumentUploads>> | null>(null);
+  const recoveryPointer = `zirve:document-creation:${formContext.actorId}`;
+  useEffect(() => {
+    if (!formContext.textFirst) return;
+    let current = true;
+    try {
+      const key = localStorage.getItem(recoveryPointer);
+      if (key && /^[0-9a-f-]{36}$/i.test(key)) {
+        creationKey.current = key;
+        void recoverDocumentText({ data: { creationKey: key } })
+          .then((result) => {
+            if (current && result && !("error" in result))
+              void navigate({ to: "/senedler/$id", params: { id: result.documentId } });
+          })
+          .catch(() => {});
+      }
+    } catch {
+      /* Storage can be disabled; server idempotency still applies in this tab. */
+    }
+    return () => {
+      current = false;
+    };
+  }, [formContext.textFirst, recoveryPointer, navigate]);
   const [classification, setClassification] =
     useState<(typeof formContext.classifications)[number]>("open");
   const [sourceReliability, setSourceReliability] = useState<SourceReliability | null>(null);
@@ -83,6 +111,7 @@ function AddDoc() {
       return;
     }
     setPhotos(selected);
+    preparedLegacy.current = null;
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -90,7 +119,7 @@ function AddDoc() {
     setSaved(false);
     setFormError("");
     const formData = new FormData(event.currentTarget);
-    if (photoError) return;
+    if (photoError && !formContext.textFirst) return;
 
     const input = createDocumentSchema.safeParse({
       title: String(formData.get("title") ?? ""),
@@ -113,7 +142,51 @@ function AddDoc() {
 
     setSaving(true);
     try {
-      const prepared = await prepareDocumentUploads({ data: input.data });
+      if (formContext.textFirst) {
+        try {
+          localStorage.setItem(recoveryPointer, creationKey.current);
+        } catch {
+          /* Optional opaque pointer only. */
+        }
+        const manifest = photos.map((file) => {
+          let clientFileId = photoIds.current.get(file);
+          if (!clientFileId) {
+            clientFileId = crypto.randomUUID();
+            photoIds.current.set(file, clientFileId);
+          }
+          return { clientFileId, name: file.name, mime: file.type as "image/png", size: file.size };
+        });
+        const result = await createDocumentText({
+          data: { ...input.data, creationKey: creationKey.current, photos: manifest },
+        });
+        if ("error" in result) {
+          setFormError(result.error);
+          return;
+        }
+        setSaved(true);
+        toast.success(
+          photoError
+            ? "Mətn saxlanıldı. Seçilmiş şəkillər qəbul edilmədi."
+            : result.queueFailed
+              ? az.documents.form.savedQueuePending
+              : az.documents.form.success,
+        );
+        imageUploads?.start(
+          result.documentId,
+          new Map(manifest.map((entry, index) => [entry.clientFileId, photos[index]!])),
+        );
+        await queryClient.invalidateQueries({ queryKey: ["documents"] });
+        try {
+          await navigate({ to: "/senedler/$id", params: { id: result.documentId } });
+          localStorage.removeItem(recoveryPointer);
+        } catch {
+          setFormError("Mətn saxlanılıb. Sənədi məlumat bazasından aça bilərsiniz.");
+        }
+        return;
+      }
+      const prepared =
+        preparedLegacy.current ?? (await prepareDocumentUploads({ data: input.data }));
+      preparedLegacy.current = prepared;
 
       for (const [index, upload] of prepared.uploads.entries()) {
         const file = photos[index];
@@ -157,7 +230,9 @@ function AddDoc() {
       await navigate({ to: "/senedler/$id", params: { id: result.documentId } });
     } catch (error) {
       console.error("Document upload request failed.");
-      setFormError(error instanceof Error ? error.message : az.documents.loadError);
+      setFormError(
+        "Nəticəni təsdiqləmək mümkün olmadı. Yenidən yaratmadan əvvəl məlumat bazasını yoxlayın.",
+      );
       await queryClient.invalidateQueries({ queryKey: ["documents"] });
     } finally {
       setSaving(false);

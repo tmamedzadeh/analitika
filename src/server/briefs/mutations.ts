@@ -179,8 +179,7 @@ export async function saveBriefRecord(
     .map((upload) => upload.key);
 
   let committedUploads: Array<z.infer<typeof uploadSchema> & { imageMetadata: ImageMetadata }> = [];
-  let recordCommitted = false;
-  try {
+  {
     if (parsed.keepAttachmentIds.length + parsed.uploads.length > MAX_BRIEF_PHOTOS) {
       throw new Error(az.briefs.validation.tooManyPhotos);
     }
@@ -341,13 +340,8 @@ export async function saveBriefRecord(
         await transaction.insert(briefAttachments).values(finalAttachments);
     });
 
-    recordCommitted = true;
-    await discardImageUploads(getStorage(), "briefs", parsed.briefId, user.id, uploadedKeys);
-    let cleanupIncomplete = false;
-    if (removedKeys.length > 0) {
-      const results = await Promise.allSettled(removedKeys.map((key) => getStorage().delete(key)));
-      cleanupIncomplete = results.some((result) => result.status === "rejected");
-    }
+    // Access disappears with the SQL references; optional physical deletion belongs to the sweep.
+    const cleanupIncomplete = removedKeys.length > 0;
 
     let queueFailed = false;
     try {
@@ -369,18 +363,6 @@ export async function saveBriefRecord(
         );
     }
     return { ok: true, briefId: parsed.briefId, queueFailed, cleanupIncomplete };
-  } catch (error) {
-    if (!recordCommitted)
-      await Promise.allSettled(
-        committedUploads
-          .flatMap((file) =>
-            attachmentKeys({ storageKey: file.key, imageMetadata: file.imageMetadata }),
-          )
-          .map((key) => getStorage().delete(key)),
-      );
-    if (uploadedKeys.length > 0)
-      await discardImageUploads(getStorage(), "briefs", parsed.briefId, user.id, uploadedKeys);
-    throw error;
   }
 }
 

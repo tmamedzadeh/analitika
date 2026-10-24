@@ -1,0 +1,317 @@
+{
+  "baseHead": "b34ae5ac35377b89ac22d1e116be11d9c5d4c90b",
+  "committed": false,
+  "files": [
+    {
+      "path": ".env.example",
+      "change": "modified"
+    },
+    {
+      "path": "docs/ZIRVE_V1_RELIABILITY_UX_GALLERY_IMPLEMENTATION_PLAN.md",
+      "change": "added"
+    },
+    {
+      "path": "docs/release/ZIRVE_V1_CHANGED_FILES.json",
+      "change": "added"
+    },
+    {
+      "path": "docs/release/ZIRVE_V1_CHECKS.json",
+      "change": "added"
+    },
+    {
+      "path": "docs/release/ZIRVE_V1_DB_CHECKS.json",
+      "change": "added"
+    },
+    {
+      "path": "docs/release/ZIRVE_V1_GALLERY_DESKTOP.png",
+      "change": "added"
+    },
+    {
+      "path": "docs/release/ZIRVE_V1_GALLERY_MOBILE.png",
+      "change": "added"
+    },
+    {
+      "path": "docs/release/ZIRVE_V1_PHASE_A_REPORT.md",
+      "change": "added"
+    },
+    {
+      "path": "docs/release/ZIRVE_V1_PHASE_B_REPORT.md",
+      "change": "added"
+    },
+    {
+      "path": "docs/release/ZIRVE_V1_PHASE_C_REPORT.md",
+      "change": "added"
+    },
+    {
+      "path": "docs/release/ZIRVE_V1_PHASE_D_REPORT.md",
+      "change": "added"
+    },
+    {
+      "path": "docs/release/ZIRVE_V1_RELIABILITY_UX_GALLERY_REPORT.md",
+      "change": "added"
+    },
+    {
+      "path": "docs/release/ZIRVE_V1_UI_CHECKS.json",
+      "change": "added"
+    },
+    {
+      "path": "drizzle/0029_document_image_reliability_expand.sql",
+      "change": "added"
+    },
+    {
+      "path": "drizzle/meta/0029_snapshot.json",
+      "change": "added"
+    },
+    {
+      "path": "drizzle/meta/_journal.json",
+      "change": "modified"
+    },
+    {
+      "path": "eslint.config.js",
+      "change": "modified"
+    },
+    {
+      "path": "scripts/verify-0029.ts",
+      "change": "added"
+    },
+    {
+      "path": "scripts/verify-v1-ui.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/components/DocumentImageUploads.tsx",
+      "change": "added"
+    },
+    {
+      "path": "src/components/PasswordInput.test.tsx",
+      "change": "added"
+    },
+    {
+      "path": "src/components/PasswordInput.tsx",
+      "change": "added"
+    },
+    {
+      "path": "src/components/PeriodFilter.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "src/components/PhotoGallery.test.tsx",
+      "change": "added"
+    },
+    {
+      "path": "src/components/PhotoGallery.tsx",
+      "change": "added"
+    },
+    {
+      "path": "src/components/Shell.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "src/components/UnifiedFilters.test.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "src/lib/briefs.functions.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/lib/document-image-context.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/lib/document-images.functions.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/lib/documents.functions.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/lib/filter-search-state.test.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/lib/filter-search-state.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/lib/image-upload-client.test.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/lib/image-upload-client.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/lib/period.test.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/lib/period.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/lib/private-image.test.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/lib/private-image.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/routes/_app.ayarlar.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "src/routes/_app.brifler.$id.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "src/routes/_app.index.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "src/routes/_app.senedler.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "src/routes/_app.senedler_.$id.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "src/routes/_app.senedler_.yeni.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "src/routes/_app.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "src/routes/api.attachments.$kind.$parentId.$attachmentId.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/routes/attachments.test.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/analytics/filters.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/analytics/search.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/analytics/unified-filters.test.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/briefs/mutations.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/db/schema.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/documents/creations.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/server/documents/image-lifecycle.integration.test.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/server/documents/index-dispatch.test.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/server/documents/index-dispatch.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/server/documents/queries.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/env.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/jobs/cleanup-storage.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/storage/attachment-read.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/server/storage/cleanup-claims.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/server/storage/document-image-sessions.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/server/storage/image-uploads.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/storage/operations.test.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/server/storage/operations.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/server/storage/optimize-image.test.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/storage/optimize-image.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/storage/s3.test.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/server/storage/s3.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/server/storage/types.ts",
+      "change": "modified"
+    },
+    {
+      "path": "src/styles.css",
+      "change": "modified"
+    },
+    {
+      "path": "src/test/document-detail.test.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "src/test/isolated-postgres.ts",
+      "change": "added"
+    },
+    {
+      "path": "src/test/search-routes.test.tsx",
+      "change": "modified"
+    },
+    {
+      "path": "vite.config.ts",
+      "change": "modified"
+    }
+  ],
+  "ignoredLocalConfiguration": [
+    {
+      "path": ".env.local",
+      "change": "Added DOCUMENT_IMAGE_UPLOADS_ENABLED=true only; existing values preserved"
+    }
+  ],
+  "ignoredSyntheticArtifacts": ".gate-backup contains local test/build helpers, logs and an isolated PostgreSQL cluster; not application dependencies or a backup of the main DB"
+}

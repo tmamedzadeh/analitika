@@ -21,6 +21,15 @@ export const serverEnvSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.coerce.number().int().min(1).max(50).default(3),
   ),
+  DOCUMENT_IMAGE_UPLOADS_ENABLED: z.enum(["true", "false"]).default("false"),
+  IMAGE_UPLOAD_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).default(168),
+  IMAGE_UPLOAD_MAX_PENDING_FILES: z.coerce.number().int().min(10).max(1000).default(100),
+  IMAGE_UPLOAD_MAX_PENDING_BYTES: z.coerce
+    .number()
+    .int()
+    .min(10485760)
+    .max(10737418240)
+    .default(524288000),
   GOOGLE_GENERATIVE_AI_API_KEY: optionalValue,
   AI_CHAT_MODEL: optionalValue,
   AI_LIGHT_MODEL: optionalValue,

@@ -1,0 +1,9 @@
+{
+  "migration": "0029_document_image_reliability_expand",
+  "fullApplicationSchemaMismatches": 0,
+  "runtimeAndMigrationConnectionsShareSchema": true,
+  "syntheticProbeCreated": 1,
+  "syntheticProbeCleaned": true,
+  "existingRowsModified": false,
+  "s3ObjectsModified": false
+}

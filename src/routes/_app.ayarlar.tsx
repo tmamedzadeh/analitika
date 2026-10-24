@@ -1,3 +1,4 @@
+import { PasswordInput } from "@/components/PasswordInput";
 import { createFileRoute } from "@tanstack/react-router";
 import { KeyRound, ShieldCheck, UserRound, UserX } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
@@ -298,9 +299,8 @@ function Settings() {
               </label>
               <label className="space-y-1.5 text-sm font-medium">
                 <span>{az.userManagement.password}</span>
-                <input
+                <PasswordInput
                   className="field"
-                  type="password"
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                   autoComplete="new-password"
@@ -315,9 +315,8 @@ function Settings() {
               </label>
               <label className="space-y-1.5 text-sm font-medium">
                 <span>{az.userManagement.confirmPassword}</span>
-                <input
+                <PasswordInput
                   className="field"
-                  type="password"
                   value={newPasswordConfirmation}
                   onChange={(event) => setNewPasswordConfirmation(event.target.value)}
                   autoComplete="new-password"
@@ -470,20 +469,18 @@ function Settings() {
                                   );
                                 }}
                               >
-                                <input
+                                <PasswordInput
                                   className="field"
                                   name="password"
-                                  type="password"
                                   autoComplete="new-password"
                                   minLength={12}
                                   maxLength={256}
                                   placeholder={az.userManagement.newPassword}
                                   required
                                 />
-                                <input
+                                <PasswordInput
                                   className="field"
                                   name="confirmation"
-                                  type="password"
                                   autoComplete="new-password"
                                   minLength={12}
                                   maxLength={256}
@@ -545,9 +542,8 @@ function Settings() {
           >
             <label className="space-y-1.5 text-sm font-medium sm:col-span-2">
               <span>{az.userManagement.currentPassword}</span>
-              <input
+              <PasswordInput
                 className="field"
-                type="password"
                 value={ownCurrentPassword}
                 onChange={(event) => setOwnCurrentPassword(event.target.value)}
                 autoComplete="current-password"
@@ -558,9 +554,8 @@ function Settings() {
             </label>
             <label className="space-y-1.5 text-sm font-medium">
               <span>{az.userManagement.newPassword}</span>
-              <input
+              <PasswordInput
                 className="field"
-                type="password"
                 value={ownNewPassword}
                 onChange={(event) => setOwnNewPassword(event.target.value)}
                 autoComplete="new-password"
@@ -575,9 +570,8 @@ function Settings() {
             </label>
             <label className="space-y-1.5 text-sm font-medium">
               <span>{az.userManagement.confirmPassword}</span>
-              <input
+              <PasswordInput
                 className="field"
-                type="password"
                 value={ownConfirmation}
                 onChange={(event) => setOwnConfirmation(event.target.value)}
                 autoComplete="new-password"

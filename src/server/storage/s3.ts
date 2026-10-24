@@ -9,11 +9,20 @@ import {
 import { getSignedUrl as presignUrl } from "@aws-sdk/s3-request-presigner";
 
 import { requireServerEnv } from "../env";
+import { boundedStream, ImageOperationError, operationScope, readStorageBytes } from "./operations";
+function storageFailure(scope: ReturnType<typeof operationScope>) {
+  return scope.signal.aborted
+    ? scope.signal.reason instanceof ImageOperationError
+      ? scope.signal.reason
+      : new ImageOperationError("cancelled", true)
+    : new ImageOperationError("storage", true);
+}
 import type {
   StorageObject,
   StorageProvider,
   StoredObjectStream,
   StoredObjectSummary,
+  StorageOptions,
 } from "./types";
 
 export class S3Storage implements StorageProvider {
@@ -26,6 +35,13 @@ export class S3Storage implements StorageProvider {
       endpoint: requireServerEnv("S3_ENDPOINT"),
       region: requireServerEnv("S3_REGION"),
       forcePathStyle: true,
+      maxAttempts: 2,
+      requestHandler: {
+        connectionTimeout: 3000,
+        socketTimeout: 5000,
+        requestTimeout: 15_000,
+        throwOnRequestTimeout: true,
+      },
       credentials: {
         accessKeyId: requireServerEnv("S3_ACCESS_KEY_ID"),
         secretAccessKey: requireServerEnv("S3_SECRET_ACCESS_KEY"),
@@ -33,14 +49,34 @@ export class S3Storage implements StorageProvider {
     });
   }
 
-  async put({ key, body, contentType }: StorageObject): Promise<void> {
-    await this.client.send(
+  private async send(
+    command: PutObjectCommand | DeleteObjectCommand,
+    options: StorageOptions,
+    budget: number,
+  ) {
+    const scope = operationScope(options, budget);
+    try {
+      await this.client.send(command, { abortSignal: scope.signal });
+    } catch {
+      throw storageFailure(scope);
+    } finally {
+      scope.dispose();
+    }
+  }
+
+  async put(
+    { key, body, contentType }: StorageObject,
+    options: StorageOptions = {},
+  ): Promise<void> {
+    await this.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
         Body: body,
         ContentType: contentType,
       }),
+      options,
+      15_000,
     );
   }
 
@@ -77,67 +113,92 @@ export class S3Storage implements StorageProvider {
     );
   }
 
-  async getMetadata(key: string) {
-    const result = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
-    if (result.ContentLength === undefined)
-      throw new Error("Storage obyektinin ölçüsü qaytarılmadı.");
-    return {
-      size: result.ContentLength,
-      ...(result.ContentType ? { contentType: result.ContentType } : {}),
-    };
+  async getMetadata(key: string, options: StorageOptions = {}) {
+    const scope = operationScope(options);
+    try {
+      const result = await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+        { abortSignal: scope.signal },
+      );
+      if (result.ContentLength === undefined)
+        throw new Error("Storage obyektinin ölçüsü qaytarılmadı.");
+      return {
+        size: result.ContentLength,
+        ...(result.ContentType ? { contentType: result.ContentType } : {}),
+      };
+    } catch {
+      throw storageFailure(scope);
+    } finally {
+      scope.dispose();
+    }
   }
 
   async getPrefix(key: string, length: number): Promise<Uint8Array> {
     const byteCount = Math.max(1, Math.min(Math.floor(length), 64));
-    const result = await this.client.send(
-      new GetObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Range: `bytes=0-${byteCount - 1}`,
-      }),
-    );
-    if (!result.Body) throw new Error("Storage faylın məzmununu qaytarmadı.");
-    const bytes = await result.Body.transformToByteArray();
-    return bytes.slice(0, byteCount);
+    const result = await this.getObjectStream(key, { range: { start: 0, end: byteCount - 1 } });
+    return readStorageBytes(result.body, result.size ?? byteCount);
   }
 
-  async getObjectStream(key: string): Promise<StoredObjectStream> {
-    const result = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
-    if (!result.Body) throw new Error("Storage object is unavailable.");
-    return {
-      body: result.Body.transformToWebStream(),
-      ...(result.ContentLength !== undefined ? { size: result.ContentLength } : {}),
-      ...(result.ContentType ? { contentType: result.ContentType } : {}),
-    };
-  }
-
-  async listObjects(prefix: string): Promise<StoredObjectSummary[]> {
-    const objects: StoredObjectSummary[] = [];
-    let continuationToken: string | undefined;
-    do {
-      const page = await this.client.send(
-        new ListObjectsV2Command({
+  async getObjectStream(key: string, options: StorageOptions = {}): Promise<StoredObjectStream> {
+    const scope = operationScope(options);
+    try {
+      const result = await this.client.send(
+        new GetObjectCommand({
           Bucket: this.bucket,
-          Prefix: prefix,
-          ...(continuationToken ? { ContinuationToken: continuationToken } : {}),
+          Key: key,
+          ...(options.range ? { Range: `bytes=${options.range.start}-${options.range.end}` } : {}),
         }),
+        { abortSignal: scope.signal },
       );
-      for (const object of page.Contents ?? []) {
-        if (object.Key && object.LastModified) {
-          objects.push({ key: object.Key, lastModified: object.LastModified });
-        }
-      }
-      continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
-    } while (continuationToken);
-    return objects;
+      if (!result.Body) throw new Error("Storage object is unavailable.");
+      return {
+        body: boundedStream(result.Body.transformToWebStream(), scope),
+        ...(result.ContentLength !== undefined ? { size: result.ContentLength } : {}),
+        ...(result.ContentType ? { contentType: result.ContentType } : {}),
+      };
+    } catch {
+      scope.dispose();
+      throw storageFailure(scope);
+    }
   }
 
-  async delete(key: string): Promise<void> {
-    await this.client.send(
+  async listObjects(prefix: string, options: StorageOptions = {}): Promise<StoredObjectSummary[]> {
+    const scope = operationScope(options, 30_000);
+    try {
+      const objects: StoredObjectSummary[] = [];
+      let continuationToken: string | undefined;
+      do {
+        const page = await this.client.send(
+          new ListObjectsV2Command({
+            Bucket: this.bucket,
+            Prefix: prefix,
+            ...(continuationToken ? { ContinuationToken: continuationToken } : {}),
+          }),
+          { abortSignal: scope.signal },
+        );
+        for (const object of page.Contents ?? []) {
+          if (object.Key && object.LastModified) {
+            objects.push({ key: object.Key, lastModified: object.LastModified });
+          }
+        }
+        continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+      } while (continuationToken);
+      return objects;
+    } catch {
+      throw storageFailure(scope);
+    } finally {
+      scope.dispose();
+    }
+  }
+
+  async delete(key: string, options: StorageOptions = {}): Promise<void> {
+    await this.send(
       new DeleteObjectCommand({
         Bucket: this.bucket,
         Key: key,
       }),
+      options,
+      2000,
     );
   }
 

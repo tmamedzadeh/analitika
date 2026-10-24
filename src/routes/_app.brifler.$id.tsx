@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { PhotoGallery } from "@/components/PhotoGallery";
 import { deleteBrief, getBrief } from "@/lib/briefs.functions";
 import { briefDate, briefHead } from "@/lib/briefs";
 import { az } from "@/lib/i18n/az";
@@ -54,11 +54,9 @@ function BriefDetail() {
   const data = briefQuery.data;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [photoIndex, setPhotoIndex] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const brief = data?.brief;
-  const photo = photoIndex === null ? undefined : brief?.photos[photoIndex];
 
   useEffect(() => {
     if (!search.chunk || !data?.brief.highlight) return;
@@ -174,53 +172,10 @@ function BriefDetail() {
         {brief.photos.length > 0 && (
           <section className="mt-5">
             <p className="label-mono mb-3 tracking-normal!">{az.briefs.photos}</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {brief.photos.map((item, index) => (
-                <Button
-                  key={item.id}
-                  variant="ghost"
-                  className="h-auto p-0"
-                  onClick={() => setPhotoIndex(index)}
-                  aria-label={az.briefs.addPhoto}
-                >
-                  <img
-                    className="aspect-video w-full rounded-lg object-cover"
-                    src={item.url}
-                    alt={item.name}
-                  />
-                </Button>
-              ))}
-            </div>
+            <PhotoGallery photos={brief.photos} title={brief.title} />
           </section>
         )}
       </div>
-      <Dialog
-        open={Boolean(photo)}
-        onOpenChange={(open) => {
-          if (!open) setPhotoIndex(null);
-        }}
-      >
-        <DialogContent className="max-w-4xl">
-          <DialogTitle>{photo?.name}</DialogTitle>
-          {photo && (
-            <>
-              <a
-                className="mb-3 inline-flex min-h-10 items-center text-sm underline"
-                href={photo.originalUrl ?? photo.url + "?original=1"}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Orijinalı aç
-              </a>
-              <img
-                src={photo.url}
-                alt={photo.name}
-                className="max-h-[75vh] w-full object-contain"
-              />
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </Shell>
   );
 }

@@ -8,6 +8,7 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 const vercelNitroOptions = {
   vercel: {
+    functions: { maxDuration: 60 },
     functionRules: {
       "/api/inngest": { maxDuration: 300 },
       "/api/analytics/search": { maxDuration: 300 },

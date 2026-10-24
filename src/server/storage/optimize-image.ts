@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { imageMimeFromSignature, MAX_BRIEF_PHOTO_BYTES } from "@/lib/briefs";
+import { ImageOperationError } from "./operations";
 
 export const MAX_IMAGE_PIXELS = 16_000_000;
 const MAX_IMAGE_DIMENSION = 16_384;
@@ -20,14 +21,15 @@ function imageProcessor() {
 let processing = 0;
 
 /** Sequential per batch; cap parallel decoders per Node instance. No remote image service. */
-export async function optimizeImage(bytes: Uint8Array, mime: string) {
+export async function optimizeImage(bytes: Uint8Array, mime: string, signal?: AbortSignal) {
+  signal?.throwIfAborted();
   if (
     bytes.length < 1 ||
     bytes.length > MAX_BRIEF_PHOTO_BYTES ||
     imageMimeFromSignature(bytes) !== mime
   )
-    throw new Error("Invalid image signature or size.");
-  if (processing >= 2) throw new Error("Image processor busy; retry upload.");
+    throw new ImageOperationError("validation");
+  if (processing >= 2) throw new ImageOperationError("busy", true);
   processing++;
   try {
     // Native codec availability must not prevent reading existing application data.
@@ -40,6 +42,7 @@ export async function optimizeImage(bytes: Uint8Array, mime: string) {
       sequentialRead: true,
     });
     const metadata = await decoder.metadata();
+    signal?.throwIfAborted();
     const { width, height } = metadata;
     const format = { "image/jpeg": "jpeg", "image/png": "png", "image/webp": "webp" }[mime];
     if (
@@ -51,9 +54,10 @@ export async function optimizeImage(bytes: Uint8Array, mime: string) {
       (metadata.pages ?? 1) > 1 ||
       metadata.format !== format
     )
-      throw new Error("Unsupported image dimensions, format or animation.");
+      throw new ImageOperationError("validation");
     // Force bounded decoding as well as header validation, including for original WebP.
     await decoder.clone().resize(1, 1).timeout({ seconds: 5 }).raw().toBuffer();
+    signal?.throwIfAborted();
     const original = { width, height, sha256: createHash("sha256").update(bytes).digest("hex") };
     // A WebP upload is already encoded for display. Preserve its quality and bytes.
     if (mime === "image/webp") return { ...original, derivative: null };
@@ -77,6 +81,11 @@ export async function optimizeImage(bytes: Uint8Array, mime: string) {
       // Original has already passed decoding. Conversion failure cannot bypass validation.
       return { ...original, derivative: null };
     }
+  } catch (error) {
+    if (error instanceof ImageOperationError) throw error;
+    const invalid =
+      error instanceof Error && /input|invalid|corrupt|exceeds|png|jpeg|webp/i.test(error.message);
+    throw new ImageOperationError(invalid ? "validation" : "processor", !invalid);
   } finally {
     processing--;
   }

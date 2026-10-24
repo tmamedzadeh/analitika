@@ -1,0 +1,21 @@
+{
+  "scope": "Synthetic local harness using actual shared components; actual endpoint ACL tested separately",
+  "checks": [
+    "catalog and analytics options/defaults",
+    "password keyboard toggle preserves independent values",
+    "10-photo gallery selected index, keyboard, zoom, focus and URL",
+    "original >4.5MB download is byte-identical through private ranges",
+    "text remains ready while actual browser bytes upload and validate",
+    "one-photo bulletin error/retry and close",
+    "mobile bulletin swipe, pinch zoom and viewport fit"
+  ],
+  "metrics": {
+    "largestRangeResponse": 1048576,
+    "originalRangeRequests": 6,
+    "uploadBytes": 5410842,
+    "deniedRequests": 4,
+    "externalRequestsBlocked": 0
+  },
+  "errors": [],
+  "configuredServicesCalled": false
+}

@@ -122,7 +122,7 @@ export function DocumentLibrary() {
           <Button type="submit">{az.actions.search}</Button>
         </form>
         <FilterBar>
-          <PeriodFilter value={period} onChange={setPeriod} />
+          <PeriodFilter variant="catalog" value={period} onChange={setPeriod} />
           <select
             className="field filter-control w-auto! max-w-full sm:max-w-56"
             aria-label={az.directions.field}
@@ -153,7 +153,6 @@ export function DocumentLibrary() {
             </Button>
           )}
         </FilterBar>
-
       </div>
       <ZirveQueryIndicator
         fetching={!documents.isPending && documents.isFetching && !documents.isFetchingNextPage}
@@ -204,6 +203,20 @@ export function DocumentLibrary() {
             <p className="line-clamp-3 text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
               {document.preview}
             </p>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <p>
+                Mətnin indekslənməsi:{" "}
+                {
+                  {
+                    queued: "Növbədə",
+                    processing: "Emal olunur",
+                    ready: "Hazırdır",
+                    failed: "Xəta",
+                  }[document.status]
+                }
+              </p>
+              {document.imageStatus && <p>Şəkillər: {document.imageStatus}</p>}
+            </div>
             <div className="mt-auto flex flex-wrap items-center gap-2 pt-2 text-xs text-muted-foreground">
               <span>{directionLabel(document.direction) ?? az.directions.unassigned}</span>
               <ClassificationBadge classification={document.classification} />

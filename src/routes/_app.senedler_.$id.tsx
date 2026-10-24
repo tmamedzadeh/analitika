@@ -6,6 +6,8 @@ import { z } from "zod";
 import { Shell } from "@/components/Shell";
 import { ZirveLoader, ZirveSkeleton, ZirveActionLabel } from "@/components/ZirveLoader";
 import { RichTextContent } from "@/components/RichTextContent";
+import { DocumentImageUploadStatus } from "@/components/DocumentImageUploads";
+import { PhotoGallery } from "@/components/PhotoGallery";
 import { directionLabel } from "@/lib/directions";
 import { az } from "@/lib/i18n/az";
 import {
@@ -233,6 +235,22 @@ function DocumentPage() {
           </div>
         </div>
       )}
+      <section
+        className="panel mb-5 flex flex-wrap items-center justify-between gap-2 p-4"
+        aria-label="Mətnin indekslənməsi"
+      >
+        <h2 className="font-semibold">Mətnin indekslənməsi</h2>
+        <span role="status">
+          {
+            { queued: "Növbədə", processing: "Emal olunur", ready: "Hazırdır", failed: "Xəta" }[
+              document.status
+            ]
+          }
+        </span>
+      </section>
+      {document.imageUploadsEnabled && (
+        <DocumentImageUploadStatus documentId={id} canManage={document.canManage} />
+      )}
 
       <section className="panel p-6">
         <h2 className="mb-4 text-lg font-semibold">{az.documents.form.body}</h2>
@@ -258,25 +276,7 @@ function DocumentPage() {
         {document.photos.length === 0 ? (
           <div className="panel p-5 label-mono">{az.documents.noPhotos}</div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {document.photos.map((photo) => (
-              <a
-                key={photo.id}
-                href={photo.originalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="panel overflow-hidden"
-              >
-                <img
-                  src={photo.url}
-                  alt={photo.name || document.title}
-                  loading="lazy"
-                  className="aspect-video w-full object-cover"
-                />
-                {photo.name && <span className="block truncate p-3 text-sm">{photo.name}</span>}
-              </a>
-            ))}
-          </div>
+          <PhotoGallery photos={document.photos} title={document.title} />
         )}
       </section>
     </Shell>

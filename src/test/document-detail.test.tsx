@@ -48,6 +48,7 @@ const detail = {
   updatedAt: "2026-10-18T10:00:00.000Z",
   chunks: [],
   photos: [],
+  imageUploadsEnabled: false,
   canManage: false,
 };
 
@@ -85,6 +86,8 @@ describe("document detail route", () => {
     vi.clearAllMocks();
     vi.mocked(getDocumentFormContext).mockResolvedValue({
       classifications: ["open", "secret", "top_secret", "special"],
+      textFirst: false,
+      actorId: "synthetic",
     });
     vi.mocked(listDocuments).mockResolvedValue({ items: [recentDocument], nextCursor: null });
     vi.mocked(getDocumentDetails).mockResolvedValue(
@@ -107,7 +110,7 @@ describe("document detail route", () => {
     await waitFor(() => {
       expect(getDocumentDetails).toHaveBeenCalledWith({ data: { documentId } });
     });
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("Hazırdır");
   });
 
   it("reserves a detail skeleton for a slow document request and removes it on success", async () => {
@@ -127,7 +130,7 @@ describe("document detail route", () => {
     });
 
     expect(await screen.findByRole("heading", { name: documentTitle })).toBeInTheDocument();
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("Hazırdır");
   });
 
   it("shows a not-found state for an invalid UUID without requesting the server", async () => {

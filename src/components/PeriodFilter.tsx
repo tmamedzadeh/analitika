@@ -21,10 +21,12 @@ export function PeriodFilter({
   value,
   onChange,
   legacyLabel,
+  variant = "analytics",
 }: {
   value: Value;
   onChange: (value: Value) => void;
   legacyLabel?: string | undefined;
+  variant?: "analytics" | "catalog";
 }) {
   const [open, setOpen] = useState(false);
   const [range, setRange] = useState<DateRange | undefined>();
@@ -57,9 +59,14 @@ export function PeriodFilter({
             Əvvəlki: {legacyLabel} · Dövr seçin
           </option>
         )}
-        {periodValues.map((period) => (
+        {variant === "catalog" && value.period !== "all" && value.period !== "custom" && (
+          <option value={value.period} disabled>
+            {periodLabels[value.period]} · Əvvəlki seçim
+          </option>
+        )}
+        {(variant === "catalog" ? (["all", "custom"] as const) : periodValues).map((period) => (
           <option key={period} value={period}>
-            {periodLabels[period]}
+            {period === "all" && variant === "catalog" ? "Bütün dövr" : periodLabels[period]}
           </option>
         ))}
       </select>
@@ -76,7 +83,7 @@ export function PeriodFilter({
             variant="outline"
             className={value.period === "custom" ? "filter-control text-xs" : "sr-only"}
             tabIndex={value.period === "custom" ? 0 : -1}
-            aria-label="Fərdi dövrü seçin"
+            aria-label="Xüsusi dövrü seçin"
           >
             {value.from && value.to ? `${value.from} – ${value.to}` : "Tarixləri seçin"}
           </Button>

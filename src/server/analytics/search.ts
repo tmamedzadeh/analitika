@@ -93,6 +93,8 @@ export function searchSourceConditions(filters: AnalyticsFilters, now = new Date
     hasCommittedBriefIndex(),
     briefAccessFilter(),
   ];
+  if (isNewAnalyticsFilters(filters) && filters.period === "all")
+    return or(documentSource, and(...briefConditions));
   const window = isNewAnalyticsFilters(filters) ? resolvePeriod(filters, now) : null;
   const fromDate = window?.from ?? minimumDocDate(filters.period, now);
   if (fromDate) briefConditions.push(sql`${dailyBriefs.briefDate} >= ${fromDate}`);

@@ -1,7 +1,8 @@
 import { imageMimeFromSignature, MAX_BRIEF_PHOTO_BYTES } from "@/lib/briefs";
 import { optimizeImage } from "./optimize-image";
 import { attachmentKeys, type ImageMetadata } from "./image-metadata";
-import type { StorageProvider } from "./types";
+import { ImageOperationError, operationScope, readStorageBytes } from "./operations";
+import type { StorageProvider, StorageOptions } from "./types";
 
 const extensions = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as const;
 type ImageMime = keyof typeof extensions;
@@ -41,8 +42,17 @@ export async function commitImageUploads<T extends ImageUpload>(
   parentId: string,
   userId: string,
   uploads: T[],
+  options: StorageOptions & {
+    beforeWrite?: (key: string) => Promise<void>;
+    requestId?: string;
+  } = {},
 ): Promise<Array<T & { imageMetadata: ImageMetadata }>> {
   const committed: Array<T & { imageMetadata: ImageMetadata }> = [];
+  const scope = operationScope(options, 45_000);
+  const requestId = options.requestId ?? crypto.randomUUID();
+  const started = Date.now();
+  const stage = (name: string) =>
+    console.info("image.operation", { requestId, stage: name, elapsedMs: Date.now() - started });
   try {
     for (const upload of uploads) {
       if (
@@ -50,42 +60,25 @@ export async function commitImageUploads<T extends ImageUpload>(
         upload.size < 1 ||
         upload.size > MAX_BRIEF_PHOTO_BYTES
       )
-        throw new Error("Invalid image upload.");
-      const object = await storage.getObjectStream(upload.key);
+        throw new ImageOperationError("validation");
+      scope.signal.throwIfAborted();
+      const context = { signal: scope.signal };
+      const object = await storage.getObjectStream(upload.key, context);
+      stage("storage-read-headers");
       if (
         (object.size !== undefined && object.size !== upload.size) ||
         (object.contentType && object.contentType !== upload.mime)
       ) {
         await object.body.cancel();
-        throw new Error("Image upload metadata mismatch.");
+        throw new ImageOperationError("validation");
       }
-      const reader = object.body.getReader();
-      const parts: Uint8Array[] = [];
-      let size = 0;
-      try {
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          size += value.byteLength;
-          if (size > upload.size) {
-            await reader.cancel();
-            throw new Error("Image upload size mismatch.");
-          }
-          parts.push(value);
-        }
-      } finally {
-        reader.releaseLock();
-      }
-      const bytes = new Uint8Array(size);
-      let offset = 0;
-      for (const part of parts) {
-        bytes.set(part, offset);
-        offset += part.length;
-      }
-      if (size !== upload.size || imageMimeFromSignature(bytes) !== upload.mime)
-        throw new Error("Image upload signature mismatch.");
+      const bytes = await readStorageBytes(object.body, upload.size, context);
+      stage("storage-read-complete");
+      if (imageMimeFromSignature(bytes) !== upload.mime)
+        throw new ImageOperationError("validation");
       const key = `${kind}/${parentId}/committed/${crypto.randomUUID()}.${extensions[upload.mime]}`;
-      const optimized = await optimizeImage(bytes, upload.mime);
+      const optimized = await optimizeImage(bytes, upload.mime, scope.signal);
+      stage("image-validated");
       const derivative = optimized.derivative
         ? {
             key: key + ".display.webp",
@@ -103,16 +96,30 @@ export async function commitImageUploads<T extends ImageUpload>(
       };
       // Track before PUT: a transport error can occur after the object was stored.
       committed.push({ ...upload, key, imageMetadata });
-      await storage.put({ key, body: bytes, contentType: upload.mime });
-      if (derivative && optimized.derivative)
-        await storage.put({
-          key: derivative.key,
-          body: optimized.derivative.bytes,
-          contentType: "image/webp",
-        });
+      await options.beforeWrite?.(key);
+      await storage.put({ key, body: bytes, contentType: upload.mime }, context);
+      stage("original-stored");
+      if (derivative && optimized.derivative) {
+        await options.beforeWrite?.(derivative.key);
+        try {
+          await storage.put(
+            {
+              key: derivative.key,
+              body: optimized.derivative.bytes,
+              contentType: "image/webp",
+            },
+            context,
+          );
+        } catch {
+          imageMetadata.derivative = null;
+          stage("optional-webp-unavailable");
+        }
+      }
+      scope.signal.throwIfAborted();
     }
     return committed;
   } catch (error) {
+    stage("failed");
     await Promise.allSettled(
       committed
         .flatMap((file) =>
@@ -122,12 +129,8 @@ export async function commitImageUploads<T extends ImageUpload>(
     );
     throw error;
   } finally {
-    // Signed staging URLs can be retried; old re-created staging objects are also swept after 24h.
-    await Promise.allSettled(
-      uploads
-        .filter((upload) => isOwnedImageUploadKey(kind, parentId, userId, upload.key, upload.mime))
-        .map((upload) => storage.delete(upload.key)),
-    );
+    // Retryable staging is retained. Only the reference-aware sweep removes it.
+    scope.dispose();
   }
 }
 

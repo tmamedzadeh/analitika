@@ -23,7 +23,7 @@ describe("shared filter interaction", () => {
     }
     render(<Example />);
     const select = screen.getByRole("combobox", { name: "Dövr" });
-    expect(screen.queryByRole("option", { name: "Hamısı" })).toBeNull();
+    expect(screen.getByRole("option", { name: "Hamısı" })).toBeInTheDocument();
     fireEvent.change(select, { target: { value: "custom" } });
     expect(onChange).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Tətbiq et" })).toBeDisabled();

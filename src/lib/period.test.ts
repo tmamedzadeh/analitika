@@ -8,6 +8,12 @@ import {
 import { directionIds } from "./directions";
 
 describe("shared inclusive Baku periods", () => {
+  it("represents the full archive without artificial date bounds", () => {
+    expect(resolvePeriod({ period: "all", from: "2000-01-01", to: "2000-01-02" })).toBeNull();
+    expect(
+      analyticsFiltersSchema.parse({ directionIds: [...directionIds], period: "all" }).period,
+    ).toBe("all");
+  });
   it("respects historical Asia/Baku summer offset for custom ranges", () => {
     const window = resolvePeriod({ period: "custom", from: "2015-07-01", to: "2015-07-01" });
     expect(window.start.toISOString()).toBe("2015-06-30T19:00:00.000Z");

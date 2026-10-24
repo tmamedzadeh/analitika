@@ -1,0 +1,89 @@
+{
+  "date": "2026-10-24",
+  "status": "passed",
+  "head": "b34ae5ac35377b89ac22d1e116be11d9c5d4c90b",
+  "originMainVerifiedAtCompletion": "b34ae5ac35377b89ac22d1e116be11d9c5d4c90b",
+  "phases": {
+    "A": "implemented and verified",
+    "B": "implemented and verified",
+    "C": "implemented and verified",
+    "D": "implemented and verified"
+  },
+  "regression": {
+    "command": "ZIRVE_ISOLATED_PG_TESTS=1 bun --no-env-file run scripts/test.ts --maxWorkers=4 --testTimeout=15000",
+    "filesPassed": 89,
+    "testsPassed": 747,
+    "failures": 0,
+    "durationSeconds": 193.07,
+    "includedRealPostgresLifecycleCases": 20,
+    "configuredDatabaseUrlsUsedByRegression": false
+  },
+  "typescript": { "command": "bun --no-env-file x --no-install tsc --noEmit", "exitCode": 0 },
+  "eslint": {
+    "command": "bun --no-env-file run lint",
+    "exitCode": 0,
+    "errors": 0,
+    "baselineWarnings": [
+      {
+        "file": "src/components/ui/button.tsx",
+        "line": 48,
+        "rule": "react-refresh/only-export-components"
+      }
+    ],
+    "existingCatalogFormattingErrorFixed": true
+  },
+  "productionBuild": {
+    "exitCode": 0,
+    "credentialsRemoved": true,
+    "runtime": "nodejs22.x",
+    "verifiedMaxDurationSeconds": {
+      "__server": 60,
+      "api/analytics/search": 300,
+      "api/inngest": 300
+    },
+    "nativeArtifactPlatform": "win32-x64",
+    "requiresRebuildForLinuxDeployment": true
+  },
+  "ui": {
+    "checksPassed": 7,
+    "failures": 0,
+    "evidence": "ZIRVE_V1_UI_CHECKS.json",
+    "configuredServicesCalled": false,
+    "deployedEndToEndTested": false
+  },
+  "references": { "failures": 0 },
+  "gitDiffCheck": "passed",
+  "mainDevelopmentDatabase": {
+    "migrationsActuallyApplied": ["0029_document_image_reliability_expand"],
+    "schemaMismatches": 0,
+    "runtimeMigrationSchemaMatch": true,
+    "syntheticProbeCreated": 1,
+    "syntheticProbeCleaned": true,
+    "existingRowsModified": false,
+    "s3ObjectsModified": false,
+    "evidence": "ZIRVE_V1_DB_CHECKS.json"
+  },
+  "isolatedTestCleanup": {
+    "identityVerifiedBeforeDestructiveFixtures": true,
+    "syntheticFixtureDatabasesRemoved": 12,
+    "clusterStopped": true,
+    "existingSystemPostgresServiceStillRunning": true,
+    "mainDatabaseUsed": false
+  },
+  "restrictions": {
+    "commits": 0,
+    "pushes": 0,
+    "deployments": 0,
+    "newDependencies": 0,
+    "paidGeminiCalls": 0,
+    "newPhotoInngestFunctions": 0
+  },
+  "limits": [
+    "Historical fetch-error cause remains unknown",
+    "Native Sharp queue is not hard-preemptible by AbortSignal",
+    "Live S3/CORS and deployed Vercel transport were not exercised",
+    "Legacy full GET above 3 MiB returns 413; new UI uses authenticated ranges up to 1 MiB",
+    "Closed-browser uploads require file reselection if transfer was incomplete",
+    "Existing text indexing recovery may delay delivery while Inngest is unavailable"
+  ]
+}

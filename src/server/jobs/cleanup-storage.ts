@@ -5,6 +5,11 @@ import { attachments, briefAttachments, rateLimits } from "@/server/db/schema";
 import { getStorage } from "@/server/storage/s3";
 import { attachmentKeys } from "@/server/storage/image-metadata";
 import { findStaleUnreferencedStorageObjects } from "@/server/storage/orphans";
+import {
+  claimImageObjectDeletion,
+  expireImageSessions,
+  imageSessionSchemaExists,
+} from "@/server/storage/cleanup-claims";
 
 const STORAGE_PREFIXES = ["documents/", "briefs/"] as const;
 const SQL_BATCH_SIZE = 500;
@@ -42,6 +47,9 @@ export async function cleanupOrphanedStorageUploads(now = new Date()): Promise<{
   deleted: number;
 }> {
   const storage = getStorage();
+  const deadline = Date.now() + 45_000;
+  const sessionSchema = await imageSessionSchemaExists();
+  if (sessionSchema) await expireImageSessions(now);
   await getDb()
     .delete(rateLimits)
     .where(lt(rateLimits.windowStart, new Date(now.getTime() - 24 * 60 * 60 * 1000)));
@@ -57,9 +65,20 @@ export async function cleanupOrphanedStorageUploads(now = new Date()): Promise<{
     for (const key of await referencedKeysInBatch(keys)) referenced.add(key);
   }
   const orphans = findStaleUnreferencedStorageObjects(staleCandidates, referenced, now);
-  const results = await Promise.allSettled(orphans.map((key) => storage.delete(key)));
+  let deleted = 0;
+  // Bound concurrency and recheck references at the deletion claim, not just the earlier snapshot.
+  for (const key of orphans) {
+    if (Date.now() >= deadline) break;
+    try {
+      if (sessionSchema && !(await claimImageObjectDeletion(key, now))) continue;
+      await storage.delete(key);
+      deleted++;
+    } catch {
+      /* Retained for the next bounded sweep. */
+    }
+  }
   return {
     inspected: candidates.length,
-    deleted: results.filter((result) => result.status === "fulfilled").length,
+    deleted,
   };
 }

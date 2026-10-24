@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { getBakuDate } from "./briefs";
 
-export const periodValues = ["30d", "90d", "12m", "custom"] as const;
+export const periodValues = ["30d", "90d", "12m", "custom", "all"] as const;
 export const dateOnlySchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -20,11 +20,13 @@ export type PeriodFilter = {
   to?: string | undefined;
 };
 export const defaultPeriod: PeriodFilter = { period: "30d" };
+export const defaultCatalogPeriod: PeriodFilter = { period: "all" };
 export const periodLabels = {
   "30d": "Son ay",
   "90d": "Son rüb",
   "12m": "Son il",
-  custom: "Fərdi dövr",
+  custom: "Xüsusi dövr",
+  all: "Hamısı",
 };
 export function addDays(value: string, days: number): string {
   const date = new Date(`${value}T00:00:00Z`);
@@ -64,8 +66,15 @@ export function bakuMidnight(value: string): Date {
  * the clamped anniversary (leap day -> Feb 28). Timestamps use [start,end).
  * Presets ignore stale custom fields. No unbounded new requests.
  */
-export function resolvePeriod(input: PeriodFilter, now = new Date()) {
+type PeriodWindow = { from: string; through: string; start: Date; endExclusive: Date };
+export function resolvePeriod(
+  input: Omit<PeriodFilter, "period"> & { period: Exclude<PeriodFilter["period"], "all"> },
+  now?: Date,
+): PeriodWindow;
+export function resolvePeriod(input: PeriodFilter, now?: Date): PeriodWindow | null;
+export function resolvePeriod(input: PeriodFilter, now = new Date()): PeriodWindow | null {
   const parsed = z.object(periodShape).parse(input);
+  if (parsed.period === "all") return null;
   const today = getBakuDate(now);
   let from: string;
   let through = today;

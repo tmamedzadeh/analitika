@@ -22,6 +22,7 @@ export const getBriefFormContext = createServerFn({ method: "GET" }).handler(asy
 const listInputSchema = z.object({
   query: z.string().trim().max(200).default(""),
   ...periodShape,
+  period: periodShape.period.default("all"),
   cursor: z
     .object({
       date: briefDateSchema,

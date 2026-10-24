@@ -28,6 +28,83 @@ const tsvectorColumn = customType<{ data: string; driverData: string }>({
   dataType: () => "tsvector",
 });
 
+// Additive receipts survive parent deletion; replay must never recreate a deleted document.
+export const documentCreations = pgTable(
+  "document_creations",
+  {
+    id: uuid("id").primaryKey(),
+    actorId: text("actor_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "restrict" }),
+    creationKey: uuid("creation_key").notNull(),
+    documentId: uuid("document_id").notNull().unique(),
+    payloadHash: text("payload_hash").notNull(),
+    state: text("state").notNull().default("saved"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("document_creations_actor_key_unique").on(t.actorId, t.creationKey),
+    check("document_creations_state_check", sql`state in ('saved','deleted')`),
+  ],
+).enableRLS();
+
+export const documentImageUploads = pgTable(
+  "document_image_uploads",
+  {
+    id: uuid("id").primaryKey(),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    clientFileId: uuid("client_file_id").notNull(),
+    uploaderId: text("uploader_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "restrict" }),
+    ord: integer("ord").notNull(),
+    name: text("name").notNull(),
+    mime: text("mime").notNull(),
+    size: integer("size").notNull(),
+    generation: integer("generation").notNull().default(1),
+    state: text("state").notNull().default("pending"),
+    stagingKey: text("staging_key").notNull(),
+    errorCode: text("error_code"),
+    leaseId: uuid("lease_id"),
+    leaseUntil: timestamp("lease_until", { withTimezone: true }),
+    signedUntil: timestamp("signed_until", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("document_image_uploads_client_unique").on(t.documentId, t.clientFileId),
+    unique("document_image_uploads_ord_unique").on(t.documentId, t.ord),
+    index("document_image_uploads_expiry_idx").on(t.expiresAt),
+    index("document_image_uploads_uploader_idx").on(t.uploaderId),
+    check(
+      "document_image_uploads_limits",
+      sql`ord between 0 and 9 and size between 1 and 10485760 and generation > 0 and mime in ('image/jpeg','image/png','image/webp')`,
+    ),
+    check(
+      "document_image_uploads_state_check",
+      sql`state in ('pending','uploading','checking','ready','failed','cancelled','expired')`,
+    ),
+  ],
+).enableRLS();
+
+export const imageUploadObjects = pgTable(
+  "image_upload_objects",
+  {
+    key: text("key").primaryKey(),
+    uploadId: uuid("upload_id").references(() => documentImageUploads.id, { onDelete: "set null" }),
+    generation: integer("generation").notNull(),
+    state: text("state").notNull().default("protected"),
+    protectUntil: timestamp("protect_until", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("image_upload_objects_expiry_idx").on(t.protectUntil),
+    check("image_upload_objects_state_check", sql`state in ('protected','published','deleting')`),
+  ],
+).enableRLS();
+
 export const documentStatus = pgEnum("document_status", [
   "queued",
   "processing",

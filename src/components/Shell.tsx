@@ -27,6 +27,12 @@ function LogoutAction({ iconOnly = false }: { iconOnly?: boolean }) {
         credentials: "same-origin",
       });
       if (!response.ok) throw new Error();
+      try {
+        for (const key of Object.keys(localStorage))
+          if (key.startsWith("zirve:document-creation:")) localStorage.removeItem(key);
+      } catch {
+        /* Client storage can be disabled. */
+      }
       window.location.replace("/login");
     } catch {
       setError("Çıxış mümkün olmadı. Yenidən cəhd edin.");

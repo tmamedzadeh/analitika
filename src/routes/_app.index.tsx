@@ -59,10 +59,10 @@ export function DailyBriefs() {
       }
     >
       {/* The query indicator reserves 32px below this 8px margin: 40px to cards. */}
-      <div className="panel mb-2 flex flex-col gap-3 p-4">
+      <div className="panel mb-2 flex flex-col gap-3 p-4 md:flex-row md:items-start">
         <form
           role="search"
-          className="flex min-w-0 flex-1 gap-2 sm:min-w-64"
+          className="flex min-w-0 flex-1 gap-2"
           onSubmit={(event) => {
             event.preventDefault();
             setSubmittedQuery(draftQuery.trim());
@@ -87,9 +87,9 @@ export function DailyBriefs() {
             {az.actions.search}
           </Button>
         </form>
-        <FilterBar>
-          <PeriodFilter value={period} onChange={setPeriod} />
-        </FilterBar>
+        <div className="shrink-0">
+          <PeriodFilter variant="catalog" value={period} onChange={setPeriod} />
+        </div>
       </div>
 
       <ZirveQueryIndicator

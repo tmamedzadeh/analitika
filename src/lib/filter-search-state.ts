@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Dispatch, SetStateAction } from "react";
-import { periodShape, resolvePeriod, defaultPeriod } from "./period";
+import { periodShape, resolvePeriod, defaultCatalogPeriod } from "./period";
 import { directionIdSchema, directionIds } from "./directions";
 import { reliabilityFilterShape, parseHistoryFilters, type AnalyticsFilters } from "./analytics";
 
@@ -22,7 +22,9 @@ export const filterRouteSearchSchema = z.object({
   filters: z.unknown().optional(),
 });
 export const parsePeriodSearch = (value: unknown) =>
-  periodSearchSchema.safeParse(value).data ?? defaultPeriod;
+  value === undefined
+    ? defaultCatalogPeriod
+    : (periodSearchSchema.safeParse(value).data ?? defaultCatalogPeriod);
 export const parseRatingsSearch = (value: unknown) =>
   ratingsSearchSchema.safeParse(value).data ?? { sourceReliabilities: [], infoCredibilities: [] };
 export const parseDirectionSearch = (value: unknown) =>

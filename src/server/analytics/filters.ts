@@ -81,6 +81,7 @@ export function documentConditions(filters: AnalyticsFilters, now = new Date()) 
 /** Missing document dates consistently fall back to created_at, in Baku. */
 export function documentDateCondition(filter: PeriodFilter, now = new Date()) {
   const window = resolvePeriod(filter, now);
+  if (!window) return sql`true`;
   return or(
     and(gte(documents.docDate, window.from), lte(documents.docDate, window.through)),
     and(

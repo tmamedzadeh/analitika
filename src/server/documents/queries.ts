@@ -1,10 +1,11 @@
-import { and, desc, eq, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { briefExcerpt } from "@/lib/briefs";
 import { directionIdSchema } from "@/lib/directions";
 import { getDb } from "@/server/db";
 import { documentAccessFilter, documentManagementFilter } from "@/server/db/access";
-import { attachments, documents } from "@/server/db/schema";
+import { attachments, documents, documentImageUploads } from "@/server/db/schema";
+import { readServerEnv } from "@/server/env";
 import { lexicalSearchSql, afterSearchScore } from "@/server/search/sql";
 
 import { periodShape } from "@/lib/period";
@@ -14,6 +15,7 @@ import { documentDateCondition, documentReliabilityConditions } from "@/server/a
 export const DOCUMENT_PAGE_SIZE = 12;
 export const documentListSchema = z.object({
   ...periodShape,
+  period: periodShape.period.default("all"),
   ...reliabilityFilterShape,
   query: z.string().trim().max(200).default(""),
   direction: directionIdSchema.optional(),
@@ -75,11 +77,43 @@ export async function listDocumentsPage(filters: z.infer<typeof documentListSche
     )
     .limit(DOCUMENT_PAGE_SIZE + 1);
   const page = rows.slice(0, DOCUMENT_PAGE_SIZE);
+  const imageStatuses = new Map<string, string>();
+  if (readServerEnv().DOCUMENT_IMAGE_UPLOADS_ENABLED === "true" && page.length) {
+    const slots = await getDb()
+      .select({ documentId: documentImageUploads.documentId, state: documentImageUploads.state })
+      .from(documentImageUploads)
+      .innerJoin(documents, eq(documentImageUploads.documentId, documents.id))
+      .where(
+        and(
+          inArray(
+            documentImageUploads.documentId,
+            page.map((row) => row.id),
+          ),
+          documentAccessFilter(),
+        ),
+      );
+    for (const row of page) {
+      const states = slots.filter((slot) => slot.documentId === row.id).map((slot) => slot.state);
+      imageStatuses.set(
+        row.id,
+        states.includes("checking")
+          ? "Yoxlanılır"
+          : states.some((state) => state === "pending" || state === "uploading")
+            ? "Yüklənir"
+            : states.some((state) => state === "failed" || state === "expired")
+              ? "Xəta"
+              : row.hasAttachments
+                ? "Hazırdır"
+                : "Şəkil yoxdur",
+      );
+    }
+  }
   const last = page.at(-1);
   return {
     items: page.map(({ score: _score, ...row }) => ({
       ...row,
       preview: briefExcerpt(row.preview),
+      ...(imageStatuses.has(row.id) ? { imageStatus: imageStatuses.get(row.id) } : {}),
     })),
     nextCursor:
       rows.length > DOCUMENT_PAGE_SIZE && last

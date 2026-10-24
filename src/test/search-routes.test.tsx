@@ -13,6 +13,16 @@ import {
 } from "@/lib/documents.functions";
 import { listBriefs } from "@/lib/briefs.functions";
 import { az } from "@/lib/i18n/az";
+import { createDocumentText } from "@/lib/document-images.functions";
+
+vi.mock("@/lib/document-images.functions", () => ({
+  createDocumentText: vi.fn(),
+  recoverDocumentText: vi.fn(async () => null),
+  getDocumentImageState: vi.fn(async () => []),
+  prepareDocumentImage: vi.fn(),
+  completeDocumentImage: vi.fn(),
+  cancelDocumentImageUpload: vi.fn(),
+}));
 
 vi.mock("@/lib/documents.functions", async (original) => ({
   ...(await original<typeof import("@/lib/documents.functions")>()),
@@ -65,6 +75,7 @@ const detail = {
   error: null,
   chunks: [],
   photos: [],
+  imageUploadsEnabled: false,
 } as Awaited<ReturnType<typeof getDocumentDetails>>;
 async function open(path: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
@@ -81,12 +92,26 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(listDocuments).mockResolvedValue({ items: [card], nextCursor: null });
   vi.mocked(listBriefs).mockResolvedValue({ items: [], nextCursor: null });
-  vi.mocked(getDocumentFormContext).mockResolvedValue({ classifications: ["open"] });
+  vi.mocked(getDocumentFormContext).mockResolvedValue({
+    classifications: ["open"],
+    textFirst: false,
+    actorId: "synthetic",
+  });
   vi.mocked(getDocumentDetails).mockResolvedValue(detail);
 });
 afterEach(() => vi.restoreAllMocks());
 
 describe("short catalog and creation route smoke with synthetic services", () => {
+  it("keeps a historical preset URL without offering it for new catalog selections", async () => {
+    await open(`/senedler?period=${encodeURIComponent(JSON.stringify({ period: "90d" }))}`);
+    await waitFor(() =>
+      expect(listDocuments).toHaveBeenLastCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ period: "90d" }) }),
+      ),
+    );
+    expect(screen.getByRole("combobox", { name: "Dövr" })).toHaveValue("90d");
+    expect(screen.getByRole("option", { name: /Son rüb/ })).toBeDisabled();
+  });
   it("restores a confirmed range and exact ratings from URL on reload and Back", async () => {
     const period = { period: "custom", from: "2026-10-01", to: "2026-10-18" };
     const ratings = { sourceReliabilities: ["A", "C"], infoCredibilities: [1, 3] };
@@ -100,9 +125,9 @@ describe("short catalog and creation route smoke with synthetic services", () =>
       ),
     );
     expect(screen.getByRole("combobox", { name: "Dövr" })).toHaveValue("custom");
-    fireEvent.change(screen.getByRole("combobox", { name: "Dövr" }), { target: { value: "90d" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Dövr" }), { target: { value: "all" } });
     await waitFor(() =>
-      expect(router.state.location.search).toMatchObject({ period: { period: "90d" } }),
+      expect(router.state.location.search).toMatchObject({ period: { period: "all" } }),
     );
     await act(async () => {
       await router.navigate({ to: "/senedler/$id", params: { id } });
@@ -110,18 +135,18 @@ describe("short catalog and creation route smoke with synthetic services", () =>
     await act(async () => {
       router.history.back();
     });
-    await waitFor(() => expect(screen.getByRole("combobox", { name: "Dövr" })).toHaveValue("90d"));
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Dövr" })).toHaveValue("all"));
     const restored = router.state.location.href;
     cleanup();
     router = await open(restored);
     await waitFor(() =>
       expect(listDocuments).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ period: "90d", ...ratings, cursor: null }),
+          data: expect.objectContaining({ period: "all", ...ratings, cursor: null }),
         }),
       ),
     );
-    expect(router.state.location.search).toMatchObject({ period: { period: "90d" }, ratings });
+    expect(router.state.location.search).toMatchObject({ period: { period: "all" }, ratings });
     const last = vi.mocked(listDocuments).mock.calls.at(-1)![0]!.data;
     expect(last).not.toHaveProperty("from");
     expect(last).not.toHaveProperty("to");
@@ -169,17 +194,17 @@ describe("short catalog and creation route smoke with synthetic services", () =>
     await open("/");
     const input = await screen.findByRole("textbox", { name: az.briefs.searchLabel });
     fireEvent.change(input, { target: { value: "müdafiə nazir təsdiq" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Dövr" }), { target: { value: "90d" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Dövr" }), { target: { value: "all" } });
     await waitFor(() =>
       expect(listBriefs).toHaveBeenLastCalledWith(
-        expect.objectContaining({ data: { query: "", period: "90d", cursor: null } }),
+        expect.objectContaining({ data: { query: "", period: "all", cursor: null } }),
       ),
     );
     fireEvent.submit(input.closest("form")!);
     await waitFor(() =>
       expect(listBriefs).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          data: { query: "müdafiə nazir təsdiq", period: "90d", cursor: null },
+          data: { query: "müdafiə nazir təsdiq", period: "all", cursor: null },
         }),
       ),
     );
@@ -282,5 +307,53 @@ describe("short catalog and creation route smoke with synthetic services", () =>
       chunk: "00000000-0000-4000-8000-000000000002",
     });
     expect(getDocumentDetails).toHaveBeenCalledWith({ data: { documentId: id } });
+  });
+  it("saves text before photos and reuses the creation key after a lost response", async () => {
+    vi.mocked(getDocumentFormContext).mockResolvedValue({
+      classifications: ["open"],
+      textFirst: true,
+      actorId: "synthetic-text-first",
+    });
+    vi.mocked(createDocumentText)
+      .mockReset()
+      .mockRejectedValueOnce(new TypeError("fetch error"))
+      .mockResolvedValue({ documentId: id, queueFailed: false, replay: true });
+    const transport = vi.spyOn(globalThis, "fetch");
+    const router = await open("/senedler/yeni");
+    fireEvent.change(await screen.findByPlaceholderText(az.documents.form.titlePlaceholder), {
+      target: { value: "Synthetic text-first" },
+    });
+    fireEvent.paste(screen.getByRole("textbox", { name: az.documents.form.body }), {
+      clipboardData: {
+        getData: (type: string) => (type === "text/plain" ? "Synthetic text-first body" : ""),
+        files: [],
+        types: ["text/plain"],
+      },
+    });
+    fireEvent.change(document.querySelector('select[name="direction"]')!, {
+      target: { value: "OSINT" },
+    });
+    fireEvent.click(document.querySelector('input[name="sourceReliability"][value="B"]')!);
+    fireEvent.click(document.querySelector('input[name="infoCredibility"][value="2"]')!);
+    fireEvent.change(document.querySelector('input[type="file"]')!, {
+      target: {
+        files: [
+          new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "synthetic.png", {
+            type: "image/png",
+          }),
+        ],
+      },
+    });
+    fireEvent.submit(document.querySelector("form")!);
+    await screen.findByText(/Nəticəni təsdiqləmək mümkün olmadı/);
+    expect(screen.queryByText("fetch error")).toBeNull();
+    expect(transport).not.toHaveBeenCalled();
+    expect(prepareDocumentUploads).not.toHaveBeenCalled();
+    const first = vi.mocked(createDocumentText).mock.calls[0]![0]!.data;
+    fireEvent.submit(document.querySelector("form")!);
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/senedler/${id}`));
+    const second = vi.mocked(createDocumentText).mock.calls[1]![0]!.data;
+    expect(second.creationKey).toBe(first.creationKey);
+    expect(second.photos).toEqual(first.photos);
   });
 });

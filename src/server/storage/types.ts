@@ -20,8 +20,14 @@ export type StoredObjectStream = {
   contentType?: string;
 };
 
+export type StorageOptions = {
+  signal?: AbortSignal | undefined;
+  timeoutMs?: number | undefined;
+  range?: { start: number; end: number } | undefined;
+};
+
 export interface StorageProvider {
-  put(object: StorageObject): Promise<void>;
+  put(object: StorageObject, options?: StorageOptions): Promise<void>;
   getSignedUrl(key: string, expiresInSeconds?: number): Promise<string>;
   getSignedUploadUrl(
     key: string,
@@ -29,9 +35,9 @@ export interface StorageProvider {
     size: number,
     expiresInSeconds?: number,
   ): Promise<string>;
-  getMetadata(key: string): Promise<StoredObjectMetadata>;
+  getMetadata(key: string, options?: StorageOptions): Promise<StoredObjectMetadata>;
   getPrefix(key: string, length: number): Promise<Uint8Array>;
-  getObjectStream(key: string): Promise<StoredObjectStream>;
-  listObjects(prefix: string): Promise<StoredObjectSummary[]>;
-  delete(key: string): Promise<void>;
+  getObjectStream(key: string, options?: StorageOptions): Promise<StoredObjectStream>;
+  listObjects(prefix: string, options?: StorageOptions): Promise<StoredObjectSummary[]>;
+  delete(key: string, options?: StorageOptions): Promise<void>;
 }

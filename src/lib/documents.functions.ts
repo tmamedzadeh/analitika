@@ -17,7 +17,12 @@ import {
   getCurrentUser,
 } from "../server/db/access";
 import { allowedClassifications, canAccessClassification, type Clearance } from "@/server/auth";
-import { appUsers, attachments, chunks, documents } from "../server/db/schema";
+import { appUsers, attachments, chunks, documents, documentCreations } from "../server/db/schema";
+import { readServerEnv } from "@/server/env";
+import { dispatchCreatedDocument } from "@/server/documents/index-dispatch";
+import { canonical } from "@/server/documents/creations";
+import { imageSessionSchemaExists } from "@/server/storage/cleanup-claims";
+import { ImageOperationError, imageErrorMessage } from "@/server/storage/operations";
 import { getStorage } from "../server/storage/s3";
 import { deleteObjectsBestEffort } from "../server/storage/delete-objects";
 import { consumeIpRateLimit } from "@/server/analytics/rate-limit";
@@ -80,7 +85,11 @@ const saveDocumentSchema = createDocumentSchema
   .extend({ documentId: z.string().uuid(), uploads: z.array(documentUploadSchema).max(10) });
 
 export const getDocumentFormContext = createServerFn({ method: "GET" }).handler(async () => {
-  return { classifications: allowedClassifications(getCurrentUser()) };
+  return {
+    classifications: allowedClassifications(getCurrentUser()),
+    textFirst: readServerEnv().DOCUMENT_IMAGE_UPLOADS_ENABLED === "true",
+    actorId: getCurrentUser().id,
+  };
 });
 
 function safeFileName(value: string): string {
@@ -121,7 +130,8 @@ async function queueDocumentIndexing(documentId: string): Promise<boolean> {
     .returning({ id: documents.id });
   if (!queued) throw new Error(az.documents.form.retryOnlyFailed);
   try {
-    await inngest.send(documentIndexingRequested.create({ documentId }));
+    if (await dispatchCreatedDocument(documentId, false))
+      throw new Error("Index event delivery unavailable");
     return false;
   } catch {
     await db
@@ -229,14 +239,46 @@ export const saveDocument = createServerFn({ method: "POST" })
     }
     const db = getDb();
     const storage = getStorage();
+    const recoverSaved = async () => {
+      const [saved] = await db
+        .select()
+        .from(documents)
+        .where(
+          and(
+            eq(documents.id, data.documentId),
+            eq(documents.ownerId, user.id),
+            documentAccessFilter(user),
+          ),
+        )
+        .limit(1);
+      if (!saved) return null;
+      if (
+        saved.title !== data.title ||
+        saved.body !== projectRichText(data.bodyRich).text ||
+        canonical(saved.bodyRich) !== canonical(data.bodyRich) ||
+        saved.classification !== data.classification ||
+        saved.direction !== data.direction ||
+        saved.docDate !== (data.docDate || null) ||
+        saved.sourceReliability !== data.sourceReliability ||
+        saved.infoCredibility !== data.infoCredibility
+      )
+        throw new Error(imageErrorMessage(new ImageOperationError("conflict")));
+      return {
+        documentId: saved.id,
+        queueFailed: saved.status === "queued" ? await dispatchCreatedDocument(saved.id) : false,
+      };
+    };
+    const replay = await recoverSaved();
+    if (replay) return replay;
     const committedUploads = await commitImageUploads(
       storage,
       "documents",
       data.documentId,
       user.id,
       data.uploads,
-    ).catch(() => {
-      throw new Error(az.documents.form.uploadMetadataMismatch);
+      { signal: getRequest().signal },
+    ).catch((error) => {
+      throw new Error(imageErrorMessage(error));
     });
     try {
       await db.transaction(async (transaction) => {
@@ -285,16 +327,11 @@ export const saveDocument = createServerFn({ method: "POST" })
         }
       });
     } catch (error) {
-      await Promise.allSettled(
-        committedUploads
-          .flatMap((file) =>
-            attachmentKeys({ storageKey: file.key, imageMetadata: file.imageMetadata }),
-          )
-          .map((key) => storage.delete(key)),
-      );
-      throw error;
+      // A lost COMMIT ACK is not a rollback. The reference-aware sweep owns cleanup.
+      const recovered = await recoverSaved().catch(() => null);
+      if (recovered) return recovered;
+      throw new Error(imageErrorMessage(new ImageOperationError("unknown", true)));
     }
-    await Promise.allSettled(data.uploads.map(({ key }) => storage.delete(key)));
 
     const queueFailed = await queueDocumentIndexing(data.documentId);
     return { documentId: data.documentId, queueFailed };
@@ -376,6 +413,9 @@ export const getDocumentDetails = createServerFn({ method: "GET" })
       chunks: documentChunks,
       photos,
       canManage: canManageDocument(currentUser, document.ownerId),
+      imageUploadsEnabled:
+        readServerEnv().DOCUMENT_IMAGE_UPLOADS_ENABLED === "true" ||
+        (await imageSessionSchemaExists()),
     };
   });
 
@@ -392,6 +432,12 @@ export const deleteDocument = createServerFn({ method: "POST" })
         .for("update")
         .limit(1);
       if (!document) throw new Error(az.documents.missing);
+      // Feature-gated producer requires the additive schema. Receipts are tombstones, not TTL data.
+      if (readServerEnv().DOCUMENT_IMAGE_UPLOADS_ENABLED === "true")
+        await transaction
+          .update(documentCreations)
+          .set({ state: "deleted" })
+          .where(eq(documentCreations.documentId, data.documentId));
       const files = await transaction
         .select({ storageKey: attachments.storageKey, imageMetadata: attachments.imageMetadata })
         .from(attachments)

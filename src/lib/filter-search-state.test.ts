@@ -11,10 +11,10 @@ describe("validated reloadable filter state", () => {
       to: "2026-10-18",
     });
     expect(parsePeriodSearch({ period: "custom", from: "2026-02-30", to: "2026-10-18" })).toEqual({
-      period: "30d",
+      period: "all",
     });
     expect(parsePeriodSearch({ period: "custom", from: "2099-01-01", to: "2099-01-02" })).toEqual({
-      period: "30d",
+      period: "all",
     });
   });
   it("keeps old period/threshold semantics and missing includeBriefs OFF on reload", () => {
